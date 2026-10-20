@@ -11,42 +11,52 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Buat Divisi Contoh
-        $divTeknologi = Division::create([
-            'name' => 'Teknologi Informasi',
-            'description' => 'Divisi pengembang perangkat lunak dan infrastruktur IT.'
-        ]);
+        // 1. Buat divisi jika belum tersedia.
+        $divTeknologi = Division::firstOrCreate(
+            ['name' => 'Teknologi Informasi'],
+            [
+                'description' => 'Divisi pengembang perangkat lunak dan infrastruktur IT.',
+            ]
+        );
 
-        $divKehumasan = Division::create([
-            'name' => 'Kehumasan & Layanan',
-            'description' => 'Divisi pelayanan masyarakat dan komunikasi.'
-        ]);
+        $divKehumasan = Division::firstOrCreate(
+            ['name' => 'Kehumasan & Layanan'],
+            [
+                'description' => 'Divisi pelayanan masyarakat dan komunikasi.',
+            ]
+        );
 
-        // 2. Buat Akun Admin
-        User::create([
-            'name' => 'Administrator HR',
-            'email' => 'admin@darin.test',
-            'password' => Hash::make('password123'),
-            'role' => 'admin',
-            'division_id' => null,
-        ]);
+        // 2. Akun Admin.
+        User::updateOrCreate(
+            ['email' => 'admin@darin.test'],
+            [
+                'name' => 'Administrator HR',
+                'password' => Hash::make('password123'),
+                'role' => 'admin',
+                'division_id' => null,
+            ]
+        );
 
-        // 3. Buat Akun Mentor
-        User::create([
-            'name' => 'Budi Mentor, S.Kom.',
-            'email' => 'mentor@darin.test',
-            'password' => Hash::make('password123'),
-            'role' => 'mentor',
-            'division_id' => $divTeknologi->id,
-        ]);
+        // 3. Akun Mentor.
+        User::updateOrCreate(
+            ['email' => 'mentor@darin.test'],
+            [
+                'name' => 'Budi Mentor, S.Kom.',
+                'password' => Hash::make('password123'),
+                'role' => 'mentor',
+                'division_id' => $divTeknologi->id,
+            ]
+        );
 
-        // 4. Buat Akun Peserta Magang (Intern)
-        User::create([
-            'name' => 'Merry Silitonga',
-            'email' => 'merry@darin.test',
-            'password' => Hash::make('password123'),
-            'role' => 'intern',
-            'division_id' => $divTeknologi->id,
-        ]);
+        // 4. Akun Mahasiswa Magang.
+        User::updateOrCreate(
+            ['email' => 'merry@darin.test'],
+            [
+                'name' => 'Merry Silitonga',
+                'password' => Hash::make('password123'),
+                'role' => 'intern',
+                'division_id' => $divTeknologi->id,
+            ]
+        );
     }
 }
