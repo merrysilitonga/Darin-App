@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Absensi & Izin - DARIN</title>
+    <title>Absensi Harian - DARIN</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -39,11 +39,11 @@
         {{-- HEADER --}}
         <header class="mb-8">
             <h1 class="text-2xl font-bold tracking-tight">
-                Portal Absensi & Perizinan
+                Portal Absensi Harian
             </h1>
 
             <p class="text-sm text-gray-500 mt-1">
-                Lakukan absensi harian atau ajukan izin/sakit jika berhalangan hadir.
+                Lakukan absensi harian dengan verifikasi foto selfie dan lokasi GPS.
             </p>
 
             <div class="w-16 h-1 bg-[#ffc107] mt-2 rounded-full"></div>
@@ -75,29 +75,6 @@
                 </ul>
             </div>
         @endif
-
-        {{-- TAB --}}
-        <div class="flex flex-wrap gap-3 mb-6">
-
-            <button
-                onclick="switchTab('absen')"
-                id="btn-tab-absen"
-                type="button"
-                class="px-5 py-3 rounded-xl font-bold text-sm bg-[#191712] text-white shadow-md transition"
-            >
-                📷 Absen Kehadiran Harian
-            </button>
-
-            <button
-                onclick="switchTab('izin')"
-                id="btn-tab-izin"
-                type="button"
-                class="px-5 py-3 rounded-xl font-bold text-sm bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 transition"
-            >
-                📄 Pengajuan Izin / Sakit
-            </button>
-
-        </div>
 
         {{-- ========================================= --}}
         {{-- SECTION ABSENSI --}}
@@ -404,195 +381,6 @@
 
         </div>
 
-        {{-- ========================================= --}}
-        {{-- SECTION PENGAJUAN IZIN / SAKIT --}}
-        {{-- ========================================= --}}
-
-        <div
-            id="section-izin"
-            class="hidden bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 max-w-3xl"
-        >
-
-            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-
-                <div>
-                    <h3 class="font-bold text-lg text-gray-800 mb-1">
-                        Formulir Pengajuan Izin / Sakit
-                    </h3>
-
-                    <p class="text-xs text-gray-500">
-                        Lengkapi formulir dan unggah surat pendukung untuk pengajuan Anda.
-                    </p>
-                </div>
-
-                <a
-                    href="{{ route('izin.history') }}"
-                    class="shrink-0 inline-flex items-center justify-center px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 transition"
-                >
-                    📋 Riwayat Pengajuan
-                </a>
-
-            </div>
-
-            <form
-                action="{{ route('izin.store') }}"
-                method="POST"
-                enctype="multipart/form-data"
-                class="space-y-5"
-            >
-                @csrf
-
-                {{-- JENIS IZIN --}}
-                <div>
-                    <label for="request_type" class="block text-xs font-bold text-gray-700 mb-2">
-                        Jenis Pengajuan <span class="text-red-500">*</span>
-                    </label>
-
-                    <select
-                        id="request_type"
-                        name="request_type"
-                        required
-                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-[#ffc107]"
-                    >
-                        <option
-                            value="Sakit"
-                            {{ old('request_type', 'Sakit') === 'Sakit' ? 'selected' : '' }}
-                        >
-                            Izin Sakit
-                        </option>
-
-                        <option
-                            value="Izin"
-                            {{ old('request_type') === 'Izin' ? 'selected' : '' }}
-                        >
-                            Izin Keperluan Pribadi
-                        </option>
-                    </select>
-
-                    @error('request_type')
-                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- TANGGAL IZIN --}}
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-                    <div>
-                        <label for="izin_start_date" class="block text-xs font-bold text-gray-700 mb-2">
-                            Tanggal Mulai <span class="text-red-500">*</span>
-                        </label>
-
-                        <input
-                            type="date"
-                            id="izin_start_date"
-                            name="start_date"
-                            value="{{ old('start_date') }}"
-                            required
-                            class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-[#ffc107]"
-                        >
-
-                        @error('start_date')
-                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <label for="izin_end_date" class="block text-xs font-bold text-gray-700 mb-2">
-                            Tanggal Selesai <span class="text-red-500">*</span>
-                        </label>
-
-                        <input
-                            type="date"
-                            id="izin_end_date"
-                            name="end_date"
-                            value="{{ old('end_date') }}"
-                            min="{{ old('start_date') }}"
-                            required
-                            class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-[#ffc107]"
-                        >
-
-                        @error('end_date')
-                            <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                </div>
-
-                {{-- ALASAN --}}
-                <div>
-                    <label for="reason" class="block text-xs font-bold text-gray-700 mb-2">
-                        Alasan Pengajuan <span class="text-red-500">*</span>
-                    </label>
-
-                    <textarea
-                        id="reason"
-                        name="reason"
-                        rows="4"
-                        maxlength="2000"
-                        required
-                        placeholder="Jelaskan alasan izin atau kondisi sakit Anda..."
-                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:border-[#ffc107]"
-                    >{{ old('reason') }}</textarea>
-
-                    @error('reason')
-                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- DOKUMEN PENDUKUNG --}}
-                <div>
-                    <label for="document" class="block text-xs font-bold text-gray-700 mb-2">
-                        Surat Dokter / Surat Pendukung
-                        <span class="text-red-500">*</span>
-                    </label>
-
-                    <input
-                        type="file"
-                        id="document"
-                        name="document"
-                        accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-                        required
-                        class="block w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#ffc107] file:text-black"
-                    >
-
-                    <p id="document-help" class="text-[11px] text-gray-400 mt-2">
-                        Format PDF, JPG, JPEG, atau PNG. Maksimal 2 MB.
-                    </p>
-
-                    @error('document')
-                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- INFORMASI STATUS --}}
-                <div class="rounded-xl bg-amber-50 border border-amber-200 p-4 text-xs text-amber-800 leading-relaxed">
-                    Setelah dikirim, status pengajuan menjadi
-                    <strong>Menunggu</strong> sampai ditinjau oleh mentor.
-                </div>
-
-                {{-- TOMBOL --}}
-                <div class="flex flex-col sm:flex-row gap-3">
-
-                    <button
-                        type="submit"
-                        class="flex-1 py-3 bg-[#ffc107] text-black font-bold rounded-xl shadow-md hover:bg-[#e0a800] transition"
-                    >
-                        📤 Kirim Pengajuan
-                    </button>
-
-                    <a
-                        href="{{ route('izin.history') }}"
-                        class="flex-1 py-3 text-center bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition"
-                    >
-                        Lihat Riwayat
-                    </a>
-
-                </div>
-
-            </form>
-
-        </div>
-
     </main>
 
     {{-- ========================================= --}}
@@ -600,96 +388,6 @@
     {{-- ========================================= --}}
 
     <script>
-        // Mengganti tab absensi dan izin.
-        function switchTab(tab) {
-            const btnAbsen = document.getElementById('btn-tab-absen');
-            const btnIzin = document.getElementById('btn-tab-izin');
-
-            const secAbsen = document.getElementById('section-absen');
-            const secIzin = document.getElementById('section-izin');
-
-            const activeClass =
-                'px-5 py-3 rounded-xl font-bold text-sm bg-[#191712] text-white shadow-md transition';
-
-            const inactiveClass =
-                'px-5 py-3 rounded-xl font-bold text-sm bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 transition';
-
-            if (tab === 'izin') {
-                btnIzin.className = activeClass;
-                btnAbsen.className = inactiveClass;
-
-                secIzin.classList.remove('hidden');
-                secAbsen.classList.add('hidden');
-            } else {
-                btnAbsen.className = activeClass;
-                btnIzin.className = inactiveClass;
-
-                secAbsen.classList.remove('hidden');
-                secIzin.classList.add('hidden');
-            }
-        }
-
-        // Validasi tanggal pengajuan izin.
-        const startDateIzin = document.getElementById('izin_start_date');
-        const endDateIzin = document.getElementById('izin_end_date');
-
-        if (startDateIzin && endDateIzin) {
-            startDateIzin.addEventListener('change', function () {
-                endDateIzin.min = this.value;
-
-                if (
-                    endDateIzin.value &&
-                    endDateIzin.value < this.value
-                ) {
-                    endDateIzin.value = '';
-                }
-            });
-        }
-
-        // Validasi ukuran dokumen di browser.
-        const documentIzin = document.getElementById('document');
-        const documentHelp = document.getElementById('document-help');
-
-        if (documentIzin && documentHelp) {
-            documentIzin.addEventListener('change', function () {
-                const file = this.files && this.files[0];
-
-                if (!file) {
-                    documentHelp.textContent =
-                        'Format PDF, JPG, JPEG, atau PNG. Maksimal 2 MB.';
-
-                    documentHelp.className =
-                        'text-[11px] text-gray-400 mt-2';
-
-                    return;
-                }
-
-                if (file.size > 2 * 1024 * 1024) {
-                    this.value = '';
-
-                    documentHelp.textContent =
-                        'File terlalu besar. Ukuran maksimal 2 MB.';
-
-                    documentHelp.className =
-                        'text-[11px] text-red-600 mt-2';
-
-                    return;
-                }
-
-                documentHelp.textContent =
-                    'File dipilih: ' + file.name +
-                    ' (' + (file.size / 1024).toFixed(1) + ' KB).';
-
-                documentHelp.className =
-                    'text-[11px] text-emerald-700 mt-2';
-            });
-        }
-
-        // Jika validasi pengajuan gagal, buka tab izin.
-        @if(old('request_type'))
-            switchTab('izin');
-        @endif
-
         // =========================================
         // KAMERA, PRATINJAU FOTO, DAN GPS
         // =========================================
