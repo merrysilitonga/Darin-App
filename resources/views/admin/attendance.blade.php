@@ -1,596 +1,248 @@
-
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Rekap Absensi & Logbook Global - DARIN</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet"
-    >
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #f8f9fa;
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8f9fa; }
+        .card { border: 1px solid #eceef2; box-shadow: 0 4px 18px rgba(15, 23, 42, .035); }
+        @media print {
+            aside, .no-print, header .admin-identitas { display: none !important; }
+            main { padding: 0 !important; }
+            body { background: #fff !important; }
+            .card { box-shadow: none !important; break-inside: avoid; }
         }
     </style>
 </head>
-
 <body class="bg-[#f8f9fa] text-gray-800 antialiased">
+@php
+    $adminName = auth()->user()->name ?? 'Administrator';
+    $statusClass = static function ($status) {
+        return match ($status) {
+            'Hadir', 'Disetujui' => 'bg-emerald-100 text-emerald-700',
+            'Terlambat', 'Menunggu' => 'bg-amber-100 text-amber-700',
+            'Ditolak', 'Alpa' => 'bg-red-100 text-red-700',
+            'Sakit' => 'bg-blue-100 text-blue-700',
+            'Izin' => 'bg-violet-100 text-violet-700',
+            default => 'bg-gray-100 text-gray-700',
+        };
+    };
+@endphp
 
-    @php
-        $adminName = auth()->user()->name ?? 'Administrator';
-    @endphp
-
-    <div class="flex min-h-screen">
-
-        {{-- SIDEBAR ADMIN / HR --}}
-        <aside class="w-64 shrink-0 bg-[#191712] text-white flex flex-col justify-between">
-
-            <div>
-
-                {{-- LOGO DAN BRAND --}}
-                <div class="p-6 flex items-center gap-3 border-b border-white/10">
-
-                    <div class="bg-[#ffc107] text-black font-extrabold
-                                w-12 h-12 shrink-0 rounded-xl
-                                flex items-center justify-center
-                                text-2xl shadow-md">
-                        ⚡
-                    </div>
-
-                    <div>
-                        <h1 class="font-extrabold tracking-wider text-xl">
-                            DARIN
-                        </h1>
-
-                        <p class="text-xs uppercase tracking-wider
-                                  text-amber-400 font-bold mt-1">
-                            Portal HR / Admin
-                        </p>
-                    </div>
-
+<div class="flex min-h-screen">
+    {{-- SIDEBAR ADMIN / HR --}}
+    <aside class="no-print w-64 shrink-0 bg-[#191712] text-white flex flex-col justify-between">
+        <div>
+            <div class="p-6 flex items-center gap-3 border-b border-white/10">
+                <div class="bg-[#ffc107] text-black font-extrabold w-12 h-12 shrink-0 rounded-xl flex items-center justify-center text-2xl shadow-md">⚡</div>
+                <div>
+                    <h1 class="font-extrabold tracking-wider text-xl">DARIN</h1>
+                    <p class="text-xs uppercase tracking-wider text-amber-400 font-bold mt-1">Portal HR / Admin</p>
                 </div>
-
-
-                {{-- NAVIGASI --}}
-                <nav class="p-4 space-y-2 text-sm font-semibold">
-
-                    <a
-                        href="{{ route('admin.dashboard') }}"
-                        class="flex items-center gap-3 px-4 py-3.5
-                               text-gray-300 hover:bg-white/10
-                               hover:text-white rounded-xl transition"
-                    >
-                        📊 Dashboard Utama
-                    </a>
-
-                    <a
-                        href="{{ route('admin.users') }}"
-                        class="flex items-center gap-3 px-4 py-3.5
-                               text-gray-300 hover:bg-white/10
-                               hover:text-white rounded-xl transition"
-                    >
-                        👥 Manajemen Pengguna
-                    </a>
-
-                    <a
-                        href="{{ route('admin.divisions') }}"
-                        class="flex items-center gap-3 px-4 py-3.5
-                               text-gray-300 hover:bg-white/10
-                               hover:text-white rounded-xl transition"
-                    >
-                        🏢 Penempatan & Divisi
-                    </a>
-
-                    <a
-                        href="{{ route('admin.attendance') }}"
-                        class="flex items-center gap-3 px-4 py-3.5
-                               bg-[#ffc107] text-black
-                               rounded-xl shadow-md"
-                    >
-                        📈 Rekap Absensi & Logbook
-                    </a>
-
-                    <a
-                        href="{{ route('admin.settings') }}"
-                        class="flex items-center gap-3 px-4 py-3.5
-                               text-gray-300 hover:bg-white/10
-                               hover:text-white rounded-xl transition"
-                    >
-                        ⚙️ Pengaturan Sistem
-                    </a>
-
-                </nav>
-
             </div>
-
-
-            {{-- LOGOUT --}}
-            <div class="p-4 border-t border-white/10">
-
-                <form action="{{ route('logout') }}" method="POST">
-                    @csrf
-
-                    <button
-                        type="submit"
-                        class="w-full flex items-center justify-center gap-2
-                               px-4 py-3 bg-red-600/20
-                               hover:bg-red-600 text-red-300
-                               hover:text-white rounded-xl
-                               text-sm font-bold transition"
-                    >
-                        🚪 Keluar / Logout
-                    </button>
-                </form>
-
+            <div class="px-6 py-4 border-b border-white/10">
+                <p class="text-[10px] uppercase tracking-widest text-gray-500">Login sebagai</p>
+                <p class="mt-2 text-sm font-semibold">{{ $adminName }}</p>
+                <p class="mt-1 text-xs text-gray-400">Administrator / HR</p>
             </div>
-
-        </aside>
-
-
-        {{-- KONTEN UTAMA --}}
-        <div class="flex-1 min-w-0 flex flex-col">
-
-            {{-- TOPBAR --}}
-            <header class="bg-white border-b border-gray-200
-                           px-6 md:px-8 py-5 shadow-sm
-                           flex flex-col sm:flex-row
-                           sm:items-center justify-between gap-4">
-
-                <h2 class="text-xl md:text-2xl font-bold text-gray-800">
-                    Rekapitulasi Absensi & Logbook Global
-                </h2>
-
-                <div class="flex items-center gap-3">
-
-                    <div class="text-right">
-                        <p class="text-sm font-bold text-gray-800">
-                            {{ $adminName }}
-                        </p>
-
-                        <p class="text-xs text-gray-500">
-                            Human Resources / Administrator
-                        </p>
-                    </div>
-
-                    <div class="w-11 h-11 shrink-0 bg-[#ffc107]
-                                rounded-xl flex items-center justify-center
-                                font-extrabold text-black shadow-inner">
-                        {{ collect(explode(' ', trim($adminName)))->take(2)->map(fn($word) => mb_strtoupper(mb_substr($word, 0, 1)))->implode('') ?: 'A' }}
-                    </div>
-
-                </div>
-
-            </header>
-
-
-            {{-- ISI HALAMAN --}}
-            <main class="p-5 md:p-8 space-y-8">
-
-
-                {{-- ==================================== --}}
-                {{-- FILTER LAPORAN --}}
-                {{-- ==================================== --}}
-
-                <section class="bg-white p-6 md:p-7 rounded-3xl
-                                border border-gray-200 shadow-sm space-y-5">
-
-                    <div class="flex flex-col sm:flex-row
-                                sm:items-center sm:justify-between
-                                gap-2 border-b border-gray-100 pb-4">
-
-                        <h3 class="text-lg font-extrabold text-gray-900">
-                            🔍 Filter Data Laporan
-                        </h3>
-
-                        <span class="text-sm text-gray-500">
-                            Pilih parameter untuk menyaring data
-                        </span>
-
-                    </div>
-
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2
-                                xl:grid-cols-4 gap-5">
-
-                        {{-- FILTER DIVISI --}}
-                        <div class="space-y-2">
-
-                            <label class="block text-sm font-bold text-gray-700">
-                                Departemen / Divisi
-                            </label>
-
-                            <select
-                                class="w-full px-4 py-3 bg-gray-50
-                                       border border-gray-200 rounded-xl
-                                       text-sm font-semibold text-gray-700
-                                       focus:outline-none focus:border-[#ffc107]"
-                            >
-                                <option value="">Semua Divisi</option>
-                                <option>Divisi IT & Web Development</option>
-                                <option>Divisi Layanan & Kesehatan</option>
-                                <option>Divisi Administrasi</option>
-                            </select>
-
-                        </div>
-
-
-                        {{-- FILTER MENTOR --}}
-                        <div class="space-y-2">
-
-                            <label class="block text-sm font-bold text-gray-700">
-                                Mentor Pembimbing
-                            </label>
-
-                            <select
-                                class="w-full px-4 py-3 bg-gray-50
-                                       border border-gray-200 rounded-xl
-                                       text-sm font-semibold text-gray-700
-                                       focus:outline-none focus:border-[#ffc107]"
-                            >
-                                <option value="">Semua Mentor</option>
-                                <option>Budi Santoso, M.Kom.</option>
-                                <option>Dr. H. Rahmat, M.Kes.</option>
-                            </select>
-
-                        </div>
-
-
-                        {{-- FILTER PERIODE --}}
-                        <div class="space-y-2">
-
-                            <label class="block text-sm font-bold text-gray-700">
-                                Periode / Bulan
-                            </label>
-
-                            <select
-                                class="w-full px-4 py-3 bg-gray-50
-                                       border border-gray-200 rounded-xl
-                                       text-sm font-semibold text-gray-700
-                                       focus:outline-none focus:border-[#ffc107]"
-                            >
-                                <option>September 2026</option>
-                                <option>Agustus 2026</option>
-                            </select>
-
-                        </div>
-
-
-                        {{-- TOMBOL FILTER --}}
-                        <div class="flex items-end">
-
-                            <button
-                                type="button"
-                                class="w-full px-4 py-3
-                                       bg-[#ffc107] hover:bg-[#e0ac06]
-                                       text-black font-extrabold text-sm
-                                       rounded-xl transition shadow-sm"
-                            >
-                                Terapkan Filter
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-
-
-                {{-- ==================================== --}}
-                {{-- REKAP ABSENSI --}}
-                {{-- ==================================== --}}
-
-                <section class="bg-white p-6 md:p-7 rounded-3xl
-                                border border-gray-200 shadow-sm space-y-5">
-
-                    <div class="flex flex-col lg:flex-row
-                                lg:items-center justify-between gap-4
-                                border-b border-gray-100 pb-4">
-
-                        <div>
-                            <h3 class="text-lg font-extrabold text-gray-900">
-                                📅 Rekapitulasi Kehadiran Peserta
-                            </h3>
-
-                            <p class="text-sm text-gray-500 mt-1">
-                                Akumulasi kehadiran berdasarkan filter yang aktif
-                            </p>
-                        </div>
-
-                        <button
-                            type="button"
-                            class="px-5 py-3 bg-[#191712] hover:bg-black
-                                   text-white font-bold rounded-xl
-                                   text-sm transition shadow-sm whitespace-nowrap"
-                        >
-                            📥 Unduh Rekap Absensi (Excel/PDF)
-                        </button>
-
-                    </div>
-
-
-                    <div class="overflow-x-auto">
-
-                        <table class="w-full text-left border-collapse min-w-[850px]">
-
-                            <thead>
-                                <tr class="border-b border-gray-200
-                                           text-xs font-bold text-gray-500
-                                           uppercase tracking-wide">
-
-                                    <th class="py-4 px-4">No</th>
-                                    <th class="py-4 px-4">Nama Mahasiswa</th>
-                                    <th class="py-4 px-4">Divisi & Mentor</th>
-                                    <th class="py-4 px-4 text-center">Hadir</th>
-                                    <th class="py-4 px-4 text-center">Izin</th>
-                                    <th class="py-4 px-4 text-center">Sakit</th>
-                                    <th class="py-4 px-4 text-center">Alpa</th>
-                                    <th class="py-4 px-4 text-center">Persentase</th>
-
-                                </tr>
-                            </thead>
-
-
-                            <tbody class="text-sm divide-y divide-gray-100">
-
-                                {{-- DATA CONTOH --}}
-                                <tr class="hover:bg-gray-50 transition">
-
-                                    <td class="py-4 px-4 text-gray-600 font-semibold">
-                                        1
-                                    </td>
-
-                                    <td class="py-4 px-4">
-                                        <p class="font-bold text-gray-900">
-                                            Merry Silitonga
-                                        </p>
-
-                                        <p class="text-xs text-gray-500 mt-1">
-                                            UBSI
-                                        </p>
-                                    </td>
-
-                                    <td class="py-4 px-4">
-                                        <p class="font-semibold text-gray-700">
-                                            Divisi IT & Web Dev
-                                        </p>
-
-                                        <p class="text-xs text-gray-500 mt-1">
-                                            Mentor: Budi Santoso
-                                        </p>
-                                    </td>
-
-                                    <td class="py-4 px-4 text-center font-bold text-emerald-600">
-                                        20
-                                    </td>
-
-                                    <td class="py-4 px-4 text-center font-bold text-amber-600">
-                                        0
-                                    </td>
-
-                                    <td class="py-4 px-4 text-center font-bold text-blue-600">
-                                        0
-                                    </td>
-
-                                    <td class="py-4 px-4 text-center font-bold text-red-600">
-                                        0
-                                    </td>
-
-                                    <td class="py-4 px-4 text-center">
-                                        <span class="inline-block px-3 py-1.5
-                                                     bg-emerald-50 text-emerald-700
-                                                     font-bold rounded-lg text-xs">
-                                            100%
-                                        </span>
-                                    </td>
-
-                                </tr>
-
-
-                                <tr class="hover:bg-gray-50 transition">
-
-                                    <td class="py-4 px-4 text-gray-600 font-semibold">
-                                        2
-                                    </td>
-
-                                    <td class="py-4 px-4">
-                                        <p class="font-bold text-gray-900">
-                                            Ahmad Fauzi
-                                        </p>
-
-                                        <p class="text-xs text-gray-500 mt-1">
-                                            UBSI
-                                        </p>
-                                    </td>
-
-                                    <td class="py-4 px-4">
-                                        <p class="font-semibold text-gray-700">
-                                            Divisi IT & Web Dev
-                                        </p>
-
-                                        <p class="text-xs text-gray-500 mt-1">
-                                            Mentor: Budi Santoso
-                                        </p>
-                                    </td>
-
-                                    <td class="py-4 px-4 text-center font-bold text-emerald-600">
-                                        18
-                                    </td>
-
-                                    <td class="py-4 px-4 text-center font-bold text-amber-600">
-                                        1
-                                    </td>
-
-                                    <td class="py-4 px-4 text-center font-bold text-blue-600">
-                                        1
-                                    </td>
-
-                                    <td class="py-4 px-4 text-center font-bold text-red-600">
-                                        0
-                                    </td>
-
-                                    <td class="py-4 px-4 text-center">
-                                        <span class="inline-block px-3 py-1.5
-                                                     bg-emerald-50 text-emerald-700
-                                                     font-bold rounded-lg text-xs">
-                                            90%
-                                        </span>
-                                    </td>
-
-                                </tr>
-
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                    <p class="text-xs text-gray-400">
-                        Catatan: data tabel ini masih berupa data contoh.
-                    </p>
-
-                </section>
-
-
-
-                {{-- ==================================== --}}
-                {{-- REKAP LOGBOOK KOLEKTIF --}}
-                {{-- ==================================== --}}
-
-                <section class="bg-white p-6 md:p-7 rounded-3xl
-                                border border-gray-200 shadow-sm space-y-5">
-
-                    <div class="flex flex-col lg:flex-row
-                                lg:items-center justify-between gap-4
-                                border-b border-gray-100 pb-4">
-
-                        <div>
-                            <h3 class="text-lg font-extrabold text-gray-900">
-                                📝 Rekapitulasi Logbook Kolektif
-                            </h3>
-
-                            <p class="text-sm text-gray-500 mt-1">
-                                Ringkasan aktivitas harian yang dilaporkan oleh peserta magang
-                            </p>
-                        </div>
-
-                        <button
-                            type="button"
-                            class="px-5 py-3 bg-[#191712] hover:bg-black
-                                   text-white font-bold rounded-xl
-                                   text-sm transition shadow-sm whitespace-nowrap"
-                        >
-                            📥 Unduh Logbook Kolektif (PDF)
-                        </button>
-
-                    </div>
-
-
-                    <div class="overflow-x-auto">
-
-                        <table class="w-full text-left border-collapse min-w-[850px]">
-
-                            <thead>
-                                <tr class="border-b border-gray-200
-                                           text-xs font-bold text-gray-500
-                                           uppercase tracking-wide">
-
-                                    <th class="py-4 px-4">Tanggal</th>
-                                    <th class="py-4 px-4">Nama Mahasiswa</th>
-                                    <th class="py-4 px-4">Aktivitas Pekerjaan / Tugas</th>
-                                    <th class="py-4 px-4">Status Validasi</th>
-                                    <th class="py-4 px-4">Catatan Mentor</th>
-
-                                </tr>
-                            </thead>
-
-
-                            <tbody class="text-sm divide-y divide-gray-100">
-
-                                {{-- DATA CONTOH --}}
-                                <tr class="hover:bg-gray-50 transition">
-
-                                    <td class="py-4 px-4 font-semibold text-gray-700 whitespace-nowrap">
-                                        30 Sep 2026
-                                    </td>
-
-                                    <td class="py-4 px-4 font-bold text-gray-900">
-                                        Merry Silitonga
-                                    </td>
-
-                                    <td class="py-4 px-4 text-gray-700 leading-relaxed">
-                                        Mengembangkan komponen menu penilaian dan rekapitulasi nilai akhir di Portal Mentor.
-                                    </td>
-
-                                    <td class="py-4 px-4">
-                                        <span class="inline-block px-3 py-1.5
-                                                     bg-emerald-50 text-emerald-700
-                                                     font-bold rounded-full text-xs">
-                                            Disetujui
-                                        </span>
-                                    </td>
-
-                                    <td class="py-4 px-4 text-gray-600 italic">
-                                        "Pekerjaan sangat baik dan rapi."
-                                    </td>
-
-                                </tr>
-
-
-                                <tr class="hover:bg-gray-50 transition">
-
-                                    <td class="py-4 px-4 font-semibold text-gray-700 whitespace-nowrap">
-                                        30 Sep 2026
-                                    </td>
-
-                                    <td class="py-4 px-4 font-bold text-gray-900">
-                                        Ahmad Fauzi
-                                    </td>
-
-                                    <td class="py-4 px-4 text-gray-700 leading-relaxed">
-                                        Melakukan konfigurasi database dan manajemen tabel migrasi Laravel.
-                                    </td>
-
-                                    <td class="py-4 px-4">
-                                        <span class="inline-block px-3 py-1.5
-                                                     bg-amber-50 text-amber-700
-                                                     font-bold rounded-full text-xs">
-                                            Pending
-                                        </span>
-                                    </td>
-
-                                    <td class="py-4 px-4 text-gray-500">
-                                        -
-                                    </td>
-
-                                </tr>
-
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                    <p class="text-xs text-gray-400">
-                        Catatan: nama mahasiswa, aktivitas, dan status pada tabel ini masih berupa data contoh.
-                    </p>
-
-                </section>
-
-            </main>
-
+            <nav class="p-4 space-y-2 text-sm font-semibold">
+                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-white/10">📊 Dashboard Utama</a>
+                <a href="{{ route('admin.users') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-white/10">👥 Manajemen Pengguna</a>
+                <a href="{{ route('admin.divisions') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-white/10">🏢 Penempatan & Divisi</a>
+                <a href="{{ route('admin.attendance') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#ffc107] text-black shadow-md">📈 Rekap Absensi & Logbook</a>
+                <a href="{{ route('admin.settings') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-white/10">⚙️ Pengaturan Sistem</a>
+            </nav>
         </div>
+        <div class="p-4 border-t border-white/10">
+            <form action="{{ route('logout') }}" method="POST">
+                @csrf
+                <button type="submit" class="w-full px-4 py-3 bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white rounded-xl text-sm font-bold transition">🚪 Keluar / Logout</button>
+            </form>
+        </div>
+    </aside>
 
+    <div class="flex-1 min-w-0 flex flex-col">
+        <header class="bg-white border-b border-gray-200 px-5 md:px-8 py-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <p class="text-xs text-gray-500">Administrator / Laporan</p>
+                <h2 class="text-xl md:text-2xl font-extrabold text-gray-900 mt-1">Rekapitulasi Absensi & Logbook</h2>
+                <p class="text-sm text-gray-500 mt-1">Data langsung dari database DARIN sesuai filter yang dipilih.</p>
+            </div>
+            <div class="admin-identitas flex items-center gap-3">
+                <div class="text-right">
+                    <p class="text-sm font-bold text-gray-800">{{ $adminName }}</p>
+                    <p class="text-xs text-gray-500">Human Resources / Administrator</p>
+                </div>
+                <div class="w-11 h-11 shrink-0 bg-[#ffc107] rounded-xl flex items-center justify-center font-extrabold text-black">{{ collect(explode(' ', trim($adminName)))->take(2)->map(fn($word) => mb_strtoupper(mb_substr($word, 0, 1)))->implode('') ?: 'A' }}</div>
+            </div>
+        </header>
+
+        <main class="flex-1 p-5 md:p-8 space-y-6">
+            @if(session('success'))
+                <div role="status" class="rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-800">✓ {{ session('success') }}</div>
+            @endif
+            @if(session('error'))
+                <div role="alert" class="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">{{ session('error') }}</div>
+            @endif
+
+            {{-- FILTER YANG DITERAPKAN DI CONTROLLER --}}
+            <section class="card rounded-3xl bg-white p-5 md:p-7 space-y-5">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-gray-100 pb-4">
+                    <div>
+                        <h3 class="text-lg font-extrabold text-gray-900">🔍 Filter Laporan</h3>
+                        <p class="text-sm text-gray-500 mt-1">Pencarian dan filter diterapkan ke data absensi serta logbook.</p>
+                    </div>
+                    <span class="text-xs text-gray-500">{{ $attendances->count() }} catatan absensi ditemukan</span>
+                </div>
+                <form method="GET" action="{{ route('admin.attendance') }}" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+                    <div>
+                        <label for="search" class="block text-xs font-bold text-gray-700 mb-2">Nama / Email Mahasiswa</label>
+                        <input id="search" name="search" type="search" value="{{ $search }}" placeholder="Cari mahasiswa..." class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100">
+                    </div>
+                    <div>
+                        <label for="division_id" class="block text-xs font-bold text-gray-700 mb-2">Divisi</label>
+                        <select id="division_id" name="division_id" class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none">
+                            <option value="">Semua Divisi</option>
+                            @foreach($divisions as $division)
+                                <option value="{{ $division->id }}" {{ (string) $divisionId === (string) $division->id ? 'selected' : '' }}>{{ $division->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label for="mentor_id" class="block text-xs font-bold text-gray-700 mb-2">Mentor (berdasarkan divisi)</label>
+                        <select id="mentor_id" name="mentor_id" class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none">
+                            <option value="">Semua Mentor</option>
+                            @foreach($mentors as $mentor)
+                                <option value="{{ $mentor->id }}" {{ (string) $mentorId === (string) $mentor->id ? 'selected' : '' }}>{{ $mentor->name }}{{ $mentor->division ? ' — ' . $mentor->division->name : ' — belum ada divisi' }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label for="month" class="block text-xs font-bold text-gray-700 mb-2">Periode / Bulan</label>
+                        <input id="month" name="month" type="month" value="{{ preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) ? $month : '' }}" class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none">
+                    </div>
+                    <div class="flex items-end gap-2">
+                        <button type="submit" class="flex-1 rounded-xl bg-[#ffc107] px-4 py-3 text-sm font-extrabold text-black hover:bg-amber-400 transition">Terapkan</button>
+                        <a href="{{ route('admin.attendance') }}" class="rounded-xl border border-gray-200 px-4 py-3 text-sm font-bold text-gray-600 hover:bg-gray-50">Reset</a>
+                    </div>
+                </form>
+                <p class="text-xs leading-5 text-gray-400">Filter mentor mengikuti divisi yang ditetapkan pada akun mentor dan mahasiswa. Penugasan mentor individual belum memakai kolom relasi tersendiri.</p>
+            </section>
+
+            {{-- KARTU RINGKASAN --}}
+            <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div class="card rounded-2xl bg-white p-5"><p class="text-sm text-gray-500">Catatan Absensi</p><p class="mt-3 text-3xl font-extrabold text-gray-900">{{ $stats['total'] }}</p><p class="mt-2 text-xs text-gray-400">Sesuai filter aktif</p></div>
+                <div class="card rounded-2xl bg-white p-5"><p class="text-sm text-gray-500">Mahasiswa Tercatat</p><p class="mt-3 text-3xl font-extrabold text-blue-600">{{ $stats['mahasiswa'] }}</p><p class="mt-2 text-xs text-gray-400">Mahasiswa unik pada hasil</p></div>
+                <div class="card rounded-2xl bg-white p-5"><p class="text-sm text-gray-500">Hadir</p><p class="mt-3 text-3xl font-extrabold text-emerald-600">{{ $stats['hadir'] }}</p><p class="mt-2 text-xs text-gray-400">Status Hadir</p></div>
+                <div class="card rounded-2xl bg-white p-5"><p class="text-sm text-gray-500">Terlambat</p><p class="mt-3 text-3xl font-extrabold text-amber-600">{{ $stats['terlambat'] }}</p><p class="mt-2 text-xs text-gray-400">Status Terlambat</p></div>
+            </section>
+
+            {{-- TABEL ABSENSI REAL --}}
+            <section class="card rounded-3xl bg-white overflow-hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-5 md:p-7 border-b border-gray-100">
+                    <div>
+                        <h3 class="text-lg font-extrabold text-gray-900">📅 Data Kehadiran Mahasiswa</h3>
+                        <p class="text-sm text-gray-500 mt-1">Memuat waktu masuk, status, foto selfie, dan koordinat GPS tersimpan.</p>
+                    </div>
+                    <button type="button" onclick="window.print()" class="no-print rounded-xl bg-[#191712] px-5 py-3 text-sm font-bold text-white hover:bg-black">🖨️ Cetak / Simpan PDF</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[1150px] text-left text-sm">
+                        <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
+                            <tr>
+                                <th class="px-4 py-4">No.</th><th class="px-4 py-4">Tanggal</th><th class="px-4 py-4">Mahasiswa</th><th class="px-4 py-4">Divisi / Mentor</th><th class="px-4 py-4">Jam Masuk</th><th class="px-4 py-4">Jam Pulang</th><th class="px-4 py-4">Metode</th><th class="px-4 py-4">Status</th><th class="px-4 py-4">Bukti / Lokasi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @forelse($attendances as $attendance)
+                                @php
+                                    $student = $attendance->user;
+                                    $division = $student?->division;
+                                    $mentorForDivision = $division ? $mentors->firstWhere('division_id', $division->id) : null;
+                                    $hasCoordinates = $attendance->latitude !== null && $attendance->longitude !== null;
+                                @endphp
+                                <tr class="align-top hover:bg-gray-50/70">
+                                    <td class="px-4 py-4 text-gray-400">{{ $loop->iteration }}</td>
+                                    <td class="px-4 py-4 whitespace-nowrap font-semibold text-gray-700">{{ $attendance->date ? \Illuminate\Support\Carbon::parse($attendance->date)->translatedFormat('d M Y') : '-' }}</td>
+                                    <td class="px-4 py-4 min-w-48">
+                                        <p class="font-bold text-gray-900">{{ $student?->name ?? 'Pengguna tidak ditemukan' }}</p>
+                                        <p class="mt-1 text-xs text-gray-500">{{ $student?->email ?? '-' }}</p>
+                                    </td>
+                                    <td class="px-4 py-4 min-w-44">
+                                        <p class="font-semibold text-gray-700">{{ $division?->name ?? 'Belum ditetapkan' }}</p>
+                                        <p class="mt-1 text-xs text-gray-500">Mentor: {{ $mentorForDivision?->name ?? 'Belum ditetapkan' }}</p>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap font-semibold">{{ $attendance->clock_in ? \Illuminate\Support\Carbon::parse($attendance->clock_in)->format('H:i') . ' WIB' : '-' }}</td>
+                                    <td class="px-4 py-4 whitespace-nowrap">{{ $attendance->clock_out ? \Illuminate\Support\Carbon::parse($attendance->clock_out)->format('H:i') . ' WIB' : '-' }}</td>
+                                    <td class="px-4 py-4">{{ $attendance->work_location ?? '-' }}</td>
+                                    <td class="px-4 py-4 whitespace-nowrap"><span class="inline-flex rounded-full px-3 py-1 text-xs font-bold {{ $statusClass($attendance->status ?? '') }}">{{ $attendance->status ?? 'Belum ada status' }}</span></td>
+                                    <td class="px-4 py-4 min-w-40">
+                                        <div class="flex flex-col items-start gap-2">
+                                            @if($attendance->photo_path)
+                                                <a href="{{ route('admin.attendance.photo', $attendance->id) }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100">📷 Lihat Selfie</a>
+                                            @else
+                                                <span class="text-xs text-gray-400">Foto tidak tersedia</span>
+                                            @endif
+                                            @if($hasCoordinates)
+                                                <a href="https://www.google.com/maps?q={{ $attendance->latitude }},{{ $attendance->longitude }}" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-blue-600 hover:underline">📍 Lihat GPS</a>
+                                                <span class="max-w-48 break-all text-[10px] text-gray-400">{{ $attendance->latitude }}, {{ $attendance->longitude }}</span>
+                                            @else
+                                                <span class="text-xs text-gray-400">GPS tidak tersedia</span>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="9" class="px-6 py-14 text-center"><p class="font-bold text-gray-700">Belum ada data absensi</p><p class="mt-2 text-sm text-gray-400">Coba ubah filter atau pastikan mahasiswa sudah mengirim absensi.</p></td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <div class="border-t border-gray-100 bg-gray-50 px-5 py-4 text-xs text-gray-500">Menampilkan {{ $attendances->count() }} catatan absensi dari database.</div>
+            </section>
+
+            {{-- TABEL LOGBOOK REAL --}}
+            <section class="card rounded-3xl bg-white overflow-hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-5 md:p-7 border-b border-gray-100">
+                    <div>
+                        <h3 class="text-lg font-extrabold text-gray-900">📝 Rekapitulasi Logbook Kolektif</h3>
+                        <p class="text-sm text-gray-500 mt-1">Aktivitas yang benar-benar tercatat pada tabel logbook.</p>
+                    </div>
+                    <div class="text-sm text-gray-500">{{ $stats['logbook'] }} catatan · {{ $stats['logbook_menunggu'] }} menunggu</div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[900px] text-left text-sm">
+                        <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
+                            <tr><th class="px-4 py-4">Tanggal</th><th class="px-4 py-4">Mahasiswa</th><th class="px-4 py-4">Divisi</th><th class="px-4 py-4">Topik / Pekerjaan</th><th class="px-4 py-4">Deskripsi</th><th class="px-4 py-4">Status</th><th class="px-4 py-4">Catatan Mentor</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @forelse($logbooks as $item)
+                                <tr class="align-top hover:bg-gray-50/70">
+                                    <td class="px-4 py-4 whitespace-nowrap font-semibold text-gray-600">{{ $item->date ? \Illuminate\Support\Carbon::parse($item->date)->translatedFormat('d M Y') : '-' }}</td>
+                                    <td class="px-4 py-4 min-w-40"><p class="font-bold text-gray-900">{{ $item->user?->name ?? 'Pengguna tidak ditemukan' }}</p><p class="mt-1 text-xs text-gray-500">{{ $item->user?->email ?? '-' }}</p></td>
+                                    <td class="px-4 py-4">{{ $item->user?->division?->name ?? 'Belum ditetapkan' }}</td>
+                                    <td class="px-4 py-4 min-w-44 font-semibold text-gray-800">{{ $item->topic ?? '-' }}</td>
+                                    <td class="px-4 py-4 min-w-64 max-w-md"><p class="whitespace-pre-line break-words text-gray-600">{{ $item->description ?? '-' }}</p></td>
+                                    <td class="px-4 py-4 whitespace-nowrap"><span class="inline-flex rounded-full px-3 py-1 text-xs font-bold {{ $statusClass($item->status ?? '') }}">{{ $item->status ?? 'Belum ditinjau' }}</span></td>
+                                    <td class="px-4 py-4 min-w-44 text-gray-600">{{ $item->mentor_feedback ?: '-' }}</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="7" class="px-6 py-14 text-center"><p class="font-bold text-gray-700">Belum ada data logbook</p><p class="mt-2 text-sm text-gray-400">Catatan mahasiswa akan muncul di sini setelah tersimpan.</p></td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <div class="border-t border-gray-100 bg-gray-50 px-5 py-4 text-xs text-gray-500">Menampilkan {{ $logbooks->count() }} catatan logbook sesuai filter aktif.</div>
+            </section>
+
+            <footer class="pb-4 text-center text-xs text-gray-400">© {{ date('Y') }} DARIN — Sistem Presensi Geospasial Terintegrasi ESDM</footer>
+        </main>
     </div>
-
+</div>
 </body>
 </html>

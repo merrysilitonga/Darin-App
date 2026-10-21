@@ -12,6 +12,7 @@ use App\Models\Attendance;
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\SystemSettingsController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveRequestController;
@@ -38,13 +39,12 @@ Route::post('/login', [AuthController::class, 'login'])
     ->middleware('guest');
 
 
- /*
+/*
 |--------------------------------------------------------------------------
 | REGISTER
 |--------------------------------------------------------------------------
 */
 
-// Register Utama (yang sudah ada)
 Route::get('/register', [AuthController::class, 'showRegisterForm'])
     ->middleware('guest')
     ->name('register');
@@ -52,8 +52,6 @@ Route::get('/register', [AuthController::class, 'showRegisterForm'])
 Route::post('/register', [AuthController::class, 'processRegister'])
     ->middleware('guest');
 
-// ---> TAMBAHKAN BAGIAN 1 DI SINI <---
-// Register Khusus Mentor
 Route::get('/register/mentor', [AuthController::class, 'showMentorRegister'])
     ->middleware('guest')
     ->name('mentor.register');
@@ -61,13 +59,6 @@ Route::get('/register/mentor', [AuthController::class, 'showMentorRegister'])
 Route::post('/register/mentor', [AuthController::class, 'processMentorRegister'])
     ->middleware('guest')
     ->name('mentor.register.process');
-
-Route::get('/register', [AuthController::class, 'showRegisterForm'])
-    ->middleware('guest')
-    ->name('register');
-
-Route::post('/register', [AuthController::class, 'processRegister'])
-    ->middleware('guest');
 
 
 /*
@@ -241,26 +232,22 @@ Route::middleware([
         [LogbookController::class, 'index']
     )->name('logbook');
 
-    // Menambahkan entri logbook sebagai Draft.
     Route::post(
         '/logbook',
         [LogbookController::class, 'store']
     )->name('logbook.store');
 
-    // Mengirim logbook satu bulan untuk approval Mentor.
     Route::post(
         '/logbook/submit-month',
         [LogbookController::class, 'submitMonth']
     )->name('logbook.submit-month');
 
-    // Mengedit entri logbook.
     Route::put(
         '/logbook/{id}',
         [LogbookController::class, 'update']
     )->whereNumber('id')
         ->name('logbook.update');
 
-    // Menghapus entri logbook.
     Route::delete(
         '/logbook/{id}',
         [LogbookController::class, 'destroy']
@@ -270,7 +257,7 @@ Route::middleware([
 
     /*
     |--------------------------------------------------------------------------
-    | RIWAYAT ABSENSI
+    | RIWAYAT ABSENSI MAHASISWA
     |--------------------------------------------------------------------------
     */
 
@@ -319,7 +306,7 @@ Route::middleware([
 
     /*
     |--------------------------------------------------------------------------
-    | EKSPOR RIWAYAT ABSENSI
+    | EKSPOR RIWAYAT ABSENSI MAHASISWA
     |--------------------------------------------------------------------------
     */
 
@@ -378,17 +365,14 @@ Route::get('/', function () {
 
     $user = auth()->user();
 
-    // HR dan Admin.
     if (in_array($user->role, ['admin', 'hr'], true)) {
         return redirect()->route('admin.dashboard');
     }
 
-    // Mentor.
     if ($user->role === 'mentor') {
         return redirect()->route('mentor.dashboard');
     }
 
-    // Mahasiswa magang.
     if (in_array($user->role, ['magang', 'intern'], true)) {
         return redirect()->route('dashboard.magang');
     }
@@ -558,7 +542,7 @@ Route::middleware([
 
         /*
         |--------------------------------------------------------------------------
-        | PERIODE MAGANG
+        | PENGATURAN PERIODE MAGANG
         |--------------------------------------------------------------------------
         */
 
@@ -567,6 +551,19 @@ Route::middleware([
             [AdminController::class, 'updateInternshipPeriod']
         )->whereNumber('user')
             ->name('admin.users.internship-period');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | PENETAPAN DIVISI MAHASISWA / MENTOR
+        |--------------------------------------------------------------------------
+        */
+
+        Route::put(
+            '/users/{user}/divisi',
+            [AdminController::class, 'updateUserDivision']
+        )->whereNumber('user')
+            ->name('admin.users.division');
 
 
         /*
@@ -583,7 +580,7 @@ Route::middleware([
 
         /*
         |--------------------------------------------------------------------------
-        | REKAP ABSENSI GLOBAL
+        | REKAP ABSENSI ADMIN
         |--------------------------------------------------------------------------
         */
 
@@ -591,6 +588,12 @@ Route::middleware([
             '/attendance',
             [AdminController::class, 'attendance']
         )->name('admin.attendance');
+
+        Route::get(
+            '/attendance/{attendance}/photo',
+            [AdminController::class, 'attendancePhoto']
+        )->whereNumber('attendance')
+            ->name('admin.attendance.photo');
 
 
         /*
@@ -601,7 +604,12 @@ Route::middleware([
 
         Route::get(
             '/settings',
-            [AdminController::class, 'settings']
+            [SystemSettingsController::class, 'edit']
         )->name('admin.settings');
+
+        Route::put(
+            '/settings',
+            [SystemSettingsController::class, 'update']
+        )->name('admin.settings.update');
 
     });

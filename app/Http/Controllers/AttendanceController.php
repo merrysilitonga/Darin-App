@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Models\SystemSetting;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
@@ -51,6 +52,7 @@ class AttendanceController extends Controller
         $now = Carbon::now('Asia/Jakarta');
         $today = $now->toDateString();
         $isFriday = $now->dayOfWeekIso === 5;
+        $settings = SystemSetting::current();
 
         // Absensi hanya pada hari kerja.
         if ($now->isWeekend()) {
@@ -86,25 +88,27 @@ class AttendanceController extends Controller
             );
         }
 
-        // Jadwal absensi masuk.
-        $batasMasuk = $now->copy()->setTime(8, 0, 0);
-
-        $batasAkhir = $now->copy()->setTime(
-            17,
-            $isFriday ? 30 : 0,
-            0
+        // Jadwal absensi masuk mengikuti Pengaturan Sistem.
+        $batasMasuk = $now->copy()->setTimeFromTimeString(
+            $settings->clock_in_start
         );
+
+        $waktuAkhirMasuk = $isFriday
+            ? $settings->friday_clock_in_end
+            : $settings->clock_in_end;
+
+        $batasAkhir = $now->copy()->setTimeFromTimeString($waktuAkhirMasuk);
+        $jadwalMulai = str_replace(':', '.', substr((string) $settings->clock_in_start, 0, 5));
+        $jadwalAkhir = str_replace(':', '.', substr((string) $waktuAkhirMasuk, 0, 5));
 
         if ($now->lt($batasMasuk)) {
             return back()->with(
                 'error',
-                'Absensi masuk tersedia mulai pukul 08.00 WIB.'
+                "Absensi masuk tersedia mulai pukul {$jadwalMulai} WIB."
             );
         }
 
         if ($now->gte($batasAkhir)) {
-            $jadwalAkhir = $isFriday ? '17.30' : '17.00';
-
             return back()->with(
                 'error',
                 "Batas absensi masuk hari ini pukul {$jadwalAkhir} WIB telah berakhir."
@@ -256,6 +260,7 @@ class AttendanceController extends Controller
 
         $now = Carbon::now('Asia/Jakarta');
         $today = $now->toDateString();
+        $settings = SystemSetting::current();
 
         if ($now->isWeekend()) {
             return back()->with(
@@ -304,20 +309,15 @@ class AttendanceController extends Controller
             );
         }
 
-        // Senin-Kamis pukul 17.00, Jumat pukul 17.30 WIB.
-        $menitPulang = $now->dayOfWeekIso === 5 ? 30 : 0;
+        // Jadwal absensi pulang mengikuti Pengaturan Sistem.
+        $waktuPulang = $now->dayOfWeekIso === 5
+            ? $settings->friday_clock_out_time
+            : $settings->clock_out_time;
 
-        $batasPulang = $now->copy()->setTime(
-            17,
-            $menitPulang,
-            0
-        );
+        $batasPulang = $now->copy()->setTimeFromTimeString($waktuPulang);
+        $jadwal = str_replace(':', '.', substr((string) $waktuPulang, 0, 5)) . ' WIB';
 
         if ($now->lt($batasPulang)) {
-            $jadwal = $now->dayOfWeekIso === 5
-                ? '17.30 WIB'
-                : '17.00 WIB';
-
             return back()->with(
                 'error',
                 "Absensi pulang baru tersedia mulai pukul {$jadwal}."
