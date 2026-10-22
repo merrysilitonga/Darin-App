@@ -19,6 +19,8 @@
             background: #fcfbf9;
         }
     </style>
+<!-- DARIN MENTOR TYPOGRAPHY FIX -->
+
 </head>
 
 <body class="text-gray-800">

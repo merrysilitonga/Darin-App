@@ -89,37 +89,31 @@
 
             <a href="{{ route('admin.dashboard') }}"
                class="nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-300">
-                <span>▦</span>
                 Dashboard
             </a>
 
             <a href="{{ route('admin.users') }}"
                class="nav-link nav-active flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold">
-                <span>♙</span>
                 Manajemen Pengguna
             </a>
 
             <a href="{{ route('admin.divisions') }}"
                class="nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-300">
-                <span>▤</span>
                 Manajemen Divisi
             </a>
 
             <a href="{{ route('admin.attendance') }}"
                class="nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-300">
-                <span>◷</span>
                 Data Absensi
             </a>
 
             <a href="{{ route('admin.settings') }}"
                class="nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-300">
-                <span>⚙</span>
                 Pengaturan Sistem
             </a>
 
             <a href="{{ route('profil') }}"
                class="nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-300">
-                <span>♧</span>
                 Profil
             </a>
 
@@ -130,8 +124,7 @@
                 @csrf
 
                 <button type="submit"
-                        class="w-full rounded-xl px-4 py-3 text-left text-sm text-red-300 transition hover:bg-red-500/10">
-                    ↪ Keluar
+                        class="w-full rounded-xl px-4 py-3 text-left text-sm text-red-300 transition hover:bg-red-500/10">Logout
                 </button>
             </form>
         </div>

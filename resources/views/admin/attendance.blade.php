@@ -95,27 +95,27 @@
             <nav class="space-y-2 p-4 text-sm font-semibold">
                 <a href="{{ route('admin.dashboard') }}"
                    class="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-white/10">
-                    📊 Dashboard Utama
+                     Dashboard Utama
                 </a>
 
                 <a href="{{ route('admin.users') }}"
                    class="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-white/10">
-                    👥 Manajemen Pengguna
+                     Manajemen Pengguna
                 </a>
 
                 <a href="{{ route('admin.divisions') }}"
                    class="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-white/10">
-                    🏢 Penempatan & Divisi
+                     Penempatan & Divisi
                 </a>
 
                 <a href="{{ route('admin.attendance') }}"
                    class="flex items-center gap-3 rounded-xl bg-[#ffc107] px-4 py-3 text-black shadow-md">
-                    📈 Rekap Absensi & Logbook
+                     Rekap Absensi & Logbook
                 </a>
 
                 <a href="{{ route('admin.settings') }}"
                    class="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-white/10">
-                    ⚙️ Pengaturan Sistem
+                    Pengaturan Sistem
                 </a>
             </nav>
         </div>
@@ -126,7 +126,7 @@
 
                 <button type="submit"
                         class="w-full rounded-xl bg-red-600/20 px-4 py-3 text-sm font-bold text-red-300 transition hover:bg-red-600 hover:text-white">
-                    🚪 Keluar / Logout
+                     Logout
                 </button>
             </form>
         </div>

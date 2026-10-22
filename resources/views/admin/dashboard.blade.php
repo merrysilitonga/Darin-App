@@ -74,7 +74,7 @@
                         class="flex items-center gap-3 px-4 py-3.5
                                bg-[#ffc107] text-black rounded-xl shadow-md"
                     >
-                        <span>📊</span>
+                        
                         <span>Dashboard</span>
                     </a>
 
@@ -84,7 +84,7 @@
                                text-gray-300 hover:bg-white/10 hover:text-white
                                rounded-xl transition"
                     >
-                        <span>👥</span>
+                        
                         <span>Manajemen User</span>
                     </a>
 
@@ -94,7 +94,7 @@
                                text-gray-300 hover:bg-white/10 hover:text-white
                                rounded-xl transition"
                     >
-                        <span>🏢</span>
+                        
                         <span>Divisi</span>
                     </a>
 
@@ -104,7 +104,7 @@
                                text-gray-300 hover:bg-white/10 hover:text-white
                                rounded-xl transition"
                     >
-                        <span>📅</span>
+                        
                         <span>Absensi</span>
                     </a>
 
@@ -114,7 +114,6 @@
                                text-gray-300 hover:bg-white/10 hover:text-white
                                rounded-xl transition"
                     >
-                        <span>⚙️</span>
                         <span>Pengaturan</span>
                     </a>
 
@@ -136,7 +135,7 @@
                                text-red-300 hover:text-white rounded-xl
                                text-sm font-bold transition"
                     >
-                        🚪 Keluar / Logout
+                         Logout
                     </button>
                 </form>
 

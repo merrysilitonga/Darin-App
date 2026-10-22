@@ -81,42 +81,42 @@
                     href="{{ route('dashboard.magang') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('dashboard.magang') ? $activeClass : $inactiveClass }}"
                 >
-                    🏠 <span>Dashboard</span>
+                     <span>Dashboard</span>
                 </a>
 
                 <a
                     href="{{ route('absen') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('absen', 'absen.store', 'absen.checkout') ? $activeClass : $inactiveClass }}"
                 >
-                    📷 <span>Mulai Absen</span>
+                     <span>Mulai Absen</span>
                 </a>
 
                 <a
                     href="{{ route('riwayat.absen') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('riwayat.absen', 'riwayat.export-*') ? $activeClass : $inactiveClass }}"
                 >
-                    📊 <span>Riwayat Absensi</span>
+                     <span>Riwayat Absensi</span>
                 </a>
 
                 <a
                     href="{{ route('logbook') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('logbook', 'logbook.*') ? $activeClass : $inactiveClass }}"
                 >
-                    📝 <span>Logbook Harian</span>
+                     <span>Logbook Harian</span>
                 </a>
 
                 <a
                     href="{{ route('izin.create') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('izin.create', 'izin.store') ? $activeClass : $inactiveClass }}"
                 >
-                    📄 <span>Pengajuan Izin</span>
+                     <span>Pengajuan Izin</span>
                 </a>
 
                 <a
                     href="{{ route('izin.history') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('izin.history', 'izin.download') ? $activeClass : $inactiveClass }}"
                 >
-                    📋 <span>Riwayat Izin</span>
+                     <span>Riwayat Izin</span>
                 </a>
 
             {{-- MENU MENTOR --}}
@@ -130,42 +130,42 @@
                     href="{{ route('mentor.dashboard') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.dashboard') ? $activeClass : $inactiveClass }}"
                 >
-                    🏠 <span>Dashboard</span>
+                     <span>Dashboard</span>
                 </a>
 
                 <a
                     href="{{ route('mentor.interns') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.interns') ? $activeClass : $inactiveClass }}"
                 >
-                    👥 <span>Mahasiswa Bimbingan</span>
+                     <span>Mahasiswa Bimbingan</span>
                 </a>
 
                 <a
                     href="{{ route('mentor.logbook') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.logbook*') ? $activeClass : $inactiveClass }}"
                 >
-                    📝 <span>Review Logbook</span>
+                     <span>Review Logbook</span>
                 </a>
 
                 <a
                     href="{{ route('mentor.leave-requests') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.leave-requests*') ? $activeClass : $inactiveClass }}"
                 >
-                    📋 <span>Persetujuan Izin</span>
+                     <span>Persetujuan Izin</span>
                 </a>
 
                 <a
                     href="{{ route('mentor.attendance') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.attendance') ? $activeClass : $inactiveClass }}"
                 >
-                    📊 <span>Rekap Absensi</span>
+                     <span>Rekap Absensi</span>
                 </a>
 
                 <a
                     href="{{ route('mentor.assessment') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.assessment') ? $activeClass : $inactiveClass }}"
                 >
-                    ⭐ <span>Penilaian</span>
+                    <span>Penilaian</span>
                 </a>
 
             {{-- MENU HR / ADMIN --}}
@@ -179,35 +179,35 @@
                     href="{{ route('admin.dashboard') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('admin.dashboard') ? $activeClass : $inactiveClass }}"
                 >
-                    🏠 <span>Dashboard</span>
+                     <span>Dashboard</span>
                 </a>
 
                 <a
                     href="{{ route('admin.users') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('admin.users*') ? $activeClass : $inactiveClass }}"
                 >
-                    👥 <span>Manajemen Pengguna</span>
+                     <span>Manajemen Pengguna</span>
                 </a>
 
                 <a
                     href="{{ route('admin.divisions') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('admin.divisions*') ? $activeClass : $inactiveClass }}"
                 >
-                    🏢 <span>Manajemen Divisi</span>
+                     <span>Manajemen Divisi</span>
                 </a>
 
                 <a
                     href="{{ route('admin.attendance') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('admin.attendance*') ? $activeClass : $inactiveClass }}"
                 >
-                    📊 <span>Rekap Absensi</span>
+                     <span>Rekap Absensi</span>
                 </a>
 
                 <a
                     href="{{ route('admin.settings') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('admin.settings') ? $activeClass : $inactiveClass }}"
                 >
-                    ⚙️ <span>Pengaturan</span>
+                    <span>Pengaturan</span>
                 </a>
 
             @else
@@ -232,7 +232,7 @@
                 type="submit"
                 class="flex w-full items-center justify-center gap-2 rounded-xl bg-red-500/10 py-3 font-medium text-red-400 transition hover:bg-red-500 hover:text-white"
             >
-                🚪 <span>Logout</span>
+                 <span>Logout</span>
             </button>
         </form>
 

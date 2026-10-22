@@ -27,35 +27,34 @@
                     <a href="/admin/dashboard"
                        class="flex items-center gap-3 px-4 py-3 rounded-xl transition
                        {{ request()->is('admin/dashboard*') ? 'bg-[#ffc107] text-black' : 'text-gray-300 hover:text-white hover:bg-white/5' }}">
-                        <span>📊</span>
+                        
                         <span>Dashboard Utama</span>
                     </a>
 
                     <a href="/admin/users"
                        class="flex items-center gap-3 px-4 py-3 rounded-xl transition
                        {{ request()->is('admin/users*') ? 'bg-[#ffc107] text-black' : 'text-gray-300 hover:text-white hover:bg-white/5' }}">
-                        <span>👥</span>
+                        
                         <span>Manajemen Pengguna</span>
                     </a>
 
                     <a href="/admin/divisions"
                        class="flex items-center gap-3 px-4 py-3 rounded-xl transition
                        {{ request()->is('admin/divisions*') ? 'bg-[#ffc107] text-black' : 'text-gray-300 hover:text-white hover:bg-white/5' }}">
-                        <span>🏢</span>
+                        
                         <span>Penempatan & Divisi</span>
                     </a>
 
                     <a href="/admin/attendance"
                        class="flex items-center gap-3 px-4 py-3 rounded-xl transition
                        {{ request()->is('admin/attendance*') ? 'bg-[#ffc107] text-black' : 'text-gray-300 hover:text-white hover:bg-white/5' }}">
-                        <span>📅</span>
+                        
                         <span>Rekap Absensi & Logbook</span>
                     </a>
 
                     <a href="/admin/settings"
                        class="flex items-center gap-3 px-4 py-3 rounded-xl transition
                        {{ request()->is('admin/settings*') ? 'bg-[#ffc107] text-black' : 'text-gray-300 hover:text-white hover:bg-white/5' }}">
-                        <span>⚙️</span>
                         <span>Pengaturan Sistem</span>
                     </a>
 
@@ -69,7 +68,7 @@
                     <button
                         type="submit"
                         class="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition text-sm font-semibold">
-                        Keluar / Logout
+                        Logout
                     </button>
                 </form>
             </div>

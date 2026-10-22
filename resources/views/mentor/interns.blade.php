@@ -1,644 +1,522 @@
+@extends('layouts.mentor-layout')
 
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+@section('title', 'Daftar Mahasiswa Bimbingan')
+@section('page_title', 'Daftar Mahasiswa Bimbingan')
+@section('page_subtitle', 'Kelola informasi mahasiswa yang ditugaskan kepada Anda.')
 
-    <title>Daftar Mahasiswa Bimbingan - DARIN Mentor</title>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #f8f9fa;
-        }
-
-        .sidebar {
-            background: #191712;
-        }
-
-        .nav-link {
-            transition: all .2s ease;
-        }
-
-        .nav-link:hover {
-            background: rgba(255, 255, 255, .06);
-            color: #fff;
-        }
-
-        .nav-active {
-            background: #ffc107;
-            color: #000;
-        }
-
-        .card {
-            border: 1px solid #eceef2;
-            box-shadow: 0 4px 18px rgba(15, 23, 42, .035);
-        }
-    </style>
-</head>
-
-<body class="min-h-screen text-gray-800">
-
+@section('content')
 @php
-    $mentorName = auth()->user()->name ?? 'Mentor';
-
-    $mentorInitials = collect(
-        preg_split('/\s+/', trim($mentorName))
-    )->filter()->take(2)->map(function ($part) {
-        return mb_substr($part, 0, 1);
-    })->implode('');
-
-    $totalStudents = $students->count();
+    $mentorStudents = collect($students ?? []);
 @endphp
 
-<div class="min-h-screen md:flex">
+<div class="space-y-5">
 
-    <!-- SIDEBAR MENTOR -->
-    <aside class="sidebar w-full shrink-0 text-white md:min-h-screen md:w-64">
-        <div class="flex items-center gap-3 border-b border-white/10 px-6 py-6">
-            <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#ffc107] text-lg font-extrabold text-black">
-                ⚡
-            </div>
+    {{-- HEADER DAN PENCARIAN --}}
+    <section class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+        <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
 
             <div>
-                <h1 class="text-xl font-extrabold tracking-wide">
-                    DARIN<span class="text-amber-400">.</span>
-                </h1>
-                <p class="mt-1 text-xs text-gray-400">Portal Mentor</p>
-            </div>
-        </div>
+                <h3 class="text-sm font-semibold leading-6 text-slate-700">
+                    Mahasiswa Bimbingan
+                </h3>
 
-        <div class="border-b border-white/10 px-6 py-5">
-            <p class="text-xs uppercase tracking-widest text-gray-500">
-                Login sebagai
-            </p>
-
-            <p class="mt-2 font-semibold text-white">
-                {{ $mentorName }}
-            </p>
-
-            <p class="mt-1 text-xs text-gray-400">
-                Mentor / Pembimbing
-            </p>
-        </div>
-
-        <nav class="space-y-2 px-4 py-6">
-            <p class="mb-3 px-3 text-xs font-semibold uppercase tracking-widest text-gray-500">
-                Menu Utama
-            </p>
-
-            <a href="{{ route('mentor.dashboard') }}"
-               class="nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-300">
-                📊 Dashboard
-            </a>
-
-            <a href="{{ route('mentor.interns') }}"
-               class="nav-active flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold shadow-md">
-                👨‍🎓 Daftar Mahasiswa
-            </a>
-
-            <a href="{{ route('mentor.logbook') }}"
-               class="nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-300">
-                📝 Validasi Logbook
-            </a>
-
-            <a href="{{ route('mentor.leave-requests') }}"
-               class="nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-300">
-                📋 Persetujuan Izin / Sakit
-            </a>
-
-            <a href="{{ route('mentor.attendance') }}"
-               class="nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-300">
-                📅 Mentoring & Kehadiran
-            </a>
-
-            <a href="{{ route('mentor.assessment') }}"
-               class="nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-300">
-                ⭐ Penilaian Magang
-            </a>
-
-            <a href="{{ route('profil') }}"
-               class="nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-300">
-                👤 Profil
-            </a>
-        </nav>
-
-        <div class="border-t border-white/10 px-4 py-5">
-            <form action="{{ route('logout') }}" method="POST">
-                @csrf
-
-                <button type="submit"
-                        class="w-full rounded-xl px-4 py-3 text-left text-sm text-red-300 transition hover:bg-red-500/10">
-                    🚪 Keluar / Logout
-                </button>
-            </form>
-        </div>
-    </aside>
-
-    <!-- KONTEN UTAMA -->
-    <main class="min-w-0 flex-1">
-
-        <!-- TOPBAR -->
-        <header class="flex flex-col justify-between gap-4 border-b border-gray-200 bg-white px-5 py-5 shadow-sm sm:flex-row sm:items-center sm:px-8">
-            <div>
-                <p class="text-sm text-gray-500">
-                    Portal Mentor / Mahasiswa Bimbingan
+                <p class="mt-1 text-xs font-normal leading-5 text-slate-500">
+                    Informasi profil dan kontak mahasiswa yang ditugaskan oleh Admin/HR.
                 </p>
 
-                <h2 class="mt-1 text-2xl font-extrabold text-gray-900">
-                    Daftar Mahasiswa Bimbingan
-                </h2>
-
-                <p class="mt-2 text-sm text-gray-500">
-                    Kelola informasi mahasiswa yang ditugaskan kepada Anda.
-                </p>
-            </div>
-
-            <div class="flex items-center gap-3">
-                <div class="flex h-11 w-11 items-center justify-center rounded-full bg-amber-100 font-bold text-amber-800">
-                    {{ $mentorInitials ?: 'M' }}
-                </div>
-
-                <div>
-                    <p class="text-sm font-bold text-gray-800">
-                        {{ $mentorName }}
-                    </p>
-                    <p class="text-xs text-gray-500">Mentor / Pembimbing</p>
-                </div>
-            </div>
-        </header>
-
-        <div class="space-y-6 p-5 sm:p-8">
-
-            <!-- RINGKASAN DAN PENCARIAN -->
-            <section class="card rounded-3xl bg-white p-6">
-                <div class="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
-                    <div>
-                        <p class="text-sm font-semibold text-gray-500">
-                            Total Mahasiswa Bimbingan
-                        </p>
-
-                        <h3 class="mt-2 text-4xl font-extrabold text-gray-900">
-                            {{ $totalStudents }}
-                        </h3>
-
-                        <p class="mt-2 text-sm text-gray-500">
-                            Mahasiswa yang ditugaskan langsung oleh Admin/HR.
-                        </p>
-                    </div>
-
-                    <div class="w-full lg:max-w-sm">
-                        <label for="studentSearch"
-                               class="mb-2 block text-sm font-semibold text-gray-700">
-                            Cari Mahasiswa
-                        </label>
-
-                        <input
-                            type="search"
-                            id="studentSearch"
-                            placeholder="Cari nama, NIM, atau universitas..."
-                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
-                        >
-
-                        <p class="mt-2 text-xs text-gray-400">
-                            Pencarian dilakukan pada daftar mahasiswa di bawah.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- NOTIFIKASI PENCARIAN -->
-            <div id="searchEmpty"
-                 class="hidden rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
-                Mahasiswa yang cocok dengan pencarian tidak ditemukan.
-            </div>
-
-            <!-- DAFTAR MAHASISWA -->
-            <section>
-                <div class="mb-5 flex items-center justify-between gap-3">
-                    <div>
-                        <h3 class="text-lg font-extrabold text-gray-900">
-                            Mahasiswa Bimbingan
-                        </h3>
-
-                        <p class="mt-1 text-sm text-gray-500">
-                            Data diperoleh dari database DARIN.
-                        </p>
-                    </div>
-
-                    <span class="rounded-full bg-amber-100 px-4 py-2 text-xs font-bold text-amber-900">
-                        {{ $totalStudents }} Mahasiswa
+                <p class="mt-2 text-xs font-normal text-slate-400">
+                    Total mahasiswa:
+                    <span id="student-count" class="font-medium text-slate-600">
+                        {{ $mentorStudents->count() }}
                     </span>
-                </div>
+                </p>
+            </div>
 
-                @if($students->isNotEmpty())
+            <div class="w-full lg:max-w-sm">
+                <label for="student-search"
+                       class="mb-2 block text-xs font-medium text-slate-500">
+                    Cari mahasiswa
+                </label>
 
-                    <div id="studentGrid"
-                         class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+                <input
+                    type="search"
+                    id="student-search"
+                    placeholder="Cari nama, NIM, atau universitas..."
+                    autocomplete="off"
+                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs font-normal text-slate-700 transition placeholder:text-slate-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+                >
 
-                        @foreach($students as $student)
+                <p class="mt-2 text-xs font-normal text-slate-400">
+                    Pencarian dilakukan pada daftar mahasiswa di bawah.
+                </p>
+            </div>
 
-                            @php
-                                $studentName = $student->name ?? 'Mahasiswa';
+        </div>
+    </section>
 
-                                $studentInitials = collect(
-                                    preg_split('/\s+/', trim($studentName))
-                                )->filter()->take(2)->map(function ($part) {
-                                    return mb_substr($part, 0, 1);
-                                })->implode('');
+    {{-- DAFTAR MAHASISWA --}}
+    <section>
+        <div class="mb-4 flex items-center justify-between gap-3">
+            <div>
+                <h3 class="text-sm font-semibold text-slate-700">
+                    Daftar Mahasiswa
+                </h3>
 
-                                $searchText = strtolower(implode(' ', [
-                                    $student->name ?? '',
-                                    $student->nim ?? '',
-                                    $student->university ?? '',
-                                    $student->study_program ?? '',
-                                    $student->email ?? '',
-                                    optional($student->division)->name ?? '',
-                                ]));
+                <p class="mt-1 text-xs font-normal text-slate-500">
+                    Data mahasiswa yang berada di bawah bimbingan Anda.
+                </p>
+            </div>
 
-                                $startDate = $student->start_date
-                                    ? \Illuminate\Support\Carbon::parse($student->start_date)
-                                    : null;
+            <span class="shrink-0 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+                {{ $mentorStudents->count() }} Mahasiswa
+            </span>
+        </div>
 
-                                $endDate = $student->end_date
-                                    ? \Illuminate\Support\Carbon::parse($student->end_date)
-                                    : null;
+        @if ($mentorStudents->isNotEmpty())
 
-                                $today = \Illuminate\Support\Carbon::now('Asia/Jakarta')
-                                    ->startOfDay();
+            <div id="student-grid"
+                 class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
 
-                                if (!$startDate || !$endDate) {
-                                    $statusLabel = 'Periode belum diatur';
-                                    $statusClass = 'bg-gray-100 text-gray-700';
-                                } elseif ($today->lt($startDate->copy()->startOfDay())) {
-                                    $statusLabel = 'Belum mulai';
-                                    $statusClass = 'bg-blue-50 text-blue-700';
-                                } elseif ($today->gt($endDate->copy()->startOfDay())) {
-                                    $statusLabel = 'Selesai';
-                                    $statusClass = 'bg-gray-100 text-gray-600';
-                                } else {
-                                    $statusLabel = 'Aktif';
-                                    $statusClass = 'bg-emerald-50 text-emerald-700';
-                                }
+                @foreach ($mentorStudents as $student)
 
-                                $avatarColors = [
-                                    'bg-amber-100 text-amber-800',
-                                    'bg-blue-100 text-blue-800',
-                                    'bg-purple-100 text-purple-800',
-                                    'bg-emerald-100 text-emerald-800',
-                                    'bg-rose-100 text-rose-800',
-                                    'bg-cyan-100 text-cyan-800',
-                                ];
+                    @php
+                        $studentName = $student->name ?? 'Nama belum tersedia';
+                        $studentEmail = $student->email ?? '';
+                        $studentNim = $student->nim ?? '';
+                        $studentPhone = $student->phone ?? '';
+                        $studentUniversity = $student->university ?? '';
+                        $studentStudyProgram = $student->study_program ?? '';
 
-                                $avatarClass = $avatarColors[
-                                    $loop->index % count($avatarColors)
-                                ];
+                        $initials = collect(
+                            preg_split('/\s+/', trim($studentName))
+                        )
+                            ->filter()
+                            ->take(2)
+                            ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
+                            ->implode('');
 
-                                $whatsapp = preg_replace(
-                                    '/\D+/',
-                                    '',
-                                    (string) $student->phone
-                                );
+                        $searchText = mb_strtolower(implode(' ', array_filter([
+                            $studentName,
+                            $studentNim,
+                            $studentEmail,
+                            $studentPhone,
+                            $studentUniversity,
+                            $studentStudyProgram,
+                        ])));
 
-                                if (str_starts_with($whatsapp, '0')) {
-                                    $whatsapp = '62' . substr($whatsapp, 1);
-                                }
-                            @endphp
+                        $phoneDigits = preg_replace('/\D+/', '', $studentPhone);
 
-                            <article
-                                class="student-card card flex flex-col justify-between space-y-5 rounded-3xl bg-white p-6 transition hover:-translate-y-0.5 hover:shadow-md"
-                                data-search="{{ $searchText }}"
-                            >
-                                <div>
-                                    <!-- IDENTITAS MAHASISWA -->
-                                    <div class="mb-5 flex items-start gap-4">
-                                        <div class="{{ $avatarClass }} flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-lg font-extrabold shadow-inner">
-                                            {{ $studentInitials ?: 'M' }}
-                                        </div>
+                        if (str_starts_with($phoneDigits, '0')) {
+                            $whatsappNumber = '62' . substr($phoneDigits, 1);
+                        } elseif (str_starts_with($phoneDigits, '62')) {
+                            $whatsappNumber = $phoneDigits;
+                        } elseif (str_starts_with($phoneDigits, '8')) {
+                            $whatsappNumber = '62' . $phoneDigits;
+                        } else {
+                            $whatsappNumber = '';
+                        }
 
-                                        <div class="min-w-0 flex-1">
-                                            <h4 class="break-words text-sm font-extrabold text-gray-900">
-                                                {{ $student->name }}
-                                            </h4>
+                        $startDate = $student->start_date
+                            ? \Illuminate\Support\Carbon::parse($student->start_date)->startOfDay()
+                            : null;
 
-                                            <p class="mt-1 break-all text-xs text-gray-500">
-                                                {{ $student->email ?: 'Email belum diisi' }}
-                                            </p>
+                        $endDate = $student->end_date
+                            ? \Illuminate\Support\Carbon::parse($student->end_date)->startOfDay()
+                            : null;
 
-                                            <span class="mt-2 inline-flex rounded-md px-2.5 py-1 text-[10px] font-bold {{ $statusClass }}">
-                                                {{ $statusLabel }}
-                                            </span>
-                                        </div>
-                                    </div>
+                        $today = now()->startOfDay();
 
-                                    <!-- INFORMASI MAHASISWA -->
-                                    <div class="space-y-3 border-t border-gray-100 pt-4 text-xs">
-                                        <div class="flex items-start justify-between gap-3">
-                                            <span class="shrink-0 text-gray-400">NIM</span>
-                                            <span class="text-right font-semibold text-gray-800">
-                                                {{ $student->nim ?: '-' }}
-                                            </span>
-                                        </div>
+                        if (!$startDate || !$endDate) {
+                            $periodStatus = 'Periode belum ditentukan';
+                            $statusClass = 'bg-amber-50 text-amber-700';
+                        } elseif ($today->lt($startDate)) {
+                            $periodStatus = 'Akan dimulai';
+                            $statusClass = 'bg-blue-50 text-blue-700';
+                        } elseif ($today->gt($endDate)) {
+                            $periodStatus = 'Periode selesai';
+                            $statusClass = 'bg-gray-100 text-gray-600';
+                        } else {
+                            $periodStatus = 'Aktif';
+                            $statusClass = 'bg-emerald-50 text-emerald-700';
+                        }
+                    @endphp
 
-                                        <div class="flex items-start justify-between gap-3">
-                                            <span class="shrink-0 text-gray-400">Universitas</span>
-                                            <span class="max-w-[65%] text-right font-semibold text-gray-800">
-                                                {{ $student->university ?: '-' }}
-                                            </span>
-                                        </div>
+                    <article
+                        data-student-card
+                        data-search="{{ $searchText }}"
+                        class="flex flex-col justify-between gap-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:border-amber-200 hover:shadow-md"
+                    >
 
-                                        <div class="flex items-start justify-between gap-3">
-                                            <span class="shrink-0 text-gray-400">Program Studi</span>
-                                            <span class="max-w-[65%] text-right font-semibold text-gray-800">
-                                                {{ $student->study_program ?: '-' }}
-                                            </span>
-                                        </div>
+                        <div>
+                            {{-- IDENTITAS MAHASISWA --}}
+                            <div class="mb-4 flex items-start gap-3">
 
-                                        <div class="flex items-start justify-between gap-3">
-                                            <span class="shrink-0 text-gray-400">Divisi</span>
-                                            <span class="max-w-[65%] text-right font-semibold text-gray-800">
-                                                {{ optional($student->division)->name ?? 'Belum ditetapkan' }}
-                                            </span>
-                                        </div>
-
-                                        <div class="flex items-start justify-between gap-3">
-                                            <span class="shrink-0 text-gray-400">No. WhatsApp</span>
-                                            <span class="break-all text-right font-semibold text-gray-800">
-                                                {{ $student->phone ?: '-' }}
-                                            </span>
-                                        </div>
-
-                                        <div class="flex items-start justify-between gap-3">
-                                            <span class="shrink-0 text-gray-400">Periode Magang</span>
-                                            <span class="text-right font-semibold text-gray-800">
-                                                @if($startDate && $endDate)
-                                                    {{ $startDate->format('d M Y') }}
-                                                    <span class="block my-1 text-gray-400">sampai</span>
-                                                    {{ $endDate->format('d M Y') }}
-                                                @else
-                                                    Belum diatur
-                                                @endif
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- AKSI -->
-                                <div class="flex items-center gap-2 border-t border-gray-100 pt-4">
-                                    @if($whatsapp !== '')
-                                        <a
-                                            href="https://wa.me/{{ $whatsapp }}"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="flex-1 rounded-xl bg-emerald-50 px-3 py-2.5 text-center text-xs font-bold text-emerald-700 transition hover:bg-emerald-100"
-                                        >
-                                            💬 WhatsApp
-                                        </a>
-                                    @else
-                                        <span class="flex-1 rounded-xl bg-gray-100 px-3 py-2.5 text-center text-xs text-gray-400">
-                                            WhatsApp -
-                                        </span>
-                                    @endif
-
-                                    <button
-                                        type="button"
-                                        class="open-profile flex-1 rounded-xl bg-[#ffc107] px-3 py-2.5 text-xs font-bold text-black transition hover:bg-amber-400"
-                                        data-name="{{ $student->name }}"
-                                        data-nim="{{ $student->nim ?: '-' }}"
-                                        data-email="{{ $student->email ?: '-' }}"
-                                        data-phone="{{ $student->phone ?: '-' }}"
-                                        data-university="{{ $student->university ?: '-' }}"
-                                        data-study="{{ $student->study_program ?: '-' }}"
-                                        data-division="{{ optional($student->division)->name ?? 'Belum ditetapkan' }}"
-                                        data-start="{{ $startDate ? $startDate->format('d M Y') : '-' }}"
-                                        data-end="{{ $endDate ? $endDate->format('d M Y') : '-' }}"
+                                @if (!empty($student->photo))
+                                    <img
+                                        src="{{ asset('storage/' . $student->photo) }}"
+                                        alt="Foto {{ $studentName }}"
+                                        class="h-12 w-12 shrink-0 rounded-xl border border-gray-100 object-cover"
+                                        loading="lazy"
                                     >
-                                        👁️ Profil Lengkap
-                                    </button>
+                                @else
+                                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-sm font-semibold text-amber-800">
+                                        {{ $initials ?: 'M' }}
+                                    </div>
+                                @endif
+
+                                <div class="min-w-0 flex-1">
+                                    <h4 class="break-words text-sm font-semibold leading-5 text-slate-700">
+                                        {{ $studentName }}
+                                    </h4>
+
+                                    <p class="mt-1 text-xs font-normal text-slate-500">
+                                        NIM: {{ $studentNim !== '' ? $studentNim : '-' }}
+                                    </p>
+
+                                    <span class="mt-2 inline-flex rounded-md px-2 py-1 text-[11px] font-medium {{ $statusClass }}">
+                                        {{ $periodStatus }}
+                                    </span>
                                 </div>
-                            </article>
 
-                        @endforeach
-                    </div>
+                            </div>
 
-                @else
+                            {{-- INFORMASI MAHASISWA --}}
+                            <div class="space-y-3 border-t border-gray-100 pt-4">
 
-                    <!-- KONDISI BELUM ADA MAHASISWA -->
-                    <div class="card rounded-3xl bg-white px-6 py-16 text-center">
-                        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-3xl">
-                            👨‍🎓
+                                <div class="grid grid-cols-[105px_minmax(0,1fr)] gap-2">
+                                    <span class="text-xs font-normal text-slate-400">
+                                        Universitas
+                                    </span>
+
+                                    <span class="break-words text-right text-xs font-medium text-slate-600">
+                                        {{ $studentUniversity !== '' ? $studentUniversity : '-' }}
+                                    </span>
+                                </div>
+
+                                <div class="grid grid-cols-[105px_minmax(0,1fr)] gap-2">
+                                    <span class="text-xs font-normal text-slate-400">
+                                        Program Studi
+                                    </span>
+
+                                    <span class="break-words text-right text-xs font-medium text-slate-600">
+                                        {{ $studentStudyProgram !== '' ? $studentStudyProgram : '-' }}
+                                    </span>
+                                </div>
+
+                                <div class="grid grid-cols-[105px_minmax(0,1fr)] gap-2">
+                                    <span class="text-xs font-normal text-slate-400">
+                                        No. WhatsApp
+                                    </span>
+
+                                    <span class="break-words text-right text-xs font-medium text-slate-600">
+                                        {{ $studentPhone !== '' ? $studentPhone : '-' }}
+                                    </span>
+                                </div>
+
+                                <div class="grid grid-cols-[105px_minmax(0,1fr)] gap-2">
+                                    <span class="text-xs font-normal text-slate-400">
+                                        Email
+                                    </span>
+
+                                    <span class="break-all text-right text-xs font-medium text-slate-600">
+                                        {{ $studentEmail !== '' ? $studentEmail : '-' }}
+                                    </span>
+                                </div>
+
+                            </div>
                         </div>
 
-                        <h4 class="mt-5 text-lg font-extrabold text-gray-900">
-                            Belum Ada Mahasiswa Bimbingan
-                        </h4>
+                        {{-- AKSI --}}
+                        <div class="flex items-center gap-2 border-t border-gray-100 pt-4">
 
-                        <p class="mx-auto mt-2 max-w-lg text-sm leading-6 text-gray-500">
-                            @if($assignmentMissing)
-                                Belum ada mahasiswa yang ditugaskan kepada akun mentor ini.
-                                Silakan hubungi Admin/HR untuk mengatur penugasan melalui Manajemen Pengguna.
+                            @if ($whatsappNumber !== '')
+                                <a
+                                    href="https://wa.me/{{ $whatsappNumber }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="inline-flex flex-1 items-center justify-center rounded-lg bg-emerald-50 px-3 py-2.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100"
+                                >
+                                    WhatsApp
+                                </a>
                             @else
-                                Belum ada data mahasiswa yang dapat ditampilkan.
+                                <span
+                                    class="inline-flex flex-1 cursor-not-allowed items-center justify-center rounded-lg bg-gray-50 px-3 py-2.5 text-xs font-medium text-gray-400"
+                                    title="Nomor WhatsApp belum tersedia"
+                                >
+                                    WhatsApp
+                                </span>
                             @endif
-                        </p>
-                    </div>
 
-                @endif
-            </section>
+                            <button
+                                type="button"
+                                data-open-profile
+                                data-name="{{ $studentName }}"
+                                data-nim="{{ $studentNim }}"
+                                data-university="{{ $studentUniversity }}"
+                                data-study="{{ $studentStudyProgram }}"
+                                data-phone="{{ $studentPhone }}"
+                                data-email="{{ $studentEmail }}"
+                                data-start="{{ $startDate ? $startDate->format('d/m/Y') : '-' }}"
+                                data-end="{{ $endDate ? $endDate->format('d/m/Y') : '-' }}"
+                                class="inline-flex flex-1 items-center justify-center rounded-lg bg-amber-400 px-3 py-2.5 text-xs font-medium text-slate-800 transition hover:bg-amber-300"
+                            >
+                                Profil Lengkap
+                            </button>
 
-            <!-- FOOTER -->
-            <footer class="pb-4 text-center text-xs text-gray-400">
-                © {{ date('Y') }} DARIN — Sistem Presensi Geospasial Terintegrasi ESDM
-            </footer>
-        </div>
-    </main>
+                        </div>
+
+                    </article>
+
+                @endforeach
+
+            </div>
+
+            {{-- HASIL PENCARIAN KOSONG --}}
+            <div id="search-empty"
+                 class="mt-4 hidden rounded-2xl border border-gray-100 bg-white px-5 py-10 text-center">
+
+                <p class="text-sm font-medium text-slate-600">
+                    Mahasiswa tidak ditemukan
+                </p>
+
+                <p class="mt-2 text-xs font-normal text-slate-400">
+                    Coba gunakan nama, NIM, email, atau universitas yang berbeda.
+                </p>
+
+            </div>
+
+        @else
+
+            {{-- KOSONG JIKA BELUM ADA PENUGASAN --}}
+            <div class="rounded-2xl border border-gray-100 bg-white px-5 py-12 text-center shadow-sm">
+
+                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-xl text-amber-700">
+                    -
+                </div>
+
+                <h3 class="mt-4 text-sm font-semibold text-slate-700">
+                    Belum Ada Mahasiswa Bimbingan
+                </h3>
+
+                <p class="mx-auto mt-2 max-w-lg text-xs font-normal leading-6 text-slate-500">
+                    Belum ada mahasiswa yang ditugaskan kepada akun mentor ini.
+                    Silakan hubungi Admin/HR untuk mengatur penugasan melalui Manajemen Pengguna.
+                </p>
+
+            </div>
+
+        @endif
+
+    </section>
+
 </div>
 
-<!-- MODAL PROFIL -->
+{{-- MODAL PROFIL LENGKAP --}}
 <div
     id="detailModal"
-    class="fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
+    class="fixed inset-0 z-50 hidden items-center justify-center overflow-y-auto bg-slate-900/40 p-4 backdrop-blur-sm"
     role="dialog"
     aria-modal="true"
-    aria-labelledby="modalTitle"
+    aria-labelledby="modal-title"
 >
-    <div class="my-auto w-full max-w-lg space-y-5 rounded-3xl bg-white p-6 shadow-2xl">
-        <div class="flex items-center justify-between border-b border-gray-100 pb-4">
+    <div class="my-auto w-full max-w-lg rounded-2xl border border-gray-100 bg-white p-5 shadow-xl sm:p-6">
+
+        <div class="flex items-center justify-between gap-3 border-b border-gray-100 pb-4">
             <div>
-                <p class="text-xs font-semibold uppercase tracking-wider text-amber-700">
-                    DARIN Mentor
+                <h3 id="modal-title" class="text-base font-semibold text-slate-700">
+                    Detail Profil Mahasiswa
+                </h3>
+
+                <p class="mt-1 text-xs font-normal text-slate-500">
+                    Informasi mahasiswa bimbingan.
                 </p>
-                <h4 id="modalTitle" class="mt-1 text-lg font-extrabold text-gray-900">
-                    Profil Lengkap Mahasiswa
-                </h4>
             </div>
 
             <button
                 type="button"
-                id="closeModalButton"
-                class="rounded-xl px-3 py-2 text-xl text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-                aria-label="Tutup modal"
+                data-close-profile
+                class="rounded-lg px-3 py-2 text-lg font-normal text-slate-400 transition hover:bg-gray-100 hover:text-slate-700"
+                aria-label="Tutup detail profil"
             >
                 &times;
             </button>
         </div>
 
-        <div class="space-y-4 text-sm">
+        <div class="mt-5 space-y-4">
+
             <div>
-                <p class="text-xs text-gray-400">Nama Lengkap</p>
-                <p id="modal-name" class="mt-1 break-words font-bold text-gray-900">-</p>
+                <p class="text-xs font-normal text-slate-400">Nama Lengkap</p>
+                <p id="modal-name" class="mt-1 break-words text-sm font-semibold text-slate-700">-</p>
             </div>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <p class="text-xs text-gray-400">NIM</p>
-                    <p id="modal-nim" class="mt-1 break-words font-semibold text-gray-800">-</p>
+                    <p class="text-xs font-normal text-slate-400">NIM</p>
+                    <p id="modal-nim" class="mt-1 break-words text-sm font-medium text-slate-600">-</p>
                 </div>
 
                 <div>
-                    <p class="text-xs text-gray-400">No. WhatsApp</p>
-                    <p id="modal-phone" class="mt-1 break-words font-semibold text-gray-800">-</p>
+                    <p class="text-xs font-normal text-slate-400">Nomor WhatsApp</p>
+                    <p id="modal-phone" class="mt-1 break-words text-sm font-medium text-slate-600">-</p>
                 </div>
             </div>
 
             <div>
-                <p class="text-xs text-gray-400">Asal Universitas</p>
-                <p id="modal-university" class="mt-1 break-words font-semibold text-gray-800">-</p>
+                <p class="text-xs font-normal text-slate-400">Asal Universitas</p>
+                <p id="modal-university" class="mt-1 break-words text-sm font-medium text-slate-600">-</p>
             </div>
 
             <div>
-                <p class="text-xs text-gray-400">Program Studi</p>
-                <p id="modal-study" class="mt-1 break-words font-semibold text-gray-800">-</p>
+                <p class="text-xs font-normal text-slate-400">Program Studi</p>
+                <p id="modal-study" class="mt-1 break-words text-sm font-medium text-slate-600">-</p>
             </div>
 
             <div>
-                <p class="text-xs text-gray-400">Alamat Email</p>
-                <p id="modal-email" class="mt-1 break-words font-semibold text-gray-800">-</p>
-            </div>
-
-            <div>
-                <p class="text-xs text-gray-400">Divisi</p>
-                <p id="modal-division" class="mt-1 break-words font-semibold text-gray-800">-</p>
+                <p class="text-xs font-normal text-slate-400">Alamat Email</p>
+                <p id="modal-email" class="mt-1 break-all text-sm font-medium text-slate-600">-</p>
             </div>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <p class="text-xs text-gray-400">Mulai Magang</p>
-                    <p id="modal-start" class="mt-1 font-semibold text-gray-800">-</p>
+                    <p class="text-xs font-normal text-slate-400">Tanggal Mulai Magang</p>
+                    <p id="modal-start" class="mt-1 text-sm font-medium text-slate-600">-</p>
                 </div>
 
                 <div>
-                    <p class="text-xs text-gray-400">Selesai Magang</p>
-                    <p id="modal-end" class="mt-1 font-semibold text-gray-800">-</p>
+                    <p class="text-xs font-normal text-slate-400">Tanggal Selesai Magang</p>
+                    <p id="modal-end" class="mt-1 text-sm font-medium text-slate-600">-</p>
                 </div>
             </div>
+
         </div>
 
-        <div class="flex justify-end border-t border-gray-100 pt-4">
+        <div class="mt-6 flex justify-end border-t border-gray-100 pt-4">
             <button
                 type="button"
-                id="closeModalFooter"
-                class="rounded-xl bg-gray-100 px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-200"
+                data-close-profile
+                class="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-xs font-medium text-slate-600 transition hover:bg-gray-50"
             >
                 Tutup
             </button>
         </div>
+
     </div>
 </div>
+@endsection
 
+@push('scripts')
 <script>
-    const searchInput = document.getElementById('studentSearch');
-    const studentCards = Array.from(document.querySelectorAll('.student-card'));
-    const searchEmpty = document.getElementById('searchEmpty');
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('student-search');
+    const studentCards = Array.from(
+        document.querySelectorAll('[data-student-card]')
+    );
 
-    // Pencarian nama, NIM, universitas, program studi, email, dan divisi.
-    searchInput?.addEventListener('input', function () {
-        const keyword = this.value.trim().toLowerCase();
+    const studentCount = document.getElementById('student-count');
+    const searchEmpty = document.getElementById('search-empty');
+
+    const modal = document.getElementById('detailModal');
+    const openButtons = document.querySelectorAll('[data-open-profile]');
+    const closeButtons = document.querySelectorAll('[data-close-profile]');
+
+    function setText(id, value) {
+        const element = document.getElementById(id);
+
+        if (element) {
+            element.textContent = value || '-';
+        }
+    }
+
+    function filterStudents() {
+        if (!searchInput) {
+            return;
+        }
+
+        const query = searchInput.value.trim().toLocaleLowerCase('id');
         let visibleCount = 0;
 
         studentCards.forEach(function (card) {
-            const searchableText = card.dataset.search || '';
-            const matches = searchableText.includes(keyword);
+            const searchable = (
+                card.dataset.search || ''
+            ).toLocaleLowerCase('id');
 
-            card.classList.toggle('hidden', !matches);
+            const match = searchable.includes(query);
 
-            if (matches) {
+            card.classList.toggle('hidden', !match);
+
+            if (match) {
                 visibleCount++;
             }
         });
 
+        if (studentCount) {
+            studentCount.textContent = visibleCount;
+        }
+
         if (searchEmpty) {
             searchEmpty.classList.toggle(
                 'hidden',
-                keyword === '' || visibleCount > 0
+                visibleCount !== 0 || studentCards.length === 0
             );
         }
-    });
-
-    const detailModal = document.getElementById('detailModal');
-
-    function closeDetailModal() {
-        detailModal.classList.add('hidden');
-        detailModal.classList.remove('flex');
     }
 
-    function openDetailModal(button) {
-        const fields = {
-            name: 'modal-name',
-            nim: 'modal-nim',
-            email: 'modal-email',
-            phone: 'modal-phone',
-            university: 'modal-university',
-            study: 'modal-study',
-            division: 'modal-division',
-            start: 'modal-start',
-            end: 'modal-end'
-        };
+    if (searchInput) {
+        searchInput.addEventListener('input', filterStudents);
+    }
 
-        Object.entries(fields).forEach(function ([key, elementId]) {
-            const element = document.getElementById(elementId);
+    function openProfile(button) {
+        setText('modal-name', button.dataset.name);
+        setText('modal-nim', button.dataset.nim);
+        setText('modal-university', button.dataset.university);
+        setText('modal-study', button.dataset.study);
+        setText('modal-phone', button.dataset.phone);
+        setText('modal-email', button.dataset.email);
+        setText('modal-start', button.dataset.start);
+        setText('modal-end', button.dataset.end);
 
-            if (element) {
-                // textContent mencegah data mahasiswa dianggap sebagai HTML.
-                element.textContent = button.dataset[key] || '-';
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        document.body.classList.add('overflow-hidden');
+
+        const closeButton = modal.querySelector('[data-close-profile]');
+
+        if (closeButton) {
+            closeButton.focus();
+        }
+    }
+
+    function closeProfile() {
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    openButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            openProfile(button);
+        });
+    });
+
+    closeButtons.forEach(function (button) {
+        button.addEventListener('click', closeProfile);
+    });
+
+    if (modal) {
+        modal.addEventListener('click', function (event) {
+            if (event.target === modal) {
+                closeProfile();
             }
         });
-
-        detailModal.classList.remove('hidden');
-        detailModal.classList.add('flex');
     }
 
-    document.querySelectorAll('.open-profile').forEach(function (button) {
-        button.addEventListener('click', function () {
-            openDetailModal(this);
-        });
-    });
-
-    document.getElementById('closeModalButton')
-        ?.addEventListener('click', closeDetailModal);
-
-    document.getElementById('closeModalFooter')
-        ?.addEventListener('click', closeDetailModal);
-
-    detailModal?.addEventListener('click', function (event) {
-        if (event.target === detailModal) {
-            closeDetailModal();
-        }
-    });
-
     document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && detailModal && !detailModal.classList.contains('hidden')) {
-            closeDetailModal();
+        if (event.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+            closeProfile();
         }
     });
+});
 </script>
-
-</body>
-</html>
+@endpush
