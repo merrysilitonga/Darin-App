@@ -9,10 +9,13 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
-    /** Dashboard Admin. */
+    /**
+     * Dashboard Admin.
+     */
     public function dashboard()
     {
         $totalUsers = User::count();
@@ -21,28 +24,54 @@ class AdminController extends Controller
         $totalMentors = User::where('role', 'mentor')->count();
 
         return view('admin.dashboard', compact(
-            'totalUsers', 'totalDivisions', 'totalInterns', 'totalMentors'
+            'totalUsers',
+            'totalDivisions',
+            'totalInterns',
+            'totalMentors'
         ));
     }
 
-    /** Daftar pengguna beserta pilihan divisi. */
+    /**
+     * Daftar pengguna beserta pilihan divisi dan mentor.
+     */
     public function users()
     {
-        $users = User::with('division')->orderBy('name')->get();
+        $users = User::with(['division', 'mentor'])
+            ->orderBy('name')
+            ->get();
+
         $divisions = Division::orderBy('name')->get();
 
-        return view('admin.users', compact('users', 'divisions'));
+        $mentors = User::where('role', 'mentor')
+            ->with('division')
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.users', compact(
+            'users',
+            'divisions',
+            'mentors'
+        ));
     }
 
-    /** Menetapkan divisi mahasiswa atau mentor. Relasi bimbingan saat ini berdasarkan divisi sama. */
+    /**
+     * Menetapkan divisi mahasiswa atau mentor.
+     */
     public function updateUserDivision(Request $request, User $user)
     {
-        if (! in_array($user->role, ['magang', 'intern', 'mentor'], true)) {
-            return back()->with('error', 'Divisi hanya dapat diatur untuk mahasiswa magang atau mentor.');
+        if (!in_array($user->role, ['magang', 'intern', 'mentor'], true)) {
+            return back()->with(
+                'error',
+                'Divisi hanya dapat diatur untuk mahasiswa magang atau mentor.'
+            );
         }
 
         $validated = $request->validate([
-            'division_id' => ['nullable', 'integer', 'exists:divisions,id'],
+            'division_id' => [
+                'nullable',
+                'integer',
+                'exists:divisions,id',
+            ],
         ], [
             'division_id.exists' => 'Divisi yang dipilih tidak ditemukan.',
         ]);
@@ -50,16 +79,71 @@ class AdminController extends Controller
         $user->division_id = $validated['division_id'] ?? null;
         $user->save();
 
-        return redirect()->route('admin.users')->with(
-            'success', 'Divisi untuk ' . $user->name . ' berhasil diperbarui.'
-        );
+        return redirect()
+            ->route('admin.users')
+            ->with(
+                'success',
+                'Divisi untuk ' . $user->name . ' berhasil diperbarui.'
+            );
     }
 
-    /** Menyimpan periode magang mahasiswa selama 3, 4, 5, atau 6 bulan. */
+    /**
+     * Menetapkan mentor langsung kepada mahasiswa.
+     */
+    public function updateUserMentor(Request $request, User $user)
+    {
+        if (!in_array($user->role, ['magang', 'intern'], true)) {
+            return back()->with(
+                'error',
+                'Penugasan mentor hanya dapat diatur untuk mahasiswa magang.'
+            );
+        }
+
+        $validated = $request->validate([
+            'mentor_id' => [
+                'nullable',
+                'integer',
+                'exists:users,id',
+            ],
+        ], [
+            'mentor_id.exists' => 'Pengguna yang dipilih tidak ditemukan.',
+        ]);
+
+        $mentorId = $validated['mentor_id'] ?? null;
+
+        if (
+            $mentorId !== null
+            && !User::whereKey($mentorId)
+                ->where('role', 'mentor')
+                ->exists()
+        ) {
+            return back()->withErrors([
+                'mentor_id' => 'Pengguna yang dipilih bukan akun mentor.',
+            ])->withInput();
+        }
+
+        $user->mentor_id = $mentorId;
+        $user->save();
+
+        $message = $mentorId === null
+            ? 'Penugasan mentor untuk ' . $user->name . ' berhasil dihapus.'
+            : 'Mentor untuk ' . $user->name . ' berhasil diperbarui.';
+
+        return redirect()
+            ->route('admin.users')
+            ->with('success', $message);
+    }
+
+    /**
+     * Mengatur periode magang selama 3, 4, 5, atau 6 bulan.
+     */
     public function updateInternshipPeriod(Request $request, User $user)
     {
-        if (! in_array($user->role, ['magang', 'intern'], true)) {
-            return back()->with('error', 'Periode magang hanya dapat diatur untuk mahasiswa magang.');
+        if (!in_array($user->role, ['magang', 'intern'], true)) {
+            return back()->with(
+                'error',
+                'Periode magang hanya dapat diatur untuk mahasiswa magang.'
+            );
         }
 
         $validated = $request->validate([
@@ -73,31 +157,166 @@ class AdminController extends Controller
             'duration_months.in' => 'Durasi magang harus 3, 4, 5, atau 6 bulan.',
         ]);
 
-        $startDate = Carbon::createFromFormat('!Y-m-d', $validated['start_date'], 'Asia/Jakarta');
+        $startDate = Carbon::createFromFormat(
+            '!Y-m-d',
+            $validated['start_date'],
+            'Asia/Jakarta'
+        );
+
         $duration = (int) $validated['duration_months'];
-        $endDate = $startDate->copy()->addMonthsNoOverflow($duration)->subDay();
+
+        $endDate = $startDate->copy()
+            ->addMonthsNoOverflow($duration)
+            ->subDay();
 
         $user->start_date = $startDate->toDateString();
         $user->end_date = $endDate->toDateString();
         $user->save();
 
-        return redirect()->route('admin.users')->with(
-            'success',
-            'Periode magang ' . $user->name . ' berhasil disimpan selama ' . $duration .
-            ' bulan, dari ' . $startDate->format('d-m-Y') . ' sampai ' . $endDate->format('d-m-Y') . '.'
-        );
+        return redirect()
+            ->route('admin.users')
+            ->with(
+                'success',
+                'Periode magang ' . $user->name
+                . ' berhasil disimpan selama ' . $duration
+                . ' bulan, dari ' . $startDate->format('d-m-Y')
+                . ' sampai ' . $endDate->format('d-m-Y') . '.'
+            );
     }
 
-    /** Menampilkan manajemen divisi. */
+    /*
+    |--------------------------------------------------------------------------
+    | MANAJEMEN DIVISI
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Menampilkan divisi beserta anggota dan jumlah pengguna.
+     */
     public function divisions()
     {
-        $divisions = Division::withCount('users')->orderBy('name')->get();
+        $divisions = Division::with([
+            'users' => function ($query) {
+                $query->select(
+                    'id',
+                    'name',
+                    'email',
+                    'role',
+                    'division_id',
+                    'nim',
+                    'university',
+                    'study_program',
+                    'mentor_id'
+                )
+                ->whereIn('role', ['magang', 'intern', 'mentor'])
+                ->orderBy('name');
+            },
+        ])
+            ->withCount('users')
+            ->withCount([
+                'users as interns_count' => function ($query) {
+                    $query->whereIn('role', ['magang', 'intern']);
+                },
+                'users as mentors_count' => function ($query) {
+                    $query->where('role', 'mentor');
+                },
+            ])
+            ->orderBy('name')
+            ->get();
+
         return view('admin.divisions', compact('divisions'));
     }
 
     /**
-     * Rekap absensi dan logbook dengan filter bulan, divisi, mentor, dan pencarian.
-     * Untuk saat ini penugasan mentor mengikuti divisi yang sama karena belum ada mentor_id per mahasiswa.
+     * Menambahkan divisi baru.
+     */
+    public function storeDivision(Request $request)
+    {
+        $request->merge([
+            'name' => trim((string) $request->input('name')),
+        ]);
+
+        $validated = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                'unique:divisions,name',
+            ],
+        ], [
+            'name.required' => 'Nama divisi wajib diisi.',
+            'name.max' => 'Nama divisi maksimal 100 karakter.',
+            'name.unique' => 'Nama divisi tersebut sudah terdaftar.',
+        ]);
+
+        $division = new Division();
+        $division->name = $validated['name'];
+        $division->save();
+
+        return redirect()
+            ->route('admin.divisions')
+            ->with('success', 'Divisi berhasil ditambahkan.');
+    }
+
+    /**
+     * Mengubah nama divisi.
+     */
+    public function updateDivision(Request $request, Division $division)
+    {
+        $request->merge([
+            'name' => trim((string) $request->input('name')),
+        ]);
+
+        $validated = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('divisions', 'name')->ignore($division->id),
+            ],
+        ], [
+            'name.required' => 'Nama divisi wajib diisi.',
+            'name.max' => 'Nama divisi maksimal 100 karakter.',
+            'name.unique' => 'Nama divisi tersebut sudah digunakan.',
+        ]);
+
+        $division->name = $validated['name'];
+        $division->save();
+
+        return redirect()
+            ->route('admin.divisions')
+            ->with('success', 'Nama divisi berhasil diperbarui.');
+    }
+
+    /**
+     * Menghapus divisi hanya jika belum memiliki pengguna.
+     */
+    public function destroyDivision(Division $division)
+    {
+        if ($division->users()->exists()) {
+            return redirect()
+                ->route('admin.divisions')
+                ->with(
+                    'error',
+                    'Divisi tidak dapat dihapus karena masih memiliki pengguna. Pindahkan anggotanya terlebih dahulu.'
+                );
+        }
+
+        $division->delete();
+
+        return redirect()
+            ->route('admin.divisions')
+            ->with('success', 'Divisi berhasil dihapus.');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | REKAP ABSENSI DAN LOGBOOK
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Menampilkan rekap dengan filter pencarian, bulan, divisi, dan mentor.
      */
     public function attendance(Request $request)
     {
@@ -106,26 +325,60 @@ class AdminController extends Controller
         $divisionId = $request->query('division_id');
         $mentorId = $request->query('mentor_id');
 
-        $validMonth = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) === 1;
-        $validDivisionId = filter_var($divisionId, FILTER_VALIDATE_INT) !== false && $divisionId !== null && $divisionId !== '';
-        $validMentorId = filter_var($mentorId, FILTER_VALIDATE_INT) !== false && $mentorId !== null && $mentorId !== '';
+        $validMonth = preg_match(
+            '/^\d{4}-(0[1-9]|1[0-2])$/',
+            $month
+        ) === 1;
+
+        $validDivisionId = filter_var(
+            $divisionId,
+            FILTER_VALIDATE_INT
+        ) !== false
+            && $divisionId !== null
+            && $divisionId !== '';
+
+        $validMentorId = filter_var(
+            $mentorId,
+            FILTER_VALIDATE_INT
+        ) !== false
+            && $mentorId !== null
+            && $mentorId !== '';
 
         $selectedMentor = $validMentorId
-            ? User::where('role', 'mentor')->with('division')->find((int) $mentorId)
+            ? User::where('role', 'mentor')
+                ->with('division')
+                ->find((int) $mentorId)
             : null;
 
-        $applyFilters = function ($query) use ($search, $validMonth, $month, $validDivisionId, $divisionId, $selectedMentor) {
+        /*
+         * Penting: $validMentorId dimasukkan ke dalam use agar
+         * variabel tersebut tersedia di dalam fungsi filter.
+         */
+        $applyFilters = function ($query) use (
+            $search,
+            $validMonth,
+            $month,
+            $validDivisionId,
+            $divisionId,
+            $validMentorId,
+            $selectedMentor
+        ) {
             if ($search !== '') {
                 $query->whereHas('user', function ($userQuery) use ($search) {
                     $userQuery->where(function ($q) use ($search) {
                         $q->where('name', 'like', '%' . $search . '%')
-                          ->orWhere('email', 'like', '%' . $search . '%');
+                            ->orWhere('email', 'like', '%' . $search . '%');
                     });
                 });
             }
 
             if ($validMonth) {
-                $period = Carbon::createFromFormat('!Y-m', $month, 'Asia/Jakarta');
+                $period = Carbon::createFromFormat(
+                    '!Y-m',
+                    $month,
+                    'Asia/Jakarta'
+                );
+
                 $query->whereBetween('date', [
                     $period->copy()->startOfMonth()->toDateString(),
                     $period->copy()->endOfMonth()->toDateString(),
@@ -138,14 +391,14 @@ class AdminController extends Controller
                 });
             }
 
-            if ($selectedMentor) {
-                if ($selectedMentor->division_id) {
-                    $query->whereHas('user', function ($userQuery) use ($selectedMentor) {
-                        $userQuery->where('division_id', $selectedMentor->division_id);
-                    });
-                } else {
-                    $query->whereRaw('1 = 0');
-                }
+            if ($validMentorId) {
+                $query->whereHas('user', function ($userQuery) use ($selectedMentor) {
+                    if ($selectedMentor) {
+                        $userQuery->where('mentor_id', $selectedMentor->id);
+                    } else {
+                        $userQuery->whereRaw('1 = 0');
+                    }
+                });
             }
 
             return $query;
@@ -154,17 +407,25 @@ class AdminController extends Controller
         $attendancesQuery = Attendance::with(['user.division'])
             ->orderByDesc('date')
             ->orderByDesc('clock_in');
+
         $applyFilters($attendancesQuery);
+
         $attendances = $attendancesQuery->get();
 
         $logbooksQuery = Logbook::with(['user.division'])
             ->orderByDesc('date')
             ->orderByDesc('created_at');
+
         $applyFilters($logbooksQuery);
+
         $logbooks = $logbooksQuery->get();
 
         $divisions = Division::orderBy('name')->get();
-        $mentors = User::where('role', 'mentor')->with('division')->orderBy('name')->get();
+
+        $mentors = User::where('role', 'mentor')
+            ->with('division')
+            ->orderBy('name')
+            ->get();
 
         $stats = [
             'total' => $attendances->count(),
@@ -176,16 +437,34 @@ class AdminController extends Controller
         ];
 
         return view('admin.attendance', compact(
-            'attendances', 'logbooks', 'divisions', 'mentors', 'stats',
-            'search', 'month', 'divisionId', 'mentorId'
+            'attendances',
+            'logbooks',
+            'divisions',
+            'mentors',
+            'stats',
+            'search',
+            'month',
+            'divisionId',
+            'mentorId'
         ));
     }
 
-    /** Menyajikan selfie hanya untuk pengguna yang lolos middleware Admin/HR pada route. */
+    /**
+     * Menampilkan foto selfie absensi untuk Admin/HR yang berwenang.
+     */
     public function attendancePhoto(Attendance $attendance)
     {
-        abort_unless($attendance->photo_path, 404, 'Foto absensi tidak tersedia.');
-        abort_unless(Storage::disk('public')->exists($attendance->photo_path), 404, 'File foto tidak ditemukan.');
+        abort_unless(
+            $attendance->photo_path,
+            404,
+            'Foto absensi tidak tersedia.'
+        );
+
+        abort_unless(
+            Storage::disk('public')->exists($attendance->photo_path),
+            404,
+            'File foto tidak ditemukan.'
+        );
 
         return Storage::disk('public')->response(
             $attendance->photo_path,
@@ -195,7 +474,10 @@ class AdminController extends Controller
         );
     }
 
-    /** Menampilkan pengaturan sistem. */
+    /**
+     * Mempertahankan method pengaturan lama jika masih digunakan.
+     * Route utama Pengaturan Sistem menggunakan SystemSettingsController.
+     */
     public function settings()
     {
         return view('admin.settings');

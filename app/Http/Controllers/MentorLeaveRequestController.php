@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\LeaveRequest;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -11,23 +12,26 @@ use Illuminate\Validation\ValidationException;
 class MentorLeaveRequestController extends Controller
 {
     /**
-     * Menampilkan pengajuan izin mahasiswa dalam divisi Mentor.
+     * Menampilkan pengajuan izin/sakit mahasiswa
+     * yang ditugaskan langsung kepada mentor.
      */
     public function index(Request $request)
     {
         $mentor = $request->user();
-        $assignmentMissing = empty($mentor->division_id);
+
+        // Ambil ID mahasiswa yang benar-benar ditugaskan kepada mentor.
+        $studentIds = User::whereIn('role', ['magang', 'intern'])
+            ->where('mentor_id', $mentor->id)
+            ->pluck('id');
+
+        // Tetap menggunakan nama variabel yang dipakai oleh Blade lama.
+        $assignmentMissing = $studentIds->isEmpty();
 
         if ($assignmentMissing) {
             $requests = collect();
         } else {
             $requests = LeaveRequest::with('user')
-                ->whereHas('user', function ($query) use ($mentor) {
-                    $query->where(
-                        'division_id',
-                        $mentor->division_id
-                    );
-                })
+                ->whereIn('user_id', $studentIds)
                 ->orderByRaw(
                     "CASE WHEN status = 'Menunggu' THEN 0 ELSE 1 END"
                 )
@@ -42,11 +46,13 @@ class MentorLeaveRequestController extends Controller
     }
 
     /**
-     * Menyetujui pengajuan izin.
+     * Menyetujui pengajuan izin/sakit mahasiswa bimbingan.
      */
     public function approve(Request $request, int $id)
     {
         $mentor = $request->user();
+
+        // Pastikan pengajuan berasal dari mahasiswa bimbingan mentor.
         $leaveRequest = $this->findAssignedRequest($mentor, $id);
 
         if ($leaveRequest->status !== 'Menunggu') {
@@ -61,6 +67,7 @@ class MentorLeaveRequestController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            // Periksa ulang status agar tidak diproses dua kali.
             if ($lockedRequest->status !== 'Menunggu') {
                 throw ValidationException::withMessages([
                     'review' => 'Pengajuan ini sudah diproses.',
@@ -77,7 +84,7 @@ class MentorLeaveRequestController extends Controller
 
         return back()->with(
             'success',
-            'Pengajuan izin berhasil disetujui.'
+            'Pengajuan izin/sakit berhasil disetujui.'
         );
     }
 
@@ -100,6 +107,8 @@ class MentorLeaveRequestController extends Controller
         ]);
 
         $mentor = $request->user();
+
+        // Hanya boleh menolak pengajuan mahasiswa bimbingannya.
         $leaveRequest = $this->findAssignedRequest($mentor, $id);
 
         if ($leaveRequest->status !== 'Menunggu') {
@@ -139,43 +148,51 @@ class MentorLeaveRequestController extends Controller
     }
 
     /**
-     * Mengunduh dokumen hanya untuk pengajuan mahasiswa di divisi Mentor.
+     * Mengunduh dokumen pengajuan milik mahasiswa bimbingan mentor.
      */
     public function download(Request $request, int $id)
     {
         $mentor = $request->user();
 
+        // Pastikan hak akses diperiksa sebelum file diberikan.
         $leaveRequest = $this->findAssignedRequest($mentor, $id);
+
+        $documentPath = $leaveRequest->document_path;
+
+        abort_unless(
+            is_string($documentPath) && $documentPath !== '',
+            404,
+            'Dokumen pengajuan tidak tersedia.'
+        );
 
         $disk = Storage::disk('local');
 
         abort_unless(
-            $disk->exists($leaveRequest->document_path),
+            $disk->exists($documentPath),
             404,
             'Dokumen pengajuan tidak ditemukan.'
         );
 
-        return $disk->download(
-            $leaveRequest->document_path
-        );
+        return $disk->download($documentPath);
     }
 
     /**
-     * Membatasi Mentor ke mahasiswa dalam divisinya.
+     * Memastikan pengajuan berasal dari mahasiswa
+     * yang mentor_id-nya sama dengan ID mentor yang login.
+     *
+     * Jika pengajuan bukan milik mahasiswa bimbingan,
+     * pencarian tidak akan mengembalikan pengajuan tersebut.
      */
-    private function findAssignedRequest($mentor, int $id): LeaveRequest
-    {
-        abort_if(
-            empty($mentor->division_id),
-            403,
-            'Akun Mentor belum ditetapkan ke divisi oleh HR/Admin.'
-        );
-
-        return LeaveRequest::whereHas('user', function ($query) use ($mentor) {
-            $query->where(
-                'division_id',
-                $mentor->division_id
-            );
-        })->findOrFail($id);
+    private function findAssignedRequest(
+        $mentor,
+        int $id
+    ): LeaveRequest {
+        return LeaveRequest::whereHas(
+            'user',
+            function ($query) use ($mentor) {
+                $query->where('mentor_id', $mentor->id)
+                    ->whereIn('role', ['magang', 'intern']);
+            }
+        )->findOrFail($id);
     }
 }

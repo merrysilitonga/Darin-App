@@ -154,7 +154,7 @@
                 </h2>
 
                 <p class="mt-2 text-sm text-gray-500">
-                    Kelola data pengguna dan periode magang mahasiswa.
+                    Kelola data pengguna, divisi, penugasan mentor, dan periode magang mahasiswa.
                 </p>
             </div>
 
@@ -294,7 +294,7 @@
                     </h3>
 
                     <p class="mt-1 text-sm text-gray-500">
-                        Atur divisi, penempatan mentor berdasarkan divisi, dan periode magang mahasiswa dari halaman ini.
+                        Atur divisi, tetapkan mentor secara langsung untuk setiap mahasiswa, dan kelola periode magang dari halaman ini.
                     </p>
                 </div>
 
@@ -302,7 +302,7 @@
                 @if($users->isNotEmpty())
 
                     <div class="overflow-x-auto">
-                        <table class="w-full min-w-[1200px] text-left text-sm">
+                        <table class="w-full min-w-[1350px] text-left text-sm">
 
                             <thead class="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                                 <tr>
@@ -360,28 +360,20 @@
                                         </td>
 
 
-                                        {{-- DIVISI DAN PENUGASAN MENTOR BERDASARKAN DIVISI --}}
-                                        <td class="min-w-[260px] px-5 py-5">
+                                        {{-- DIVISI DAN PENUGASAN MENTOR LANGSUNG --}}
+                                        <td class="min-w-[300px] px-5 py-5">
                                             @php
                                                 $roleDapatDivisi = in_array($user->role, ['magang', 'intern', 'mentor'], true);
-                                                $mentorPadaDivisi = null;
-
-                                                if (in_array($user->role, ['magang', 'intern'], true) && $user->division_id) {
-                                                    $mentorPadaDivisi = $users->first(function ($candidate) use ($user) {
-                                                        return $candidate->role === 'mentor'
-                                                            && (int) $candidate->division_id === (int) $user->division_id;
-                                                    });
-                                                }
+                                                $mahasiswaMagang = in_array($user->role, ['magang', 'intern'], true);
                                             @endphp
 
                                             <p class="font-semibold text-gray-800">
                                                 {{ optional($user->division)->name ?? 'Belum ditetapkan' }}
                                             </p>
 
-                                            @if(in_array($user->role, ['magang', 'intern'], true))
+                                            @if($mahasiswaMagang)
                                                 <p class="mt-1 text-xs text-gray-500">
-                                                    Mentor:
-                                                    {{ $mentorPadaDivisi ? $mentorPadaDivisi->name : 'Belum ditentukan' }}
+                                                    Mentor: {{ optional($user->mentor)->name ?? 'Belum ditentukan' }}
                                                 </p>
                                             @endif
 
@@ -408,13 +400,38 @@
                                                         Simpan Divisi
                                                     </button>
                                                 </form>
-                                                @if(in_array($user->role, ['magang', 'intern'], true))
-                                                    <p class="mt-2 text-[11px] leading-4 text-gray-500">
-                                                        Mentor ditentukan berdasarkan divisi yang sama.
-                                                    </p>
-                                                @endif
                                             @else
                                                 <p class="mt-1 text-xs text-gray-400">Divisi tidak diatur dari halaman ini.</p>
+                                            @endif
+
+                                            @if($mahasiswaMagang)
+                                                <form action="{{ route('admin.users.mentor', $user->id) }}" method="POST" class="mt-4 space-y-2 border-t border-gray-100 pt-3">
+                                                    @csrf
+                                                    @method('PUT')
+                                                    <label for="mentor_id_{{ $user->id }}" class="block text-xs font-semibold text-gray-600">
+                                                        Tetapkan mentor
+                                                    </label>
+                                                    <select
+                                                        id="mentor_id_{{ $user->id }}"
+                                                        name="mentor_id"
+                                                        class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+                                                    >
+                                                        <option value="">Belum ditentukan</option>
+                                                        @foreach($mentors as $mentor)
+                                                            <option value="{{ $mentor->id }}" {{ (string) $user->mentor_id === (string) $mentor->id ? 'selected' : '' }}>
+                                                                {{ $mentor->name }}{{ $mentor->division ? ' — ' . $mentor->division->name : '' }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                    <button type="submit" class="w-full rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-extrabold text-amber-900 transition hover:bg-amber-100">
+                                                        Simpan Mentor
+                                                    </button>
+                                                    @if($mentors->isEmpty())
+                                                        <p class="text-[11px] leading-4 text-amber-700">Belum ada akun ber-role mentor. Buat akun mentor terlebih dahulu.</p>
+                                                    @else
+                                                        <p class="text-[11px] leading-4 text-gray-500">Mentor dapat dipilih langsung dan tidak harus dari divisi yang sama.</p>
+                                                    @endif
+                                                </form>
                                             @endif
                                         </td>
 
@@ -601,7 +618,7 @@
 
 
                 <div class="border-t border-gray-100 bg-gray-50 px-5 py-4 text-xs leading-5 text-gray-500 sm:px-6">
-                    Perubahan periode tersimpan setelah tombol Simpan Periode ditekan dan data berhasil divalidasi.
+                    Perubahan divisi, penugasan mentor, dan periode magang tersimpan setelah formulir terkait berhasil divalidasi.
                 </div>
 
             </section>

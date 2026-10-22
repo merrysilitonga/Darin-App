@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Logbook;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -10,25 +11,28 @@ use Illuminate\Validation\ValidationException;
 class MentorLogbookController extends Controller
 {
     /**
-     * Menampilkan logbook mahasiswa di divisi mentor.
+     * Menampilkan logbook mahasiswa yang ditugaskan kepada mentor.
      */
     public function index(Request $request)
     {
         $mentor = $request->user();
 
-        $assignmentMissing = empty($mentor->division_id);
+        // Ambil hanya mahasiswa yang ditugaskan langsung kepada mentor ini.
+        $studentIds = User::whereIn('role', ['magang', 'intern'])
+            ->where('mentor_id', $mentor->id)
+            ->pluck('id');
+
+        // Status ini dipakai view untuk menampilkan kondisi kosong.
+        $assignmentMissing = $studentIds->isEmpty();
 
         if ($assignmentMissing) {
             $logbooks = collect();
         } else {
             $logbooks = Logbook::with('user')
-                ->whereHas('user', function ($query) use ($mentor) {
-                    $query->where(
-                        'division_id',
-                        $mentor->division_id
-                    );
-                })
-                ->orderByRaw("CASE WHEN status = 'Menunggu' THEN 0 ELSE 1 END")
+                ->whereIn('user_id', $studentIds)
+                ->orderByRaw(
+                    "CASE WHEN status = 'Menunggu' THEN 0 ELSE 1 END"
+                )
                 ->orderByDesc('date')
                 ->orderByDesc('id')
                 ->get();
@@ -41,12 +45,13 @@ class MentorLogbookController extends Controller
     }
 
     /**
-     * Menyetujui logbook mahasiswa.
+     * Menyetujui logbook mahasiswa bimbingan.
      */
     public function approve(Request $request, int $id)
     {
         $mentor = $request->user();
 
+        // Pastikan logbook benar-benar milik mahasiswa bimbingan mentor.
         $logbook = $this->findAssignedLogbook($mentor, $id);
 
         if ($logbook->status !== 'Menunggu') {
@@ -57,12 +62,11 @@ class MentorLogbookController extends Controller
         }
 
         DB::transaction(function () use ($logbook, $mentor) {
-            // Periksa ulang status di database untuk menghindari
-            // pemrosesan ulang catatan yang sudah direview.
             $lockedLogbook = Logbook::whereKey($logbook->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            // Periksa ulang status agar tidak diproses dua kali.
             if ($lockedLogbook->status !== 'Menunggu') {
                 throw ValidationException::withMessages([
                     'review' => 'Logbook ini sudah diproses oleh reviewer lain.',
@@ -103,6 +107,7 @@ class MentorLogbookController extends Controller
 
         $mentor = $request->user();
 
+        // Pastikan mentor hanya menolak logbook mahasiswa bimbingannya.
         $logbook = $this->findAssignedLogbook($mentor, $id);
 
         if ($logbook->status !== 'Menunggu') {
@@ -138,21 +143,17 @@ class MentorLogbookController extends Controller
     }
 
     /**
-     * Pastikan mentor hanya memproses logbook dari divisinya.
+     * Memastikan logbook milik mahasiswa yang ditugaskan kepada mentor.
+     *
+     * Pengecekan ini berlaku untuk halaman daftar, persetujuan,
+     * dan penolakan agar mentor tidak dapat memproses logbook
+     * mahasiswa yang ditugaskan kepada mentor lain.
      */
     private function findAssignedLogbook($mentor, int $id): Logbook
     {
-        abort_if(
-            empty($mentor->division_id),
-            403,
-            'Akun mentor belum ditetapkan ke divisi oleh admin.'
-        );
-
         return Logbook::whereHas('user', function ($query) use ($mentor) {
-            $query->where(
-                'division_id',
-                $mentor->division_id
-            );
+            $query->where('mentor_id', $mentor->id)
+                ->whereIn('role', ['magang', 'intern']);
         })->findOrFail($id);
     }
 }

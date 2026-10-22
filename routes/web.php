@@ -71,9 +71,7 @@ Route::get('/forgot-password', function () {
     return view('auth.forgot-password');
 })->middleware('guest')->name('password.request');
 
-
 Route::post('/forgot-password', function (Request $request) {
-
     $request->validate([
         'email' => ['required', 'email'],
     ]);
@@ -92,9 +90,7 @@ Route::post('/forgot-password', function (Request $request) {
     return back()->withErrors([
         'email' => 'Link reset belum dapat dikirim. Periksa konfigurasi email aplikasi.',
     ]);
-
 })->middleware('guest')->name('password.email');
-
 
 Route::get('/reset-password/{token}', function (
     Request $request,
@@ -106,9 +102,7 @@ Route::get('/reset-password/{token}', function (
     ]);
 })->middleware('guest')->name('password.reset');
 
-
 Route::post('/reset-password', function (Request $request) {
-
     $request->validate([
         'token' => ['required'],
         'email' => ['required', 'email'],
@@ -128,7 +122,6 @@ Route::post('/reset-password', function (Request $request) {
             'token'
         ),
         function (User $user, string $password) {
-
             $user->forceFill([
                 'password' => $password,
             ]);
@@ -152,7 +145,6 @@ Route::post('/reset-password', function (Request $request) {
     return back()->withErrors([
         'email' => 'Link reset tidak valid atau sudah kedaluwarsa. Silakan minta link baru.',
     ]);
-
 })->middleware('guest')->name('password.update');
 
 
@@ -163,7 +155,6 @@ Route::post('/reset-password', function (Request $request) {
 */
 
 Route::middleware(['auth'])->group(function () {
-
     Route::get('/profil', [ProfileController::class, 'edit'])
         ->name('profil');
 
@@ -172,7 +163,6 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout'])
         ->name('logout');
-
 });
 
 
@@ -187,24 +177,12 @@ Route::middleware([
     RoleMiddleware::class . ':magang,intern',
 ])->group(function () {
 
-    /*
-    |--------------------------------------------------------------------------
-    | DASHBOARD MAHASISWA
-    |--------------------------------------------------------------------------
-    */
-
     Route::get(
         '/dashboard-magang',
         [DashboardController::class, 'index']
     )->name('dashboard.magang');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | ABSENSI MAHASISWA
-    |--------------------------------------------------------------------------
-    */
-
+    // Absensi.
     Route::get(
         '/absen',
         [AttendanceController::class, 'index']
@@ -220,13 +198,7 @@ Route::middleware([
         [AttendanceController::class, 'storeClockOut']
     )->name('absen.checkout');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | LOGBOOK MAHASISWA
-    |--------------------------------------------------------------------------
-    */
-
+    // Logbook.
     Route::get(
         '/logbook',
         [LogbookController::class, 'index']
@@ -245,24 +217,15 @@ Route::middleware([
     Route::put(
         '/logbook/{id}',
         [LogbookController::class, 'update']
-    )->whereNumber('id')
-        ->name('logbook.update');
+    )->whereNumber('id')->name('logbook.update');
 
     Route::delete(
         '/logbook/{id}',
         [LogbookController::class, 'destroy']
-    )->whereNumber('id')
-        ->name('logbook.destroy');
+    )->whereNumber('id')->name('logbook.destroy');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | RIWAYAT ABSENSI MAHASISWA
-    |--------------------------------------------------------------------------
-    */
-
+    // Riwayat absensi.
     Route::get('/riwayat-absen', function (Request $request) {
-
         $user = $request->user();
         $bulan = $request->query('bulan');
 
@@ -279,18 +242,10 @@ Route::middleware([
             'Asia/Jakarta'
         );
 
-        $tanggalAwal = $periode->copy()
-            ->startOfMonth()
-            ->toDateString();
-
-        $tanggalAkhir = $periode->copy()
-            ->endOfMonth()
-            ->toDateString();
-
         $attendances = Attendance::where('user_id', $user->id)
             ->whereBetween('date', [
-                $tanggalAwal,
-                $tanggalAkhir,
+                $periode->copy()->startOfMonth()->toDateString(),
+                $periode->copy()->endOfMonth()->toDateString(),
             ])
             ->orderByDesc('date')
             ->orderByDesc('clock_in')
@@ -300,15 +255,7 @@ Route::middleware([
             'attendance.history',
             compact('user', 'attendances', 'periode')
         );
-
     })->name('riwayat.absen');
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | EKSPOR RIWAYAT ABSENSI MAHASISWA
-    |--------------------------------------------------------------------------
-    */
 
     Route::get(
         '/riwayat-absen/export-pdf',
@@ -320,13 +267,7 @@ Route::middleware([
         [AttendanceController::class, 'exportCsv']
     )->name('riwayat.export-csv');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | PENGAJUAN IZIN / SAKIT MAHASISWA
-    |--------------------------------------------------------------------------
-    */
-
+    // Pengajuan izin/sakit.
     Route::get(
         '/pengajuan-izin',
         [LeaveRequestController::class, 'create']
@@ -345,9 +286,7 @@ Route::middleware([
     Route::get(
         '/pengajuan-izin/{id}/surat',
         [LeaveRequestController::class, 'download']
-    )->whereNumber('id')
-        ->name('izin.download');
-
+    )->whereNumber('id')->name('izin.download');
 });
 
 
@@ -358,7 +297,6 @@ Route::middleware([
 */
 
 Route::get('/', function () {
-
     if (!auth()->check()) {
         return redirect()->route('login');
     }
@@ -378,14 +316,12 @@ Route::get('/', function () {
     }
 
     auth()->logout();
-
     request()->session()->invalidate();
     request()->session()->regenerateToken();
 
     return redirect()->route('login')->withErrors([
         'email' => 'Role akun tidak dikenali. Silakan hubungi administrator.',
     ]);
-
 });
 
 
@@ -398,109 +334,78 @@ Route::get('/', function () {
 Route::middleware([
     'auth',
     RoleMiddleware::class . ':mentor',
-])
-    ->prefix('mentor')
-    ->group(function () {
+])->prefix('mentor')->group(function () {
 
-        /*
-        |--------------------------------------------------------------------------
-        | DASHBOARD MENTOR
-        |--------------------------------------------------------------------------
-        */
+    Route::get(
+        '/dashboard',
+        [MentorDashboardController::class, 'index']
+    )->name('mentor.dashboard');
 
-        Route::get(
-            '/dashboard',
-            [MentorDashboardController::class, 'index']
-        )->name('mentor.dashboard');
+    // Daftar mahasiswa berdasarkan penugasan mentor.
+    Route::get('/interns', function (Request $request) {
+        $mentor = $request->user();
 
+        $students = User::whereIn('role', ['magang', 'intern'])
+            ->where('mentor_id', $mentor->id)
+            ->with('division')
+            ->orderBy('name')
+            ->get();
 
-        /*
-        |--------------------------------------------------------------------------
-        | DAFTAR MAHASISWA BIMBINGAN
-        |--------------------------------------------------------------------------
-        */
+        $assignmentMissing = $students->isEmpty();
 
-        Route::get('/interns', function () {
-            return view('mentor.interns');
-        })->name('mentor.interns');
+        return view('mentor.interns', compact(
+            'mentor',
+            'students',
+            'assignmentMissing'
+        ));
+    })->name('mentor.interns');
 
+    // Logbook.
+    Route::get(
+        '/logbook',
+        [MentorLogbookController::class, 'index']
+    )->name('mentor.logbook');
 
-        /*
-        |--------------------------------------------------------------------------
-        | REVIEW LOGBOOK MENTOR
-        |--------------------------------------------------------------------------
-        */
+    Route::post(
+        '/logbook/{id}/approve',
+        [MentorLogbookController::class, 'approve']
+    )->whereNumber('id')->name('mentor.logbook.approve');
 
-        Route::get(
-            '/logbook',
-            [MentorLogbookController::class, 'index']
-        )->name('mentor.logbook');
+    Route::post(
+        '/logbook/{id}/reject',
+        [MentorLogbookController::class, 'reject']
+    )->whereNumber('id')->name('mentor.logbook.reject');
 
-        Route::post(
-            '/logbook/{id}/approve',
-            [MentorLogbookController::class, 'approve']
-        )->whereNumber('id')
-            ->name('mentor.logbook.approve');
+    // Izin/sakit.
+    Route::get(
+        '/leave-requests',
+        [MentorLeaveRequestController::class, 'index']
+    )->name('mentor.leave-requests');
 
-        Route::post(
-            '/logbook/{id}/reject',
-            [MentorLogbookController::class, 'reject']
-        )->whereNumber('id')
-            ->name('mentor.logbook.reject');
+    Route::post(
+        '/leave-requests/{id}/approve',
+        [MentorLeaveRequestController::class, 'approve']
+    )->whereNumber('id')->name('mentor.leave-requests.approve');
 
+    Route::post(
+        '/leave-requests/{id}/reject',
+        [MentorLeaveRequestController::class, 'reject']
+    )->whereNumber('id')->name('mentor.leave-requests.reject');
 
-        /*
-        |--------------------------------------------------------------------------
-        | PERSETUJUAN IZIN / SAKIT MENTOR
-        |--------------------------------------------------------------------------
-        */
+    Route::get(
+        '/leave-requests/{id}/document',
+        [MentorLeaveRequestController::class, 'download']
+    )->whereNumber('id')->name('mentor.leave-requests.document');
 
-        Route::get(
-            '/leave-requests',
-            [MentorLeaveRequestController::class, 'index']
-        )->name('mentor.leave-requests');
+    // Halaman absensi dan penilaian.
+    Route::get('/attendance', function () {
+        return view('mentor.attendance');
+    })->name('mentor.attendance');
 
-        Route::post(
-            '/leave-requests/{id}/approve',
-            [MentorLeaveRequestController::class, 'approve']
-        )->whereNumber('id')
-            ->name('mentor.leave-requests.approve');
-
-        Route::post(
-            '/leave-requests/{id}/reject',
-            [MentorLeaveRequestController::class, 'reject']
-        )->whereNumber('id')
-            ->name('mentor.leave-requests.reject');
-
-        Route::get(
-            '/leave-requests/{id}/document',
-            [MentorLeaveRequestController::class, 'download']
-        )->whereNumber('id')
-            ->name('mentor.leave-requests.document');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | REKAP ABSENSI MENTOR
-        |--------------------------------------------------------------------------
-        */
-
-        Route::get('/attendance', function () {
-            return view('mentor.attendance');
-        })->name('mentor.attendance');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | PENILAIAN MENTOR
-        |--------------------------------------------------------------------------
-        */
-
-        Route::get('/assessment', function () {
-            return view('mentor.assessment');
-        })->name('mentor.assessment');
-
-    });
+    Route::get('/assessment', function () {
+        return view('mentor.assessment');
+    })->name('mentor.assessment');
+});
 
 
 /*
@@ -512,104 +417,93 @@ Route::middleware([
 Route::middleware([
     'auth',
     RoleMiddleware::class . ':admin,hr',
-])
-    ->prefix('admin')
-    ->group(function () {
+])->prefix('admin')->group(function () {
 
-        /*
-        |--------------------------------------------------------------------------
-        | DASHBOARD ADMIN
-        |--------------------------------------------------------------------------
-        */
+    // Dashboard.
+    Route::get(
+        '/dashboard',
+        [AdminController::class, 'dashboard']
+    )->name('admin.dashboard');
 
-        Route::get(
-            '/dashboard',
-            [AdminController::class, 'dashboard']
-        )->name('admin.dashboard');
+    // Manajemen pengguna.
+    Route::get(
+        '/users',
+        [AdminController::class, 'users']
+    )->name('admin.users');
 
+    Route::put(
+        '/users/{user}/mentor',
+        [AdminController::class, 'updateUserMentor']
+    )->whereNumber('user')->name('admin.users.mentor');
 
-        /*
-        |--------------------------------------------------------------------------
-        | MANAJEMEN PENGGUNA
-        |--------------------------------------------------------------------------
-        */
+    Route::put(
+        '/users/{user}/divisi',
+        [AdminController::class, 'updateUserDivision']
+    )->whereNumber('user')->name('admin.users.division');
 
-        Route::get(
-            '/users',
-            [AdminController::class, 'users']
-        )->name('admin.users');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | PENGATURAN PERIODE MAGANG
-        |--------------------------------------------------------------------------
-        */
-
-        Route::put(
-            '/users/{user}/periode-magang',
-            [AdminController::class, 'updateInternshipPeriod']
-        )->whereNumber('user')
-            ->name('admin.users.internship-period');
+    Route::put(
+        '/users/{user}/periode-magang',
+        [AdminController::class, 'updateInternshipPeriod']
+    )->whereNumber('user')->name('admin.users.internship-period');
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | PENETAPAN DIVISI MAHASISWA / MENTOR
-        |--------------------------------------------------------------------------
-        */
+    /*
+    |--------------------------------------------------------------------------
+    | CRUD DIVISI
+    |--------------------------------------------------------------------------
+    */
 
-        Route::put(
-            '/users/{user}/divisi',
-            [AdminController::class, 'updateUserDivision']
-        )->whereNumber('user')
-            ->name('admin.users.division');
+    Route::get(
+        '/divisions',
+        [AdminController::class, 'divisions']
+    )->name('admin.divisions');
 
+    Route::post(
+        '/divisions',
+        [AdminController::class, 'storeDivision']
+    )->name('admin.divisions.store');
 
-        /*
-        |--------------------------------------------------------------------------
-        | MANAJEMEN DIVISI
-        |--------------------------------------------------------------------------
-        */
+    Route::put(
+        '/divisions/{division}',
+        [AdminController::class, 'updateDivision']
+    )->whereNumber('division')->name('admin.divisions.update');
 
-        Route::get(
-            '/divisions',
-            [AdminController::class, 'divisions']
-        )->name('admin.divisions');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | REKAP ABSENSI ADMIN
-        |--------------------------------------------------------------------------
-        */
-
-        Route::get(
-            '/attendance',
-            [AdminController::class, 'attendance']
-        )->name('admin.attendance');
-
-        Route::get(
-            '/attendance/{attendance}/photo',
-            [AdminController::class, 'attendancePhoto']
-        )->whereNumber('attendance')
-            ->name('admin.attendance.photo');
+    Route::delete(
+        '/divisions/{division}',
+        [AdminController::class, 'destroyDivision']
+    )->whereNumber('division')->name('admin.divisions.destroy');
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | PENGATURAN SISTEM
-        |--------------------------------------------------------------------------
-        */
+    /*
+    |--------------------------------------------------------------------------
+    | REKAP ABSENSI DAN LOGBOOK
+    |--------------------------------------------------------------------------
+    */
 
-        Route::get(
-            '/settings',
-            [SystemSettingsController::class, 'edit']
-        )->name('admin.settings');
+    Route::get(
+        '/attendance',
+        [AdminController::class, 'attendance']
+    )->name('admin.attendance');
 
-        Route::put(
-            '/settings',
-            [SystemSettingsController::class, 'update']
-        )->name('admin.settings.update');
+    Route::get(
+        '/attendance/{attendance}/photo',
+        [AdminController::class, 'attendancePhoto']
+    )->whereNumber('attendance')->name('admin.attendance.photo');
 
-    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | PENGATURAN SISTEM
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/settings',
+        [SystemSettingsController::class, 'edit']
+    )->name('admin.settings');
+
+    Route::put(
+        '/settings',
+        [SystemSettingsController::class, 'update']
+    )->name('admin.settings.update');
+});

@@ -12,13 +12,20 @@ use Illuminate\Support\Str;
 
 class MentorDashboardController extends Controller
 {
+    /**
+     * Menampilkan dashboard mentor beserta mahasiswa bimbingannya.
+     */
     public function index()
     {
         $mentor = auth()->user();
 
         $today = Carbon::now('Asia/Jakarta')->toDateString();
 
-        $assignmentMissing = empty($mentor->division_id);
+        /*
+        |--------------------------------------------------------------------------
+        | INFORMASI DIVISI MENTOR
+        |--------------------------------------------------------------------------
+        */
 
         $division = $mentor->division_id
             ? Division::find($mentor->division_id)
@@ -26,16 +33,35 @@ class MentorDashboardController extends Controller
 
         $divisionName = $division?->name ?? 'Belum ditetapkan';
 
-        $students = $assignmentMissing
-            ? collect()
-            : User::whereIn('role', ['magang', 'intern'])
-                ->where('division_id', $mentor->division_id)
-                ->orderBy('name')
-                ->get();
+        /*
+        |--------------------------------------------------------------------------
+        | DAFTAR MAHASISWA BIMBINGAN
+        |--------------------------------------------------------------------------
+        |
+        | Mahasiswa diambil berdasarkan mentor_id, bukan lagi berdasarkan
+        | kesamaan division_id.
+        |
+        */
+
+        $students = User::whereIn('role', ['magang', 'intern'])
+            ->where('mentor_id', $mentor->id)
+            ->with('division')
+            ->orderBy('name')
+            ->get();
 
         $studentIds = $students->pluck('id');
 
         $totalInterns = $students->count();
+
+        // Menandakan mentor belum memiliki mahasiswa bimbingan.
+        $assignmentMissing = $studentIds->isEmpty();
+
+        /*
+        |--------------------------------------------------------------------------
+        | INISIALISASI STATISTIK
+        |--------------------------------------------------------------------------
+        */
+
         $presentToday = 0;
         $approvedLeaveToday = 0;
         $pendingLogbooksCount = 0;
@@ -44,7 +70,15 @@ class MentorDashboardController extends Controller
         $pendingLogbooks = collect();
         $pendingLeaves = collect();
 
+        /*
+        |--------------------------------------------------------------------------
+        | STATISTIK DAN NOTIFIKASI MAHASISWA
+        |--------------------------------------------------------------------------
+        */
+
         if ($studentIds->isNotEmpty()) {
+
+            // Mahasiswa yang sudah melakukan absensi hari ini.
             $presentToday = Attendance::whereIn(
                 'user_id',
                 $studentIds
@@ -54,6 +88,7 @@ class MentorDashboardController extends Controller
                 ->distinct()
                 ->count('user_id');
 
+            // Mahasiswa yang sedang menjalani izin yang telah disetujui.
             $approvedLeaveToday = LeaveRequest::whereIn(
                 'user_id',
                 $studentIds
@@ -64,6 +99,7 @@ class MentorDashboardController extends Controller
                 ->distinct()
                 ->count('user_id');
 
+            // Jumlah logbook yang menunggu pemeriksaan mentor.
             $pendingLogbooksCount = Logbook::whereIn(
                 'user_id',
                 $studentIds
@@ -71,12 +107,19 @@ class MentorDashboardController extends Controller
                 ->where('status', 'Menunggu')
                 ->count();
 
+            // Jumlah pengajuan izin yang menunggu pemeriksaan.
             $pendingLeaveRequestsCount = LeaveRequest::whereIn(
                 'user_id',
                 $studentIds
             )
                 ->where('status', 'Menunggu')
                 ->count();
+
+            /*
+            |--------------------------------------------------------------------------
+            | NOTIFIKASI LOGBOOK
+            |--------------------------------------------------------------------------
+            */
 
             $pendingLogbooks = Logbook::with('user:id,name')
                 ->whereIn('user_id', $studentIds)
@@ -85,19 +128,31 @@ class MentorDashboardController extends Controller
                 ->get()
                 ->map(function ($logbook) {
                     return [
-                        'student_name' => $logbook->user?->name ?? 'Mahasiswa',
+                        'student_name' => $logbook->user?->name
+                            ?? 'Mahasiswa',
+
                         'type' => 'Logbook Harian',
+
                         'description' => $logbook->topic
                             ?: Str::limit(
-                                strip_tags($logbook->description ?? ''),
+                                strip_tags(
+                                    $logbook->description ?? ''
+                                ),
                                 120
                             ),
+
                         'created_at' => $logbook->created_at,
                         'url' => route('mentor.logbook'),
                         'icon' => '📝',
                         'badge_class' => 'bg-amber-50 text-amber-700',
                     ];
                 });
+
+            /*
+            |--------------------------------------------------------------------------
+            | NOTIFIKASI PENGAJUAN IZIN
+            |--------------------------------------------------------------------------
+            */
 
             $pendingLeaves = LeaveRequest::with('user:id,name')
                 ->whereIn('user_id', $studentIds)
@@ -106,12 +161,16 @@ class MentorDashboardController extends Controller
                 ->get()
                 ->map(function ($leave) {
                     return [
-                        'student_name' => $leave->user?->name ?? 'Mahasiswa',
+                        'student_name' => $leave->user?->name
+                            ?? 'Mahasiswa',
+
                         'type' => 'Pengajuan ' . $leave->request_type,
+
                         'description' => Str::limit(
                             strip_tags($leave->reason ?? ''),
                             120
                         ),
+
                         'created_at' => $leave->created_at,
                         'url' => route('mentor.leave-requests'),
                         'icon' => '📋',
@@ -119,6 +178,12 @@ class MentorDashboardController extends Controller
                     ];
                 });
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | GABUNGKAN NOTIFIKASI
+        |--------------------------------------------------------------------------
+        */
 
         $notifications = $pendingLogbooks
             ->concat($pendingLeaves)
@@ -128,12 +193,26 @@ class MentorDashboardController extends Controller
             ->take(8)
             ->values();
 
+        /*
+        |--------------------------------------------------------------------------
+        | RINGKASAN DASHBOARD
+        |--------------------------------------------------------------------------
+        */
+
         $pendingActionCount = $pendingLogbooksCount
             + $pendingLeaveRequestsCount;
 
         $attendancePercent = $totalInterns > 0
-            ? (int) round(($presentToday / $totalInterns) * 100)
+            ? (int) round(
+                ($presentToday / $totalInterns) * 100
+            )
             : 0;
+
+        /*
+        |--------------------------------------------------------------------------
+        | KIRIM DATA KE VIEW
+        |--------------------------------------------------------------------------
+        */
 
         return view('mentor.dashboard', compact(
             'mentor',

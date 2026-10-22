@@ -6,6 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class SystemSetting extends Model
 {
+    /**
+     * Nama tabel pengaturan sistem.
+     */
+    protected $table = 'system_settings';
+
+    /**
+     * Kolom yang boleh diperbarui melalui mass assignment.
+     */
     protected $fillable = [
         'clock_in_start',
         'clock_in_end',
@@ -15,7 +23,8 @@ class SystemSetting extends Model
     ];
 
     /**
-     * Mengambil satu baris pengaturan sistem, membuat nilai default bila belum ada.
+     * Mengambil satu baris pengaturan sistem.
+     * Jika belum ada, buat pengaturan default dengan ID 1.
      */
     public static function current(): self
     {
