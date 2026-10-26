@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -20,7 +19,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Login dan mengarahkan pengguna sesuai role.
+     * Login dan mengarahkan pengguna sesuai role akun.
      */
     public function login(Request $request)
     {
@@ -29,7 +28,11 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (!Auth::attempt($credentials)) {
+        // Autentikasi pengguna.
+        if (!Auth::attempt(
+            $credentials,
+            $request->boolean('remember')
+        )) {
             return back()
                 ->withErrors([
                     'email' => 'Email atau kata sandi yang Anda masukkan salah.',
@@ -37,32 +40,45 @@ class AuthController extends Controller
                 ->onlyInput('email');
         }
 
+        // Regenerasi session setelah login berhasil.
         $request->session()->regenerate();
 
         $user = Auth::user();
 
-        // Admin dan HR.
-        if (in_array($user->role, ['admin', 'hr'], true)) {
-            return redirect()->intended(
-                route('admin.dashboard')
-            );
+        if (!$user) {
+            Auth::logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()
+                ->route('login')
+                ->withErrors([
+                    'email' => 'Akun tidak dapat diverifikasi. Silakan coba kembali.',
+                ]);
         }
 
-        // Mentor.
-        if ($user->role === 'mentor') {
-            return redirect()->intended(
-                route('mentor.dashboard')
-            );
+        // Normalisasi role untuk menghindari masalah spasi
+        // atau perbedaan huruf besar dan huruf kecil.
+        $role = strtolower(trim((string) $user->role));
+
+        // ADMIN DAN HR.
+        if (in_array($role, ['admin', 'hr'], true)) {
+            return redirect()->route('admin.dashboard');
         }
 
-        // Mahasiswa magang, termasuk akun lama dengan role intern.
-        if (in_array($user->role, ['magang', 'intern'], true)) {
-            return redirect()->intended(
-                route('dashboard.magang')
-            );
+        // MENTOR.
+        if ($role === 'mentor') {
+            return redirect()->route('mentor.dashboard');
         }
 
-        // Logout jika role tidak dikenal.
+        // MAHASISWA MAGANG.
+        // Standar role mahasiswa hanya "magang".
+        if ($role === 'magang') {
+            return redirect()->route('dashboard.magang');
+        }
+
+        // Role tidak dikenal: akhiri session.
         Auth::logout();
 
         $request->session()->invalidate();
@@ -98,57 +114,27 @@ class AuthController extends Controller
 
     /**
      * Registrasi publik khusus mahasiswa magang.
-     *
-     * Role ditentukan oleh server, bukan oleh input formulir.
-     * Registrasi publik tidak dapat membuat akun Admin atau mentor.
      */
     public function processRegister(Request $request)
     {
         $validated = $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-            ],
-
+            'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
                 'email',
                 'max:255',
                 'unique:users,email',
             ],
-
             'password' => [
                 'required',
                 'string',
                 'min:8',
                 'confirmed',
             ],
-
-            'nim' => [
-                'nullable',
-                'string',
-                'max:50',
-            ],
-
-            'phone' => [
-                'nullable',
-                'string',
-                'max:30',
-            ],
-
-            'university' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
-            'study_program' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
+            'nim' => ['nullable', 'string', 'max:50'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'university' => ['nullable', 'string', 'max:255'],
+            'study_program' => ['nullable', 'string', 'max:255'],
             'photo' => [
                 'nullable',
                 'image',
@@ -160,47 +146,51 @@ class AuthController extends Controller
         $photoPath = null;
 
         try {
-            // Simpan foto profil apabila pengguna mengunggahnya.
+            // Simpan foto profil jika pengguna mengunggah foto.
             if ($request->hasFile('photo')) {
                 $photoPath = $request->file('photo')
                     ->store('profiles', 'public');
 
                 if (!$photoPath) {
                     return back()
-                        ->withInput($request->except([
-                            'password',
-                            'password_confirmation',
-                        ]))
+                        ->withInput(
+                            $request->except([
+                                'password',
+                                'password_confirmation',
+                            ])
+                        )
                         ->withErrors([
                             'photo' => 'Foto profil gagal disimpan. Silakan coba kembali.',
                         ]);
                 }
             }
 
-            // Role selalu ditentukan oleh aplikasi.
-            User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => Hash::make($validated['password']),
-                'role' => 'magang',
+            // Role ditentukan oleh server, bukan formulir.
+            $user = new \App\Models\User();
 
-                'nim' => $validated['nim'] ?? null,
-                'phone' => $validated['phone'] ?? null,
-                'university' => $validated['university'] ?? null,
-                'study_program' => $validated['study_program'] ?? null,
+            $user->name = $validated['name'];
+            $user->email = $validated['email'];
+            $user->password = Hash::make($validated['password']);
+            $user->role = 'magang';
 
-                'division_id' => null,
-                'mentor_id' => null,
-                'nip' => null,
-                'position' => null,
+            $user->nim = $validated['nim'] ?? null;
+            $user->phone = $validated['phone'] ?? null;
+            $user->university = $validated['university'] ?? null;
+            $user->study_program = $validated['study_program'] ?? null;
 
-                'start_date' => null,
-                'end_date' => null,
+            $user->division_id = null;
+            $user->mentor_id = null;
+            $user->nip = null;
+            $user->position = null;
 
-                'photo' => $photoPath,
-            ]);
+            $user->start_date = null;
+            $user->end_date = null;
+
+            $user->photo = $photoPath;
+
+            $user->save();
         } catch (Throwable $e) {
-            // Hapus file foto apabila proses pembuatan akun gagal.
+            // Hapus foto jika pembuatan akun gagal.
             if ($photoPath) {
                 Storage::disk('public')->delete($photoPath);
             }
@@ -208,19 +198,17 @@ class AuthController extends Controller
             throw $e;
         }
 
-        // Login otomatis hanya untuk mahasiswa yang baru mendaftar.
-        $user = User::where('email', $validated['email'])->firstOrFail();
-
+        // Mahasiswa yang baru mendaftar masuk ke dashboard mahasiswa.
         Auth::login($user);
+
         $request->session()->regenerate();
 
         return redirect()->route('dashboard.magang');
     }
 
     /**
-     * Menampilkan form pendaftaran mentor.
-     *
-     * Hanya Admin dan HR yang diperbolehkan.
+     * Menampilkan formulir pendaftaran Mentor.
+     * Hanya Admin/HR yang diperbolehkan.
      */
     public function showMentorRegister()
     {
@@ -230,89 +218,72 @@ class AuthController extends Controller
     }
 
     /**
-     * Membuat akun mentor melalui Admin/HR.
-     *
-     * Sesi Admin/HR tetap aktif setelah akun mentor dibuat.
+     * Membuat akun Mentor melalui Admin/HR.
      */
     public function processMentorRegister(Request $request)
     {
         $this->authorizeAdminOrHr();
 
         $validated = $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-            ],
-
+            'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
                 'email',
                 'max:255',
                 'unique:users,email',
             ],
-
             'password' => [
                 'required',
                 'string',
                 'min:8',
                 'confirmed',
             ],
-
-            'nip' => [
-                'nullable',
-                'string',
-                'max:50',
-            ],
-
-            'phone' => [
-                'nullable',
-                'string',
-                'max:30',
-            ],
-
-            'position' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
+            'nip' => ['nullable', 'string', 'max:50'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'position' => ['nullable', 'string', 'max:255'],
         ]);
 
-        User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => 'mentor',
+        // Role Mentor ditentukan oleh server.
+        $mentor = new \App\Models\User();
 
-            'nip' => $validated['nip'] ?? null,
-            'phone' => $validated['phone'] ?? null,
-            'position' => $validated['position'] ?? null,
+        $mentor->name = $validated['name'];
+        $mentor->email = $validated['email'];
+        $mentor->password = Hash::make($validated['password']);
+        $mentor->role = 'mentor';
 
-            'division_id' => null,
-            'mentor_id' => null,
-            'start_date' => null,
-            'end_date' => null,
-        ]);
+        $mentor->nip = $validated['nip'] ?? null;
+        $mentor->phone = $validated['phone'] ?? null;
+        $mentor->position = $validated['position'] ?? null;
 
-        // Jangan login sebagai mentor yang baru dibuat.
-        // Admin/HR tetap menggunakan sesi yang sedang aktif.
+        $mentor->division_id = null;
+        $mentor->mentor_id = null;
+
+        $mentor->start_date = null;
+        $mentor->end_date = null;
+
+        $mentor->save();
+
+        // Admin/HR tetap menggunakan akunnya sendiri.
         return redirect()
             ->route('admin.users')
-            ->with('success', 'Akun mentor berhasil dibuat.');
+            ->with('success', 'Akun Mentor berhasil dibuat.');
     }
 
     /**
-     * Memastikan pengguna yang mengelola pendaftaran mentor
-     * merupakan Admin atau HR yang sudah login.
+     * Memastikan hanya Admin/HR yang dapat mengelola akun Mentor.
      */
     private function authorizeAdminOrHr(): void
     {
         $user = Auth::user();
 
         abort_unless(
-            $user && in_array($user->role, ['admin', 'hr'], true),
+            $user && in_array(
+                strtolower(trim((string) $user->role)),
+                ['admin', 'hr'],
+                true
+            ),
             403,
-            'Hanya Admin atau HR yang dapat mengelola akun mentor.'
+            'Hanya Admin atau HR yang dapat mengelola akun Mentor.'
         );
     }
 }

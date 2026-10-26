@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Http\Request;
@@ -41,8 +42,10 @@ Route::post('/login', [AuthController::class, 'login'])
 
 /*
 |--------------------------------------------------------------------------
-| REGISTER
+| REGISTRASI MAHASISWA
 |--------------------------------------------------------------------------
+| Registrasi publik hanya membuat akun mahasiswa.
+| Role ditentukan oleh AuthController, bukan input formulir.
 */
 
 Route::get('/register', [AuthController::class, 'showRegisterForm'])
@@ -52,13 +55,28 @@ Route::get('/register', [AuthController::class, 'showRegisterForm'])
 Route::post('/register', [AuthController::class, 'processRegister'])
     ->middleware('guest');
 
-Route::get('/register/mentor', [AuthController::class, 'showMentorRegister'])
-    ->middleware('guest')
-    ->name('mentor.register');
 
-Route::post('/register/mentor', [AuthController::class, 'processMentorRegister'])
-    ->middleware('guest')
-    ->name('mentor.register.process');
+/*
+|--------------------------------------------------------------------------
+| PENDAFTARAN MENTOR
+|--------------------------------------------------------------------------
+| Hanya Admin/HR yang sudah login boleh membuat akun Mentor.
+*/
+
+Route::middleware([
+    'auth',
+    RoleMiddleware::class . ':admin,hr',
+])->group(function () {
+    Route::get(
+        '/register/mentor',
+        [AuthController::class, 'showMentorRegister']
+    )->name('mentor.register');
+
+    Route::post(
+        '/register/mentor',
+        [AuthController::class, 'processMentorRegister']
+    )->name('mentor.register.process');
+});
 
 
 /*
@@ -123,7 +141,7 @@ Route::post('/reset-password', function (Request $request) {
         ),
         function (User $user, string $password) {
             $user->forceFill([
-                'password' => $password,
+                'password' => Hash::make($password),
             ]);
 
             $user->setRememberToken(Str::random(60));
@@ -170,11 +188,12 @@ Route::middleware(['auth'])->group(function () {
 |--------------------------------------------------------------------------
 | ROUTE MAHASISWA MAGANG
 |--------------------------------------------------------------------------
+| Standar role mahasiswa hanya "magang".
 */
 
 Route::middleware([
     'auth',
-    RoleMiddleware::class . ':magang,intern',
+    RoleMiddleware::class . ':magang',
 ])->group(function () {
 
     Route::get(
@@ -294,6 +313,7 @@ Route::middleware([
 |--------------------------------------------------------------------------
 | HALAMAN UTAMA
 |--------------------------------------------------------------------------
+| Mengarahkan pengguna berdasarkan role akun.
 */
 
 Route::get('/', function () {
@@ -303,19 +323,24 @@ Route::get('/', function () {
 
     $user = auth()->user();
 
-    if (in_array($user->role, ['admin', 'hr'], true)) {
+    // Normalisasi role agar konsisten dengan AuthController.
+    $role = strtolower(trim((string) $user->role));
+
+    if (in_array($role, ['admin', 'hr'], true)) {
         return redirect()->route('admin.dashboard');
     }
 
-    if ($user->role === 'mentor') {
+    if ($role === 'mentor') {
         return redirect()->route('mentor.dashboard');
     }
 
-    if (in_array($user->role, ['magang', 'intern'], true)) {
+    if ($role === 'magang') {
         return redirect()->route('dashboard.magang');
     }
 
+    // Role tidak dikenal: akhiri session.
     auth()->logout();
+
     request()->session()->invalidate();
     request()->session()->regenerateToken();
 
@@ -345,7 +370,7 @@ Route::middleware([
     Route::get('/interns', function (Request $request) {
         $mentor = $request->user();
 
-        $students = User::whereIn('role', ['magang', 'intern'])
+        $students = User::where('role', 'magang')
             ->where('mentor_id', $mentor->id)
             ->with('division')
             ->orderBy('name')
@@ -446,13 +471,7 @@ Route::middleware([
         [AdminController::class, 'updateInternshipPeriod']
     )->whereNumber('user')->name('admin.users.internship-period');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | CRUD DIVISI
-    |--------------------------------------------------------------------------
-    */
-
+    // CRUD Divisi.
     Route::get(
         '/divisions',
         [AdminController::class, 'divisions']
@@ -473,13 +492,7 @@ Route::middleware([
         [AdminController::class, 'destroyDivision']
     )->whereNumber('division')->name('admin.divisions.destroy');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | REKAP ABSENSI DAN LOGBOOK
-    |--------------------------------------------------------------------------
-    */
-
+    // Rekap absensi.
     Route::get(
         '/attendance',
         [AdminController::class, 'attendance']
@@ -490,13 +503,7 @@ Route::middleware([
         [AdminController::class, 'attendancePhoto']
     )->whereNumber('attendance')->name('admin.attendance.photo');
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | PENGATURAN SISTEM
-    |--------------------------------------------------------------------------
-    */
-
+    // Pengaturan sistem.
     Route::get(
         '/settings',
         [SystemSettingsController::class, 'edit']

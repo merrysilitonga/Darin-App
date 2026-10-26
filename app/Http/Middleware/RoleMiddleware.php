@@ -15,8 +15,22 @@ class RoleMiddleware
     ): Response {
         $user = $request->user();
 
-        // Pastikan pengguna sudah login dan memiliki role yang sesuai.
-        if (!$user || !in_array($user->role, $roles, true)) {
+        // Pastikan pengguna sudah login.
+        if (!$user) {
+            abort(403, 'Anda tidak mempunyai akses ke halaman ini.');
+        }
+
+        // Normalisasi role pengguna.
+        $userRole = strtolower(trim((string) $user->role));
+
+        // Normalisasi seluruh role yang diizinkan.
+        $allowedRoles = array_map(
+            fn ($role) => strtolower(trim($role)),
+            $roles
+        );
+
+        // Pastikan role pengguna diizinkan.
+        if (!in_array($userRole, $allowedRoles, true)) {
             abort(403, 'Anda tidak mempunyai akses ke halaman ini.');
         }
 
