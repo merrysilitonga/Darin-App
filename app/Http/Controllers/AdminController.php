@@ -20,7 +20,7 @@ class AdminController extends Controller
     {
         $totalUsers = User::count();
         $totalDivisions = Division::count();
-        $totalInterns = User::whereIn('role', ['magang', 'intern'])->count();
+        $totalInterns = User::where('role', 'magang')->count();
         $totalMentors = User::where('role', 'mentor')->count();
 
         return view('admin.dashboard', compact(
@@ -59,7 +59,7 @@ class AdminController extends Controller
      */
     public function updateUserDivision(Request $request, User $user)
     {
-        if (!in_array($user->role, ['magang', 'intern', 'mentor'], true)) {
+        if (!in_array($user->role, ['magang', 'mentor'], true)) {
             return back()->with(
                 'error',
                 'Divisi hanya dapat diatur untuk mahasiswa magang atau mentor.'
@@ -92,7 +92,7 @@ class AdminController extends Controller
      */
     public function updateUserMentor(Request $request, User $user)
     {
-        if (!in_array($user->role, ['magang', 'intern'], true)) {
+        if ($user->role !== 'magang') {
             return back()->with(
                 'error',
                 'Penugasan mentor hanya dapat diatur untuk mahasiswa magang.'
@@ -139,7 +139,7 @@ class AdminController extends Controller
      */
     public function updateInternshipPeriod(Request $request, User $user)
     {
-        if (!in_array($user->role, ['magang', 'intern'], true)) {
+        if ($user->role !== 'magang') {
             return back()->with(
                 'error',
                 'Periode magang hanya dapat diatur untuk mahasiswa magang.'
@@ -208,14 +208,14 @@ class AdminController extends Controller
                     'study_program',
                     'mentor_id'
                 )
-                ->whereIn('role', ['magang', 'intern', 'mentor'])
+                ->whereIn('role', ['magang', 'mentor'])
                 ->orderBy('name');
             },
         ])
             ->withCount('users')
             ->withCount([
                 'users as interns_count' => function ($query) {
-                    $query->whereIn('role', ['magang', 'intern']);
+                    $query->where('role', 'magang');
                 },
                 'users as mentors_count' => function ($query) {
                     $query->where('role', 'mentor');
@@ -350,10 +350,6 @@ class AdminController extends Controller
                 ->find((int) $mentorId)
             : null;
 
-        /*
-         * Penting: $validMentorId dimasukkan ke dalam use agar
-         * variabel tersebut tersedia di dalam fungsi filter.
-         */
         $applyFilters = function ($query) use (
             $search,
             $validMonth,

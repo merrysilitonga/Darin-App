@@ -6,33 +6,60 @@
 
     <title>@yield('title', 'Portal Mentor - DARIN')</title>
 
+    <meta name="theme-color" content="#fcfbf9">
+    <meta name="description" content="DARIN - Sistem Presensi Geospasial Terintegrasi ESDM">
+
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <link
         href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         rel="stylesheet"
     >
 
     <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #fcfbf9;
+            background-color: #fcfbf9;
             color: #334155;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        [x-cloak] {
+            display: none !important;
         }
     </style>
 
     @stack('styles')
 </head>
+
 <body class="min-h-screen text-sm antialiased">
 
     <div class="flex min-h-screen">
+
+        {{-- Sidebar Mentor --}}
         @include('layouts.sidebar')
 
+        {{-- Konten utama --}}
         <main class="min-w-0 flex-1 px-5 py-6 md:px-8 md:py-8 lg:px-10">
+
+            {{-- Header halaman --}}
             <header class="mb-8">
+
                 <h1 class="text-2xl font-bold tracking-tight text-slate-800 md:text-3xl">
                     @yield('page_title', 'Portal Mentor')
                 </h1>
@@ -44,22 +71,36 @@
                 @endif
 
                 <div class="mt-4 h-1 w-14 rounded-full bg-amber-400"></div>
+
             </header>
 
+            {{-- Notifikasi berhasil --}}
             @if (session('success'))
-                <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                <div
+                    role="status"
+                    aria-live="polite"
+                    class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+                >
                     {{ session('success') }}
                 </div>
             @endif
 
+            {{-- Notifikasi gagal --}}
             @if (session('error'))
-                <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div
+                    role="alert"
+                    class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                >
                     {{ session('error') }}
                 </div>
             @endif
 
+            {{-- Pesan validasi --}}
             @if ($errors->any())
-                <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+                <div
+                    role="alert"
+                    class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700"
+                >
                     <p class="mb-2 font-semibold">
                         Periksa kembali data yang Anda masukkan:
                     </p>
@@ -72,16 +113,22 @@
                 </div>
             @endif
 
+            {{-- Konten setiap halaman Mentor --}}
             @yield('content')
 
+            {{-- Footer --}}
             <footer class="mt-10 border-t border-slate-200 py-5">
                 <p class="text-center text-xs leading-5 text-slate-400">
-                    DARIN · Sistem Presensi Geospasial Terintegrasi ESDM
+                    DARIN &middot; Sistem Presensi Geospasial Terintegrasi ESDM
                 </p>
             </footer>
+
         </main>
+
     </div>
 
+    {{-- Script tambahan dari halaman --}}
     @stack('scripts')
+
 </body>
 </html>
