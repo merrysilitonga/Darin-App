@@ -37,13 +37,9 @@ class MentorDashboardController extends Controller
         |--------------------------------------------------------------------------
         | DAFTAR MAHASISWA BIMBINGAN
         |--------------------------------------------------------------------------
-        |
-        | Mahasiswa diambil berdasarkan mentor_id, bukan lagi berdasarkan
-        | kesamaan division_id.
-        |
         */
 
-        $students = User::whereIn('role', ['magang', 'intern'])
+        $students = User::where('role', 'magang')
             ->where('mentor_id', $mentor->id)
             ->with('division')
             ->orderBy('name')
@@ -53,7 +49,6 @@ class MentorDashboardController extends Controller
 
         $totalInterns = $students->count();
 
-        // Menandakan mentor belum memiliki mahasiswa bimbingan.
         $assignmentMissing = $studentIds->isEmpty();
 
         /*
@@ -77,7 +72,6 @@ class MentorDashboardController extends Controller
         */
 
         if ($studentIds->isNotEmpty()) {
-
             // Mahasiswa yang sudah melakukan absensi hari ini.
             $presentToday = Attendance::whereIn(
                 'user_id',
@@ -88,7 +82,7 @@ class MentorDashboardController extends Controller
                 ->distinct()
                 ->count('user_id');
 
-            // Mahasiswa yang sedang menjalani izin yang telah disetujui.
+            // Mahasiswa yang sedang menjalani izin yang disetujui.
             $approvedLeaveToday = LeaveRequest::whereIn(
                 'user_id',
                 $studentIds
@@ -99,7 +93,7 @@ class MentorDashboardController extends Controller
                 ->distinct()
                 ->count('user_id');
 
-            // Jumlah logbook yang menunggu pemeriksaan mentor.
+            // Jumlah logbook yang menunggu pemeriksaan.
             $pendingLogbooksCount = Logbook::whereIn(
                 'user_id',
                 $studentIds
@@ -130,9 +124,7 @@ class MentorDashboardController extends Controller
                     return [
                         'student_name' => $logbook->user?->name
                             ?? 'Mahasiswa',
-
                         'type' => 'Logbook Harian',
-
                         'description' => $logbook->topic
                             ?: Str::limit(
                                 strip_tags(
@@ -140,7 +132,6 @@ class MentorDashboardController extends Controller
                                 ),
                                 120
                             ),
-
                         'created_at' => $logbook->created_at,
                         'url' => route('mentor.logbook'),
                         'icon' => '📝',
@@ -163,14 +154,11 @@ class MentorDashboardController extends Controller
                     return [
                         'student_name' => $leave->user?->name
                             ?? 'Mahasiswa',
-
                         'type' => 'Pengajuan ' . $leave->request_type,
-
                         'description' => Str::limit(
                             strip_tags($leave->reason ?? ''),
                             120
                         ),
-
                         'created_at' => $leave->created_at,
                         'url' => route('mentor.leave-requests'),
                         'icon' => '📋',

@@ -286,7 +286,7 @@
                                     </h2>
 
                                     <p class="text-xs text-gray-400 mt-1">
-                                        Perbarui data perguruan tinggi dan periode magang.
+                                        Perbarui data perguruan tinggi. Periode magang ditetapkan oleh Admin/HR.
                                     </p>
                                 </div>
 
@@ -337,42 +337,34 @@
                                     @enderror
                                 </div>
 
-                                {{-- TANGGAL MULAI --}}
+                                {{-- TANGGAL MULAI: INFORMASI BACA-SAJA --}}
                                 <div>
-                                    <label for="start_date" class="block text-xs font-bold uppercase text-gray-500 mb-2">
+                                    <p class="block text-xs font-bold uppercase text-gray-500 mb-2">
                                         Mulai Magang
-                                    </label>
+                                    </p>
 
-                                    <input
+                                    <div
                                         id="start_date"
-                                        type="date"
-                                        name="start_date"
-                                        value="{{ old('start_date', $tanggalMulai?->format('Y-m-d')) }}"
-                                        class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                        class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 min-h-[48px] flex items-center"
+                                        aria-readonly="true"
                                     >
-
-                                    @error('start_date')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                    @enderror
+                                        {{ $tanggalMulai ? $tanggalMulai->format('d-m-Y') : 'Belum ditetapkan' }}
+                                    </div>
                                 </div>
 
-                                {{-- TANGGAL SELESAI --}}
+                                {{-- TANGGAL SELESAI: INFORMASI BACA-SAJA --}}
                                 <div>
-                                    <label for="end_date" class="block text-xs font-bold uppercase text-gray-500 mb-2">
+                                    <p class="block text-xs font-bold uppercase text-gray-500 mb-2">
                                         Selesai Magang
-                                    </label>
+                                    </p>
 
-                                    <input
+                                    <div
                                         id="end_date"
-                                        type="date"
-                                        name="end_date"
-                                        value="{{ old('end_date', $tanggalSelesai?->format('Y-m-d')) }}"
-                                        class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                        class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 min-h-[48px] flex items-center"
+                                        aria-readonly="true"
                                     >
-
-                                    @error('end_date')
-                                        <p class="text-xs text-red-600 mt-1">{{ $message }}</p>
-                                    @enderror
+                                        {{ $tanggalSelesai ? $tanggalSelesai->format('d-m-Y') : 'Belum ditetapkan' }}
+                                    </div>
                                 </div>
 
                                 {{-- STATUS MAGANG --}}
@@ -419,12 +411,14 @@
                                     </p>
 
                                     <p class="font-semibold text-sm mt-1">
-                                        @if($user->role === 'admin')
-                                            HR / Administrator
-                                        @elseif($user->role === 'mentor')
+                                        @if(in_array(strtolower(trim((string) $user->role)), ['admin', 'hr'], true))
+                                            Admin / HR
+                                        @elseif(strtolower(trim((string) $user->role)) === 'mentor')
                                             Mentor / Pembimbing
-                                        @else
+                                        @elseif(strtolower(trim((string) $user->role)) === 'magang')
                                             Peserta Magang
+                                        @else
+                                            Role tidak dikenali
                                         @endif
                                     </p>
                                 </div>
@@ -520,6 +514,7 @@
             const photoInput = document.getElementById('photo');
             const photoPreview = document.getElementById('photoPreview');
             const photoFallback = document.getElementById('photoFallback');
+            let currentPreviewUrl = null;
 
             if (photoInput) {
                 photoInput.addEventListener('change', function () {
@@ -535,13 +530,23 @@
                         return;
                     }
 
-                    const imageUrl = URL.createObjectURL(file);
+                    // Lepaskan URL preview sebelumnya agar tidak menumpuk di memori.
+                    if (currentPreviewUrl) {
+                        URL.revokeObjectURL(currentPreviewUrl);
+                    }
 
-                    photoPreview.src = imageUrl;
+                    currentPreviewUrl = URL.createObjectURL(file);
+                    photoPreview.src = currentPreviewUrl;
                     photoPreview.classList.remove('hidden');
                     photoFallback.classList.add('hidden');
                 });
             }
+
+            window.addEventListener('beforeunload', function () {
+                if (currentPreviewUrl) {
+                    URL.revokeObjectURL(currentPreviewUrl);
+                }
+            });
         });
     </script>
 

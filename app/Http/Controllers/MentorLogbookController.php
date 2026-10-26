@@ -17,12 +17,11 @@ class MentorLogbookController extends Controller
     {
         $mentor = $request->user();
 
-        // Ambil hanya mahasiswa yang ditugaskan langsung kepada mentor ini.
-        $studentIds = User::whereIn('role', ['magang', 'intern'])
+        // Ambil hanya mahasiswa yang ditugaskan kepada mentor ini.
+        $studentIds = User::where('role', 'magang')
             ->where('mentor_id', $mentor->id)
             ->pluck('id');
 
-        // Status ini dipakai view untuk menampilkan kondisi kosong.
         $assignmentMissing = $studentIds->isEmpty();
 
         if ($assignmentMissing) {
@@ -51,7 +50,7 @@ class MentorLogbookController extends Controller
     {
         $mentor = $request->user();
 
-        // Pastikan logbook benar-benar milik mahasiswa bimbingan mentor.
+        // Pastikan logbook milik mahasiswa bimbingan mentor.
         $logbook = $this->findAssignedLogbook($mentor, $id);
 
         if ($logbook->status !== 'Menunggu') {
@@ -107,7 +106,7 @@ class MentorLogbookController extends Controller
 
         $mentor = $request->user();
 
-        // Pastikan mentor hanya menolak logbook mahasiswa bimbingannya.
+        // Pastikan hanya logbook mahasiswa bimbingannya yang dapat ditolak.
         $logbook = $this->findAssignedLogbook($mentor, $id);
 
         if ($logbook->status !== 'Menunggu') {
@@ -144,16 +143,12 @@ class MentorLogbookController extends Controller
 
     /**
      * Memastikan logbook milik mahasiswa yang ditugaskan kepada mentor.
-     *
-     * Pengecekan ini berlaku untuk halaman daftar, persetujuan,
-     * dan penolakan agar mentor tidak dapat memproses logbook
-     * mahasiswa yang ditugaskan kepada mentor lain.
      */
     private function findAssignedLogbook($mentor, int $id): Logbook
     {
         return Logbook::whereHas('user', function ($query) use ($mentor) {
             $query->where('mentor_id', $mentor->id)
-                ->whereIn('role', ['magang', 'intern']);
+                ->where('role', 'magang');
         })->findOrFail($id);
     }
 }

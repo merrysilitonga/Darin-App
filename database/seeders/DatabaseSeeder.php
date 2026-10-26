@@ -11,7 +11,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Buat divisi jika belum tersedia.
+        // Buat divisi jika belum tersedia.
         $divTeknologi = Division::firstOrCreate(
             ['name' => 'Teknologi Informasi'],
             [
@@ -19,14 +19,14 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        $divKehumasan = Division::firstOrCreate(
+        Division::firstOrCreate(
             ['name' => 'Kehumasan & Layanan'],
             [
                 'description' => 'Divisi pelayanan masyarakat dan komunikasi.',
             ]
         );
 
-        // 2. Akun Admin.
+        // Akun Admin khusus pengembangan/pengujian.
         User::updateOrCreate(
             ['email' => 'admin@darin.test'],
             [
@@ -37,7 +37,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 3. Akun Mentor.
+        // Akun Mentor khusus pengembangan/pengujian.
         User::updateOrCreate(
             ['email' => 'mentor@darin.test'],
             [
@@ -48,13 +48,14 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 4. Akun Mahasiswa Magang.
+        // Akun Mahasiswa Magang.
+        // Role mahasiswa menggunakan standar "magang".
         User::updateOrCreate(
             ['email' => 'merry@darin.test'],
             [
                 'name' => 'Merry Silitonga',
                 'password' => Hash::make('password123'),
-                'role' => 'intern',
+                'role' => 'magang',
                 'division_id' => $divTeknologi->id,
             ]
         );

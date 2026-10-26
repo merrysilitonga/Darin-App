@@ -2,11 +2,11 @@
 
 @php
     $currentUser = Auth::user();
-    $role = $currentUser->role ?? '';
+    $role = strtolower(trim((string) ($currentUser->role ?? '')));
 
     $isMentor = $role === 'mentor';
     $isAdmin = in_array($role, ['admin', 'hr'], true);
-    $isStudent = in_array($role, ['magang', 'intern'], true);
+    $isStudent = $role === 'magang';
 
     $menuItemClass = 'flex items-center gap-3 rounded-xl px-4 py-3 transition';
     $activeClass = 'bg-[#ffc107] font-bold text-black';
@@ -19,7 +19,7 @@
 
         {{-- BRAND --}}
         <a
-            href="{{ $isMentor ? route('mentor.dashboard') : ($isAdmin ? route('admin.dashboard') : route('dashboard.magang')) }}"
+            href="{{ $isMentor ? route('mentor.dashboard') : ($isAdmin ? route('admin.dashboard') : ($isStudent ? route('dashboard.magang') : route('login')) ) }}"
             class="mb-8 flex items-center gap-3"
         >
             <div class="flex items-center justify-center rounded-xl bg-[#ffc107] p-2 font-bold text-black">
@@ -42,7 +42,7 @@
 
             <div class="relative mb-3 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-[#ffc107] bg-gray-700 p-1 shadow-md transition group-hover:scale-105">
 
-                @if ($currentUser->photo)
+                @if ($currentUser && $currentUser->photo)
                     <img
                         src="{{ asset('storage/' . $currentUser->photo) }}"
                         alt="Foto {{ $currentUser->name }}"
@@ -55,11 +55,11 @@
             </div>
 
             <h3 class="text-base font-bold transition group-hover:text-[#ffc107]">
-                {{ $currentUser->name }}
+                {{ $currentUser->name ?? 'Pengguna' }}
             </h3>
 
             <span class="mb-2 mt-1 rounded-full bg-[#ffc107]/20 px-2 py-0.5 text-[10px] font-bold text-[#ffc107]">
-                {{ strtoupper($role) }}
+                {{ strtoupper($role ?: 'TIDAK DIKENAL') }}
             </span>
 
             <span class="rounded-md bg-black/40 px-3 py-1 text-xs text-gray-400">
@@ -81,42 +81,42 @@
                     href="{{ route('dashboard.magang') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('dashboard.magang') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Dashboard</span>
+                    <span>Dashboard</span>
                 </a>
 
                 <a
                     href="{{ route('absen') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('absen', 'absen.store', 'absen.checkout') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Mulai Absen</span>
+                    <span>Mulai Absen</span>
                 </a>
 
                 <a
                     href="{{ route('riwayat.absen') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('riwayat.absen', 'riwayat.export-*') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Riwayat Absensi</span>
+                    <span>Riwayat Absensi</span>
                 </a>
 
                 <a
                     href="{{ route('logbook') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('logbook', 'logbook.*') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Logbook Harian</span>
+                    <span>Logbook Harian</span>
                 </a>
 
                 <a
                     href="{{ route('izin.create') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('izin.create', 'izin.store') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Pengajuan Izin</span>
+                    <span>Pengajuan Izin</span>
                 </a>
 
                 <a
                     href="{{ route('izin.history') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('izin.history', 'izin.download') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Riwayat Izin</span>
+                    <span>Riwayat Izin</span>
                 </a>
 
             {{-- MENU MENTOR --}}
@@ -130,35 +130,35 @@
                     href="{{ route('mentor.dashboard') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.dashboard') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Dashboard</span>
+                    <span>Dashboard</span>
                 </a>
 
                 <a
                     href="{{ route('mentor.interns') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.interns') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Mahasiswa Bimbingan</span>
+                    <span>Mahasiswa Bimbingan</span>
                 </a>
 
                 <a
                     href="{{ route('mentor.logbook') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.logbook*') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Review Logbook</span>
+                    <span>Review Logbook</span>
                 </a>
 
                 <a
                     href="{{ route('mentor.leave-requests') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.leave-requests*') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Persetujuan Izin</span>
+                    <span>Persetujuan Izin</span>
                 </a>
 
                 <a
                     href="{{ route('mentor.attendance') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.attendance') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Rekap Absensi</span>
+                    <span>Rekap Absensi</span>
                 </a>
 
                 <a
@@ -179,28 +179,28 @@
                     href="{{ route('admin.dashboard') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('admin.dashboard') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Dashboard</span>
+                    <span>Dashboard</span>
                 </a>
 
                 <a
                     href="{{ route('admin.users') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('admin.users*') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Manajemen Pengguna</span>
+                    <span>Manajemen Pengguna</span>
                 </a>
 
                 <a
                     href="{{ route('admin.divisions') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('admin.divisions*') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Manajemen Divisi</span>
+                    <span>Manajemen Divisi</span>
                 </a>
 
                 <a
                     href="{{ route('admin.attendance') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('admin.attendance*') ? $activeClass : $inactiveClass }}"
                 >
-                     <span>Rekap Absensi</span>
+                    <span>Rekap Absensi</span>
                 </a>
 
                 <a
@@ -232,7 +232,7 @@
                 type="submit"
                 class="flex w-full items-center justify-center gap-2 rounded-xl bg-red-500/10 py-3 font-medium text-red-400 transition hover:bg-red-500 hover:text-white"
             >
-                 <span>Logout</span>
+                <span>Logout</span>
             </button>
         </form>
 

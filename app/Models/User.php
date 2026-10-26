@@ -18,6 +18,7 @@ class User extends Authenticatable
         'password',
         'role',
         'division_id',
+        'location_id',
         'mentor_id',
         'nim',
         'phone',
@@ -51,6 +52,14 @@ class User extends Authenticatable
     public function division(): BelongsTo
     {
         return $this->belongsTo(Division::class, 'division_id');
+    }
+
+    /**
+     * Relasi mahasiswa dengan lokasi magang yang ditugaskan.
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class, 'location_id');
     }
 
     /**

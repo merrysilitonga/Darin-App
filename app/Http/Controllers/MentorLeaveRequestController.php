@@ -19,12 +19,11 @@ class MentorLeaveRequestController extends Controller
     {
         $mentor = $request->user();
 
-        // Ambil ID mahasiswa yang benar-benar ditugaskan kepada mentor.
-        $studentIds = User::whereIn('role', ['magang', 'intern'])
+        // Ambil mahasiswa yang benar-benar ditugaskan kepada mentor.
+        $studentIds = User::where('role', 'magang')
             ->where('mentor_id', $mentor->id)
             ->pluck('id');
 
-        // Tetap menggunakan nama variabel yang dipakai oleh Blade lama.
         $assignmentMissing = $studentIds->isEmpty();
 
         if ($assignmentMissing) {
@@ -148,7 +147,7 @@ class MentorLeaveRequestController extends Controller
     }
 
     /**
-     * Mengunduh dokumen pengajuan milik mahasiswa bimbingan mentor.
+     * Mengunduh dokumen pengajuan mahasiswa bimbingan mentor.
      */
     public function download(Request $request, int $id)
     {
@@ -177,11 +176,7 @@ class MentorLeaveRequestController extends Controller
     }
 
     /**
-     * Memastikan pengajuan berasal dari mahasiswa
-     * yang mentor_id-nya sama dengan ID mentor yang login.
-     *
-     * Jika pengajuan bukan milik mahasiswa bimbingan,
-     * pencarian tidak akan mengembalikan pengajuan tersebut.
+     * Memastikan pengajuan berasal dari mahasiswa bimbingan mentor.
      */
     private function findAssignedRequest(
         $mentor,
@@ -191,7 +186,7 @@ class MentorLeaveRequestController extends Controller
             'user',
             function ($query) use ($mentor) {
                 $query->where('mentor_id', $mentor->id)
-                    ->whereIn('role', ['magang', 'intern']);
+                    ->where('role', 'magang');
             }
         )->findOrFail($id);
     }
