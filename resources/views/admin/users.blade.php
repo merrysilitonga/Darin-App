@@ -92,6 +92,11 @@
                 Manajemen Divisi
             </a>
 
+            <a href="{{ route('admin.locations') }}"
+               class="nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-300">
+                Manajemen Lokasi
+            </a>
+
             <a href="{{ route('admin.attendance') }}"
                class="nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-gray-300">
                 Data Absensi
@@ -129,7 +134,7 @@
                     Manajemen Pengguna
                 </h2>
                 <p class="mt-2 text-sm text-gray-500">
-                    Kelola data pengguna, divisi, penugasan Mentor, dan periode magang mahasiswa.
+                    Kelola data pengguna, divisi, Mentor, lokasi kerja, dan periode magang mahasiswa.
                 </p>
             </div>
 
@@ -242,13 +247,13 @@
                 <div class="border-b border-gray-100 px-5 py-5 sm:px-6">
                     <h3 class="text-lg font-extrabold text-gray-900">Daftar Pengguna</h3>
                     <p class="mt-1 text-sm text-gray-500">
-                        Atur divisi, tetapkan Mentor secara langsung, dan kelola periode magang.
+                        Atur divisi, Mentor, lokasi kerja, dan periode magang setiap mahasiswa.
                     </p>
                 </div>
 
                 @if($users->isNotEmpty())
                     <div class="overflow-x-auto">
-                        <table class="w-full min-w-[1350px] text-left text-sm">
+                        <table class="w-full min-w-[1450px] text-left text-sm">
 
                             <thead class="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                                 <tr>
@@ -388,6 +393,60 @@
                                                         </p>
                                                     @endif
                                                 </form>
+
+                                                {{-- PENETAPAN LOKASI KERJA --}}
+                                                <div class="mt-4 border-t border-gray-100 pt-3">
+                                                    <p class="text-xs font-semibold text-gray-600">
+                                                        Lokasi Kerja Saat Ini
+                                                    </p>
+
+                                                    <p class="mt-1 text-sm font-bold text-gray-900">
+                                                        {{ $user->location?->name ?? 'Belum ditetapkan' }}
+                                                    </p>
+
+                                                    @if($user->location && !$user->location->is_active)
+                                                        <p class="mt-1 text-xs leading-5 text-red-600">
+                                                            Lokasi saat ini nonaktif. Pilih lokasi aktif untuk penempatan berikutnya.
+                                                        </p>
+                                                    @endif
+
+                                                    <form action="{{ route('admin.users.location', $user->id) }}"
+                                                          method="POST"
+                                                          class="mt-3 space-y-2">
+                                                        @csrf
+                                                        @method('PUT')
+
+                                                        <label for="location_id_{{ $user->id }}"
+                                                               class="block text-xs font-semibold text-gray-600">
+                                                            Tetapkan Lokasi Kantor
+                                                        </label>
+
+                                                        <select id="location_id_{{ $user->id }}"
+                                                                name="location_id"
+                                                                class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100">
+                                                            <option value="">Belum ditetapkan</option>
+
+                                                            @foreach($locations as $lokasiPilihan)
+                                                                <option value="{{ $lokasiPilihan->id }}"
+                                                                    {{ (string) $user->location_id === (string) $lokasiPilihan->id ? 'selected' : '' }}
+                                                                    {{ !$lokasiPilihan->is_active && (int) $user->location_id !== (int) $lokasiPilihan->id ? 'disabled' : '' }}>
+                                                                    {{ $lokasiPilihan->name }}{{ $lokasiPilihan->is_active ? '' : ' (Nonaktif)' }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+
+                                                        <button type="submit"
+                                                                class="gold-bg w-full rounded-lg px-3 py-2 text-xs font-extrabold text-black transition hover:bg-amber-400">
+                                                            Simpan Lokasi
+                                                        </button>
+
+                                                        @if($locations->where('is_active', true)->isEmpty())
+                                                            <p class="text-[11px] leading-4 text-amber-700">
+                                                                Belum ada lokasi aktif. Tambahkan atau aktifkan lokasi melalui menu Manajemen Lokasi terlebih dahulu.
+                                                            </p>
+                                                        @endif
+                                                    </form>
+                                                </div>
                                             @endif
                                         </td>
 
@@ -515,7 +574,7 @@
                 @endif
 
                 <div class="border-t border-gray-100 bg-gray-50 px-5 py-4 text-xs leading-5 text-gray-500 sm:px-6">
-                    Perubahan divisi, penugasan Mentor, dan periode magang tersimpan setelah
+                    Perubahan divisi, penugasan Mentor, lokasi kerja, dan periode magang tersimpan setelah
                     formulir terkait berhasil divalidasi.
                 </div>
             </section>

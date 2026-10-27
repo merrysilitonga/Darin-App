@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Attendance;
 use App\Models\Division;
 use App\Models\Logbook;
+use App\Models\Location;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -32,11 +33,11 @@ class AdminController extends Controller
     }
 
     /**
-     * Daftar pengguna beserta pilihan divisi dan mentor.
+     * Daftar pengguna beserta pilihan divisi, mentor, dan lokasi.
      */
     public function users()
     {
-        $users = User::with(['division', 'mentor'])
+        $users = User::with(['division', 'mentor', 'location'])
             ->orderBy('name')
             ->get();
 
@@ -47,10 +48,13 @@ class AdminController extends Controller
             ->orderBy('name')
             ->get();
 
+        $locations = Location::orderBy('name')->get();
+
         return view('admin.users', compact(
             'users',
             'divisions',
-            'mentors'
+            'mentors',
+            'locations'
         ));
     }
 
@@ -132,6 +136,64 @@ class AdminController extends Controller
         return redirect()
             ->route('admin.users')
             ->with('success', $message);
+    }
+
+    /**
+     * Menetapkan lokasi kerja mahasiswa magang.
+     */
+    public function updateUserLocation(Request $request, User $user)
+    {
+        $role = strtolower(trim((string) $user->role));
+
+        if (!in_array($role, ['magang', 'intern'], true)) {
+            return redirect()
+                ->route('admin.users')
+                ->with(
+                    'error',
+                    'Lokasi kerja hanya dapat ditetapkan untuk mahasiswa magang.'
+                );
+        }
+
+        $validated = $request->validate([
+            'location_id' => [
+                'nullable',
+                'integer',
+                'exists:locations,id',
+            ],
+        ], [
+            'location_id.exists' => 'Lokasi yang dipilih tidak ditemukan.',
+        ]);
+
+        $locationId = !empty($validated['location_id'])
+            ? (int) $validated['location_id']
+            : null;
+
+        if ($locationId !== null) {
+            $location = Location::findOrFail($locationId);
+
+            // Lokasi nonaktif tidak boleh menjadi penempatan baru.
+            // Penempatan lama pada lokasi nonaktif tetap dapat dipertahankan.
+            if (
+                !$location->is_active
+                && (int) $user->location_id !== (int) $location->id
+            ) {
+                return back()->withErrors([
+                    'location_id' => 'Pilih lokasi yang masih aktif.',
+                ])->withInput();
+            }
+        }
+
+        $user->location_id = $locationId;
+        $user->save();
+
+        return redirect()
+            ->route('admin.users')
+            ->with(
+                'success',
+                $locationId === null
+                    ? 'Penempatan lokasi ' . $user->name . ' berhasil dihapus.'
+                    : 'Lokasi kerja ' . $user->name . ' berhasil diperbarui.'
+            );
     }
 
     /**

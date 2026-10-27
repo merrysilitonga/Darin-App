@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Attendance;
 
+use App\Http\Controllers\AdminLocationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\SystemSettingsController;
@@ -471,6 +472,12 @@ Route::middleware([
         [AdminController::class, 'updateInternshipPeriod']
     )->whereNumber('user')->name('admin.users.internship-period');
 
+    // Penempatan lokasi kerja untuk mahasiswa magang.
+    Route::put(
+        '/users/{user}/location',
+        [AdminController::class, 'updateUserLocation']
+    )->whereNumber('user')->name('admin.users.location');
+
     // CRUD Divisi.
     Route::get(
         '/divisions',
@@ -513,4 +520,27 @@ Route::middleware([
         '/settings',
         [SystemSettingsController::class, 'update']
     )->name('admin.settings.update');
+
+    // Manajemen lokasi kantor untuk absensi geospasial.
+    Route::get(
+        '/locations',
+        [AdminLocationController::class, 'index']
+    )->name('admin.locations');
+
+    Route::post(
+        '/locations',
+        [AdminLocationController::class, 'store']
+    )->name('admin.locations.store');
+
+    Route::put(
+        '/locations/{location}',
+        [AdminLocationController::class, 'update']
+    )->whereNumber('location')
+     ->name('admin.locations.update');
+
+    Route::delete(
+        '/locations/{location}',
+        [AdminLocationController::class, 'destroy']
+    )->whereNumber('location')
+     ->name('admin.locations.destroy');
 });
