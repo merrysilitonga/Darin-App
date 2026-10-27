@@ -512,20 +512,28 @@ class AdminController extends Controller
      */
     public function attendancePhoto(Attendance $attendance)
     {
-        abort_unless(
-            $attendance->photo_path,
-            404,
-            'Foto absensi tidak tersedia.'
-        );
+        $path = $attendance->photo_path;
+
+        abort_unless($path, 404, 'Foto absensi tidak tersedia.');
+
+        // Foto baru disimpan di disk local/private. Foto lama mungkin masih di disk public.
+        if (Storage::disk('local')->exists($path)) {
+            return Storage::disk('local')->response(
+                $path,
+                null,
+                ['Cache-Control' => 'private, no-store, max-age=0'],
+                'inline'
+            );
+        }
 
         abort_unless(
-            Storage::disk('public')->exists($attendance->photo_path),
+            Storage::disk('public')->exists($path),
             404,
             'File foto tidak ditemukan.'
         );
 
         return Storage::disk('public')->response(
-            $attendance->photo_path,
+            $path,
             null,
             ['Cache-Control' => 'private, no-store, max-age=0'],
             'inline'

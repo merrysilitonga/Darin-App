@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Location extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'name',
         'address',
@@ -19,18 +22,25 @@ class Location extends Model
     protected function casts(): array
     {
         return [
-            'latitude' => 'decimal:7',
-            'longitude' => 'decimal:7',
+            'latitude' => 'float',
+            'longitude' => 'float',
             'radius_meters' => 'integer',
             'is_active' => 'boolean',
         ];
     }
 
-    /**
-     * Mahasiswa yang ditempatkan di lokasi ini.
-     */
     public function users(): HasMany
     {
-        return $this->hasMany(User::class);
+        return $this->hasMany(User::class, 'location_id');
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class, 'location_id');
+    }
+
+    public function clockOutAttendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class, 'clock_out_location_id');
     }
 }

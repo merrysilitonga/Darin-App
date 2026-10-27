@@ -34,6 +34,10 @@
     {{-- SIDEBAR --}}
     @include('layouts.sidebar')
 
+    @php
+        $attendanceComplete = $attendance && $attendance->clock_out;
+    @endphp
+
     <main class="flex-1 min-w-0 overflow-y-auto p-5 md:p-10">
 
         {{-- HEADER --}}
@@ -86,10 +90,10 @@
             <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center">
 
                 <h3 class="font-bold text-gray-700 mb-4 self-start">
-                    Kamera & Verifikasi Lokasi GPS
+                    {{ $attendanceComplete ? 'Absensi Hari Ini Selesai' : ($attendance ? 'Selfie & GPS untuk Absen Pulang' : 'Kamera & Verifikasi Lokasi GPS') }}
                 </h3>
 
-                @if($attendance)
+                @if($attendanceComplete)
 
                     <div class="w-full max-w-sm mx-auto aspect-[3/4] bg-emerald-50 rounded-2xl flex flex-col items-center justify-center text-emerald-700 border border-emerald-200">
 
@@ -106,6 +110,17 @@
                                 : '-' }} WIB
                         </span>
 
+                    </div>
+
+                @elseif(!$attendance && !$canClockInLocation)
+
+                    <div class="w-full rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
+                        <span class="text-3xl">📍</span>
+                        <h4 class="mt-3 font-bold text-amber-900">Lokasi Kantor Belum Tersedia</h4>
+                        <p class="mt-2 text-sm leading-6 text-amber-800">
+                            Akun Anda belum ditetapkan ke lokasi kantor yang aktif. Hubungi Admin/HR
+                            agar lokasi dan radius absensi ditetapkan sebelum melakukan absensi masuk.
+                        </p>
                     </div>
 
                 @else
@@ -171,7 +186,7 @@
                     {{-- FORM ABSENSI --}}
                     <form
                         id="formAbsen"
-                        action="{{ route('absen.store') }}"
+                        action="{{ $attendance ? route('absen.checkout') : route('absen.store') }}"
                         method="POST"
                         enctype="multipart/form-data"
                         class="w-full"
@@ -197,6 +212,27 @@
                             accept="image/jpeg"
                             class="hidden"
                         >
+
+                        @if(!$attendance && $isFriday)
+                            <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                                <label for="work_location" class="mb-2 block text-sm font-bold text-amber-900">
+                                    Metode Kerja Hari Jumat
+                                </label>
+                                <select
+                                    id="work_location"
+                                    name="work_location"
+                                    required
+                                    class="w-full rounded-lg border border-amber-200 bg-white px-3 py-3 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                                >
+                                    <option value="">Pilih metode kerja</option>
+                                    <option value="WFO" {{ old('work_location') === 'WFO' ? 'selected' : '' }}>WFO — Bekerja di kantor (wajib dalam radius)</option>
+                                    <option value="WFA" {{ old('work_location') === 'WFA' ? 'selected' : '' }}>WFA — Bekerja dari lokasi lain</option>
+                                </select>
+                                <p class="mt-2 text-xs leading-5 text-amber-800">
+                                    Pilihan WFO diverifikasi dengan radius kantor. Pilihan WFA tetap menyimpan koordinat GPS sebagai bukti.
+                                </p>
+                            </div>
+                        @endif
 
                         {{-- AMBIL FOTO --}}
                         <button
@@ -294,7 +330,7 @@
                             <span class="text-gray-400">Tanggal</span>
 
                             <span class="font-semibold text-gray-800 text-right">
-                                {{ now()->translatedFormat('l, d F Y') }}
+                                {{ $now->translatedFormat('l, d F Y') }}
                             </span>
                         </div>
 
@@ -323,6 +359,45 @@
                                     : '-' }}
                             </span>
                         </div>
+
+                        <div class="flex justify-between gap-4 py-2 border-b border-gray-100">
+                            <span class="text-gray-400">Jam Pulang</span>
+                            <span class="font-semibold text-gray-800">
+                                {{ $attendance && $attendance->clock_out
+                                    ? \Carbon\Carbon::parse($attendance->clock_out)->format('H:i:s')
+                                    : 'Belum absen pulang' }}
+                            </span>
+                        </div>
+
+                        <div class="flex justify-between gap-4 py-2 border-b border-gray-100">
+                            <span class="text-gray-400">Lokasi Kerja</span>
+                            <span class="max-w-[65%] text-right font-semibold text-gray-800">
+                                {{ $attendance->location_name ?? ($location->name ?? 'Belum ditetapkan') }}
+                            </span>
+                        </div>
+
+                        @if($attendance)
+                            <div class="flex justify-between gap-4 py-2 border-b border-gray-100">
+                                <span class="text-gray-400">Jarak Saat Masuk</span>
+                                <span class="font-semibold text-gray-800">
+                                    {{ $attendance->distance_meters !== null ? $attendance->distance_meters . ' m' : '-' }}
+                                </span>
+                            </div>
+
+                            @if($attendance->clock_out)
+                                <div class="flex justify-between gap-4 py-2 border-b border-gray-100">
+                                    <span class="text-gray-400">Jarak Saat Pulang</span>
+                                    <span class="font-semibold text-gray-800">
+                                        {{ $attendance->clock_out_distance_meters !== null ? $attendance->clock_out_distance_meters . ' m' : '-' }}
+                                    </span>
+                                </div>
+                            @endif
+                        @elseif($location)
+                            <div class="flex justify-between gap-4 py-2 border-b border-gray-100">
+                                <span class="text-gray-400">Radius Diizinkan</span>
+                                <span class="font-semibold text-gray-800">{{ $location->radius_meters }} meter</span>
+                            </div>
+                        @endif
 
                         {{-- KOORDINAT GPS REAL-TIME --}}
                         <div class="py-2 border-b border-gray-100">
@@ -362,19 +437,21 @@
                 </div>
 
                 <div class="mt-6">
-
-                    <button
-                        type="button"
-                        disabled
-                        class="w-full py-3 bg-gray-300 text-gray-500 font-bold rounded-xl cursor-not-allowed"
-                    >
-                        🕐 Absen Pulang
-                    </button>
-
-                    <p class="text-[10px] text-gray-400 text-center mt-2">
-                        Fitur absen pulang belum diaktifkan.
-                    </p>
-
+                    @if($attendanceComplete)
+                        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+                            <p class="font-bold">✅ Absensi hari ini lengkap</p>
+                            <p class="mt-1 text-xs leading-5">Foto dan koordinat GPS masuk serta pulang telah tercatat.</p>
+                        </div>
+                    @elseif($attendance)
+                        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                            <p class="font-bold">Absensi pulang belum tercatat</p>
+                            <p class="mt-1 text-xs leading-5">Ambil selfie baru dan izinkan GPS pada panel sebelah kiri untuk melakukan absensi pulang setelah jadwal tersedia.</p>
+                        </div>
+                    @else
+                        <p class="text-xs leading-5 text-gray-400">
+                            Setelah absensi masuk tercatat, Anda dapat melakukan absensi pulang menggunakan selfie dan GPS terbaru.
+                        </p>
+                    @endif
                 </div>
 
             </div>
@@ -392,7 +469,7 @@
         // KAMERA, PRATINJAU FOTO, DAN GPS
         // =========================================
 
-        @if(!$attendance)
+        @if((!$attendance && $canClockInLocation) || ($attendance && !$attendance->clock_out))
 
             const video = document.getElementById('video');
             const canvas = document.getElementById('canvas');
@@ -845,6 +922,10 @@
                     longitude === ''
                 ) {
                     alert('Koordinat GPS belum tersedia.');
+                    return;
+                }
+
+                if (!formAbsen.reportValidity()) {
                     return;
                 }
 
