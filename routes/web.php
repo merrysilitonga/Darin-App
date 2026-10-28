@@ -224,6 +224,7 @@ Route::middleware([
         [LogbookController::class, 'index']
     )->name('logbook');
 
+    // Route menyimpan entri logbook baru dari formulir mahasiswa.
     Route::post(
         '/logbook',
         [LogbookController::class, 'store']
