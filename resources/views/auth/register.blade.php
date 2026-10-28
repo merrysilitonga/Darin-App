@@ -10,10 +10,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet"
-    >
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
         body {
@@ -131,7 +128,7 @@
 
     <main class="mx-auto w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-2xl">
 
-        {{-- GARIS IDENTITAS DARIN --}}
+        {{-- IDENTITAS DARIN --}}
         <div
             class="h-2.5 w-full"
             style="background: repeating-linear-gradient(45deg, #ffc107, #ffc107 15px, #191712 15px, #191712 30px);"
@@ -153,9 +150,8 @@
                     Pendaftaran Akun
                 </p>
 
-                <p class="mt-3 text-sm leading-6 text-gray-500">
-                    Pilih jenis akun untuk melanjutkan pendaftaran
-                    di Sistem Presensi Geospasial Terintegrasi ESDM.
+                <p id="register-subtitle" class="mt-3 text-sm leading-6 text-gray-500">
+                    Pilih jenis akun untuk melanjutkan pendaftaran di DARIN.
                 </p>
             </header>
 
@@ -189,7 +185,6 @@
 
             {{-- PILIH JENIS AKUN --}}
             <section class="mb-7">
-
                 <div class="mb-4">
                     <h2 class="text-base font-extrabold text-gray-900">
                         Daftar sebagai
@@ -202,18 +197,16 @@
 
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
 
-                    {{-- MAHASISWA --}}
+                    {{-- MAHASISWA MAGANG --}}
                     <button
                         type="button"
                         class="role-option"
                         data-role="magang"
-                        aria-pressed="true"
+                        aria-pressed="{{ old('role', 'magang') === 'magang' ? 'true' : 'false' }}"
                     >
                         <span class="role-check" aria-hidden="true">✓</span>
 
-                        <span class="role-icon" aria-hidden="true">
-                            🎓
-                        </span>
+                        <span class="role-icon" aria-hidden="true">🎓</span>
 
                         <span>
                             <span class="block text-sm font-extrabold text-gray-900">
@@ -221,7 +214,7 @@
                             </span>
 
                             <span class="mt-1.5 block text-xs leading-5 text-gray-500">
-                                Untuk peserta magang yang akan menggunakan DARIN.
+                                Untuk peserta magang yang menggunakan DARIN.
                             </span>
                         </span>
                     </button>
@@ -231,13 +224,11 @@
                         type="button"
                         class="role-option"
                         data-role="mentor"
-                        aria-pressed="false"
+                        aria-pressed="{{ old('role') === 'mentor' ? 'true' : 'false' }}"
                     >
                         <span class="role-check" aria-hidden="true">✓</span>
 
-                        <span class="role-icon" aria-hidden="true">
-                            👥
-                        </span>
+                        <span class="role-icon" aria-hidden="true">👥</span>
 
                         <span>
                             <span class="block text-sm font-extrabold text-gray-900">
@@ -255,13 +246,11 @@
                         type="button"
                         class="role-option"
                         data-role="admin"
-                        aria-pressed="false"
+                        aria-pressed="{{ old('role') === 'admin' ? 'true' : 'false' }}"
                     >
                         <span class="role-check" aria-hidden="true">✓</span>
 
-                        <span class="role-icon" aria-hidden="true">
-                            🛡️
-                        </span>
+                        <span class="role-icon" aria-hidden="true">🛡️</span>
 
                         <span>
                             <span class="block text-sm font-extrabold text-gray-900">
@@ -285,10 +274,9 @@
                         Pendaftaran mahasiswa magang tersedia untuk publik.
                     </p>
                 </div>
-
             </section>
 
-            {{-- FORM --}}
+            {{-- FORM PENDAFTARAN --}}
             <form
                 id="register-form"
                 action="{{ route('register') }}"
@@ -305,7 +293,7 @@
                     value="{{ old('role', 'magang') }}"
                 >
 
-                {{-- NAMA --}}
+                {{-- NAMA LENGKAP --}}
                 <div>
                     <label
                         for="name"
@@ -583,53 +571,6 @@
 
                 </section>
 
-                {{-- KODE UNDANGAN MENTOR / ADMIN --}}
-                <div
-                    id="registration-code-container"
-                    class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-4"
-                    hidden
-                >
-                    <div class="mb-3 flex items-start gap-3">
-                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#191712] text-lg text-[#ffc107]">
-                            🔐
-                        </span>
-
-                        <div>
-                            <h3 class="text-sm font-extrabold text-gray-900">
-                                Kode Undangan
-                            </h3>
-
-                            <p class="mt-1 text-xs leading-5 text-gray-600">
-                                Masukkan kode undangan resmi yang diberikan
-                                oleh pengelola DARIN.
-                            </p>
-                        </div>
-                    </div>
-
-                    <input
-                        type="password"
-                        id="registration_code"
-                        name="registration_code"
-                        autocomplete="off"
-                        placeholder="Masukkan kode undangan"
-                        disabled
-                        class="form-input border-amber-200 bg-white"
-                    >
-
-                    <p
-                        id="registration-code-help"
-                        class="mt-2 text-[11px] leading-5 text-gray-600"
-                    >
-                        Kode undangan diperlukan untuk mendaftar.
-                    </p>
-
-                    @error('registration_code')
-                        <p class="mt-1.5 text-xs text-red-600">
-                            {{ $message }}
-                        </p>
-                    @enderror
-                </div>
-
                 {{-- EMAIL --}}
                 <div>
                     <label for="email" class="field-label">
@@ -708,13 +649,12 @@
                 </button>
 
                 <p class="text-center text-[11px] leading-5 text-gray-400">
-                    Dengan melanjutkan, pastikan data yang kamu masukkan benar
-                    dan sesuai dengan jenis akun yang dipilih.
+                    Pastikan data yang kamu masukkan benar dan sesuai dengan jenis akun yang dipilih.
                 </p>
 
             </form>
 
-            {{-- LOGIN --}}
+            {{-- LINK LOGIN --}}
             <div class="mt-7 border-t border-gray-100 pt-6 text-center">
                 <p class="text-sm text-gray-500">
                     Sudah punya akun?
@@ -745,18 +685,11 @@
 
             const roleInput = document.getElementById('role-input');
             const submitText = document.getElementById('submit-role-text');
-            const subtitle = document.querySelector('header > p:nth-of-type(2)');
+            const subtitle = document.getElementById('register-subtitle');
             const labelName = document.getElementById('label-name');
             const roleHelp = document.getElementById('role-help');
 
-            const codeContainer = document.getElementById(
-                'registration-code-container'
-            );
-
-            const codeInput = document.getElementById('registration_code');
-            const codeHelp = document.getElementById('registration-code-help');
-
-            // Memperbarui tampilan kartu pilihan akun.
+            // Perbarui tampilan kartu pilihan akun.
             document.querySelectorAll('.role-option').forEach(function (button) {
                 const isActive = button.dataset.role === role;
 
@@ -766,7 +699,7 @@
                 );
             });
 
-            // Mengatur bagian formulir sesuai role.
+            // Tampilkan bagian form untuk role yang dipilih.
             allowedRoles.forEach(function (currentRole) {
                 const section = document.getElementById(
                     'fields-' + currentRole
@@ -778,14 +711,14 @@
                 section.classList.toggle('hidden', !isActive);
             });
 
-            // Nonaktifkan field dari jenis akun lain.
+            // Nonaktifkan semua field khusus role terlebih dahulu.
             document.querySelectorAll(
                 '.magang-field, .mentor-field, .admin-field'
             ).forEach(function (input) {
                 input.disabled = true;
             });
 
-            // Aktifkan field milik role yang dipilih.
+            // Aktifkan hanya field sesuai role yang dipilih.
             document.querySelectorAll(
                 '.' + role + '-field'
             ).forEach(function (input) {
@@ -794,9 +727,10 @@
 
             roleInput.value = role;
 
-            // Mengatur judul dan keterangan sesuai jenis akun.
+            // Perbarui teks dan keterangan sesuai role.
             if (role === 'magang') {
                 submitText.textContent = 'Mahasiswa Magang';
+
                 subtitle.textContent =
                     'Buat akun mahasiswa untuk menggunakan sistem DARIN.';
 
@@ -804,13 +738,6 @@
 
                 roleHelp.textContent =
                     'Pendaftaran mahasiswa magang tersedia untuk publik.';
-
-                codeContainer.hidden = true;
-                codeContainer.classList.add('hidden');
-
-                codeInput.disabled = true;
-                codeInput.required = false;
-                codeInput.value = '';
 
             } else if (role === 'mentor') {
                 submitText.textContent = 'Mentor';
@@ -821,16 +748,7 @@
                 labelName.textContent = 'Nama Lengkap dan Gelar';
 
                 roleHelp.textContent =
-                    'Pendaftaran Mentor memerlukan kode undangan resmi dari pengelola DARIN.';
-
-                codeHelp.textContent =
-                    'Gunakan kode undangan Mentor yang diberikan oleh pengelola DARIN.';
-
-                codeContainer.hidden = false;
-                codeContainer.classList.remove('hidden');
-
-                codeInput.disabled = false;
-                codeInput.required = true;
+                    'Pastikan akun Mentor digunakan oleh pembimbing atau supervisor yang ditunjuk.';
 
             } else {
                 submitText.textContent = 'Admin / HR';
@@ -841,21 +759,12 @@
                 labelName.textContent = 'Nama Lengkap';
 
                 roleHelp.textContent =
-                    'Pendaftaran Admin/HR memerlukan kode undangan khusus yang diverifikasi oleh server.';
-
-                codeHelp.textContent =
-                    'Gunakan kode undangan Admin/HR. Kode ini berbeda dari kode undangan Mentor.';
-
-                codeContainer.hidden = false;
-                codeContainer.classList.remove('hidden');
-
-                codeInput.disabled = false;
-                codeInput.required = true;
+                    'Akun Admin/HR memiliki akses pengelolaan sistem. Pilih jenis akun ini hanya jika kamu berwenang.';
             }
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            // Pertahankan role yang dipilih ketika validasi gagal.
+            // Pertahankan pilihan role jika validasi sebelumnya gagal.
             const initialRole = @json(old('role', 'magang'));
 
             switchRole(initialRole);

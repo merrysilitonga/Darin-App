@@ -97,7 +97,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Menampilkan formulir pendaftaran dengan pilihan role.
+     * Menampilkan formulir pendaftaran.
      */
     public function showRegisterForm()
     {
@@ -105,11 +105,9 @@ class AuthController extends Controller
     }
 
     /**
-     * Registrasi mahasiswa, Mentor, dan Admin/HR.
+     * Registrasi mahasiswa magang, mentor, dan admin.
      *
-     * Mahasiswa dapat mendaftar secara publik.
-     * Mentor dan Admin/HR memerlukan kode undangan
-     * yang diverifikasi menggunakan konfigurasi server.
+     * Tidak menggunakan kode undangan.
      */
     public function processRegister(Request $request)
     {
@@ -135,11 +133,6 @@ class AuthController extends Controller
                 'string',
                 'min:8',
                 'confirmed',
-            ],
-            'registration_code' => [
-                'nullable',
-                'string',
-                'max:255',
             ],
             'nim' => [
                 'nullable',
@@ -192,38 +185,6 @@ class AuthController extends Controller
         ]);
 
         $role = $validated['role'];
-
-        /*
-         * Verifikasi kode undangan.
-         * Kode tidak boleh ditentukan hanya dari input browser.
-         */
-        if (in_array($role, ['mentor', 'admin'], true)) {
-            $configKey = $role === 'mentor'
-                ? 'services.darin.mentor_registration_code'
-                : 'services.darin.admin_registration_code';
-
-            $expectedCode = (string) config($configKey, '');
-            $submittedCode = (string) ($validated['registration_code'] ?? '');
-
-            if (
-                $expectedCode === '' ||
-                $submittedCode === '' ||
-                !hash_equals($expectedCode, $submittedCode)
-            ) {
-                return back()
-                    ->withInput($request->except([
-                        'password',
-                        'password_confirmation',
-                        'registration_code',
-                        'photo',
-                    ]))
-                    ->withErrors([
-                        'registration_code' =>
-                            'Kode undangan tidak valid atau belum diaktifkan oleh pengelola DARIN.',
-                    ]);
-            }
-        }
-
         $photoPath = null;
 
         try {
@@ -244,18 +205,16 @@ class AuthController extends Controller
                         ->withInput($request->except([
                             'password',
                             'password_confirmation',
-                            'registration_code',
                             'photo',
                         ]))
                         ->withErrors([
-                            'photo' =>
-                                'Foto profil gagal disimpan. Silakan coba kembali.',
+                            'photo' => 'Foto profil gagal disimpan. Silakan coba kembali.',
                         ]);
                 }
             }
 
             /*
-             * Role ditentukan dari pilihan yang sudah divalidasi.
+             * Membuat akun berdasarkan role yang dipilih.
              */
             $user = new User();
 
@@ -265,7 +224,7 @@ class AuthController extends Controller
             $user->role = $role;
 
             /*
-             * Data khusus mahasiswa.
+             * Data khusus mahasiswa magang.
              */
             $user->nim = $role === 'magang'
                 ? ($validated['nim'] ?? null)
@@ -284,28 +243,26 @@ class AuthController extends Controller
                 : null;
 
             /*
-             * Data pegawai untuk Mentor dan Admin.
+             * Data pegawai untuk mentor dan admin.
              */
-            $user->nip = in_array(
+            $isEmployee = in_array(
                 $role,
                 ['mentor', 'admin'],
                 true
-            )
+            );
+
+            $user->nip = $isEmployee
                 ? ($validated['nip'] ?? null)
                 : null;
 
-            $user->position = in_array(
-                $role,
-                ['mentor', 'admin'],
-                true
-            )
+            $user->position = $isEmployee
                 ? ($validated['position'] ?? null)
                 : null;
 
             $user->phone = $validated['phone'] ?? null;
 
             /*
-             * Penempatan dan periode magang dikelola Admin/HR.
+             * Penempatan dan periode magang dikelola melalui Admin/HR.
              */
             $user->division_id = null;
             $user->mentor_id = null;
@@ -315,7 +272,7 @@ class AuthController extends Controller
             $user->save();
         } catch (Throwable $e) {
             /*
-             * Bersihkan foto jika penyimpanan akun gagal.
+             * Hapus foto apabila pembuatan akun gagal.
              */
             if ($photoPath) {
                 Storage::disk('public')->delete($photoPath);
@@ -343,7 +300,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Menampilkan formulir pendaftaran Mentor.
+     * Menampilkan formulir pendaftaran mentor.
      * Hanya Admin/HR yang boleh mengaksesnya.
      */
     public function showMentorRegister()
@@ -354,7 +311,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Membuat akun Mentor melalui Admin/HR.
+     * Membuat akun mentor melalui Admin/HR.
      */
     public function processMentorRegister(Request $request)
     {
@@ -396,7 +353,7 @@ class AuthController extends Controller
         ]);
 
         /*
-         * Role ditetapkan oleh server, bukan dari formulir.
+         * Role mentor ditetapkan oleh server.
          */
         $mentor = new User();
 
@@ -416,16 +373,13 @@ class AuthController extends Controller
 
         $mentor->save();
 
-        /*
-         * Admin/HR tetap menggunakan akunnya sendiri.
-         */
         return redirect()
             ->route('admin.users')
             ->with('success', 'Akun Mentor berhasil dibuat.');
     }
 
     /**
-     * Memastikan hanya Admin/HR yang dapat mengelola akun Mentor.
+     * Memastikan hanya Admin/HR yang dapat mengelola akun mentor.
      */
     private function authorizeAdminOrHr(): void
     {
