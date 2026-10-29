@@ -64,75 +64,9 @@
 
 <div class="flex min-h-screen">
 
-    <!-- SIDEBAR ADMIN / HR -->
-    <aside class="no-print flex w-64 shrink-0 flex-col justify-between bg-[#191712] text-white">
-        <div>
-            <div class="flex items-center gap-3 border-b border-white/10 p-6">
-                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#ffc107] text-2xl font-extrabold text-black shadow-md">
-                    ⚡
-                </div>
+    @include('layouts.sidebar')
 
-                <div>
-                    <h1 class="text-xl font-extrabold tracking-wider">DARIN</h1>
-                    <p class="mt-1 text-xs font-bold uppercase tracking-wider text-amber-400">
-                        Portal HR / Admin
-                    </p>
-                </div>
-            </div>
-
-            <div class="border-b border-white/10 px-6 py-4">
-                <p class="text-[10px] uppercase tracking-widest text-gray-500">
-                    Login sebagai
-                </p>
-
-                <p class="mt-2 text-sm font-semibold">{{ $adminName }}</p>
-
-                <p class="mt-1 text-xs text-gray-400">
-                    Administrator / HR
-                </p>
-            </div>
-
-            <nav class="space-y-2 p-4 text-sm font-semibold">
-                <a href="{{ route('admin.dashboard') }}"
-                   class="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-white/10">
-                     Dashboard Utama
-                </a>
-
-                <a href="{{ route('admin.users') }}"
-                   class="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-white/10">
-                     Manajemen Pengguna
-                </a>
-
-                <a href="{{ route('admin.divisions') }}"
-                   class="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-white/10">
-                     Penempatan & Divisi
-                </a>
-
-                <a href="{{ route('admin.attendance') }}"
-                   class="flex items-center gap-3 rounded-xl bg-[#ffc107] px-4 py-3 text-black shadow-md">
-                     Rekap Absensi & Logbook
-                </a>
-
-                <a href="{{ route('admin.settings') }}"
-                   class="flex items-center gap-3 rounded-xl px-4 py-3 text-gray-300 hover:bg-white/10">
-                    Pengaturan Sistem
-                </a>
-            </nav>
-        </div>
-
-        <div class="border-t border-white/10 p-4">
-            <form action="{{ route('logout') }}" method="POST">
-                @csrf
-
-                <button type="submit"
-                        class="w-full rounded-xl bg-red-600/20 px-4 py-3 text-sm font-bold text-red-300 transition hover:bg-red-600 hover:text-white">
-                     Logout
-                </button>
-            </form>
-        </div>
-    </aside>
-
-    <!-- KONTEN UTAMA -->
+        <!-- KONTEN UTAMA -->
     <div class="flex min-w-0 flex-1 flex-col">
 
         <!-- HEADER -->
@@ -168,13 +102,13 @@
             </div>
         </header>
 
-        <main class="flex-1 space-y-6 p-5 md:p-8">
+        <main class="min-w-0 flex-1 space-y-6 p-5 md:p-8">
 
             <!-- NOTIFIKASI -->
             @if(session('success'))
                 <div role="status"
                      class="rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-800">
-                    ✓ {{ session('success') }}
+                    {{ session('success') }}
                 </div>
             @endif
 
@@ -203,7 +137,7 @@
                 <div class="flex flex-col justify-between gap-2 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">
                     <div>
                         <h3 class="text-lg font-extrabold text-gray-900">
-                            🔍 Filter Laporan
+                            Filter Laporan
                         </h3>
 
                         <p class="mt-1 text-sm text-gray-500">
@@ -348,7 +282,7 @@
                 <div class="flex flex-col justify-between gap-3 border-b border-gray-100 p-5 sm:flex-row sm:items-center md:p-7">
                     <div>
                         <h3 class="text-lg font-extrabold text-gray-900">
-                            📅 Data Kehadiran Mahasiswa
+                            Data Kehadiran Mahasiswa
                         </h3>
 
                         <p class="mt-1 text-sm text-gray-500">
@@ -359,7 +293,7 @@
                     <button type="button"
                             onclick="window.print()"
                             class="no-print rounded-xl bg-[#191712] px-5 py-3 text-sm font-bold text-white hover:bg-black">
-                        🖨️ Cetak / Simpan PDF
+                        Cetak / Simpan PDF
                     </button>
                 </div>
 
@@ -453,7 +387,7 @@
                                                    target="_blank"
                                                    rel="noopener noreferrer"
                                                    class="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100">
-                                                    📷 Lihat Selfie
+                                                    Lihat Selfie
                                                 </a>
                                             @else
                                                 <span class="text-xs text-gray-400">
@@ -466,7 +400,7 @@
                                                    target="_blank"
                                                    rel="noopener noreferrer"
                                                    class="text-xs font-semibold text-blue-600 hover:underline">
-                                                    📍 Lihat GPS
+                                                    Lihat GPS
                                                 </a>
 
                                                 <span class="max-w-48 break-all text-[10px] text-gray-400">
@@ -506,7 +440,7 @@
                 <div class="flex flex-col justify-between gap-3 border-b border-gray-100 p-5 sm:flex-row sm:items-center md:p-7">
                     <div>
                         <h3 class="text-lg font-extrabold text-gray-900">
-                            📝 Rekapitulasi Logbook Kolektif
+                            Rekapitulasi Logbook Kolektif
                         </h3>
                         <p class="mt-1 text-sm text-gray-500">
                             Aktivitas yang tercatat pada database DARIN.

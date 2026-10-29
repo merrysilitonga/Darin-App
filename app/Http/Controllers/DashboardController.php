@@ -13,8 +13,8 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // Zona waktu Indonesia.
-        $hariIni = Carbon::now('Asia/Jakarta')->startOfDay();
+        // Gunakan tanggal hari ini berdasarkan zona waktu Indonesia.
+        $hariIni = Carbon::today('Asia/Jakarta');
 
         // Nilai awal dashboard.
         $hadirTepatWaktu = 0;
@@ -33,36 +33,43 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if ($user->start_date && $user->end_date) {
+        /*
+         * Ambil tanggal mentah dari database agar parsing tanggal
+         * dilakukan langsung menggunakan zona waktu Asia/Jakarta.
+         */
+        $tanggalMulai = $user->getRawOriginal('start_date');
+        $tanggalSelesai = $user->getRawOriginal('end_date');
+
+        if ($tanggalMulai && $tanggalSelesai) {
             $mulai = Carbon::parse(
-                $user->start_date,
+                $tanggalMulai,
                 'Asia/Jakarta'
             )->startOfDay();
 
             $selesai = Carbon::parse(
-                $user->end_date,
+                $tanggalSelesai,
                 'Asia/Jakarta'
             )->startOfDay();
 
             if ($selesai->lt($mulai)) {
                 $sisaDurasi = 'Periode tidak valid';
             } else {
-                // Menghitung seluruh hari kalender, termasuk tanggal awal.
-                $totalHariMagang = $mulai->diffInDays($selesai) + 1;
+                // Menghitung hari kalender, termasuk tanggal mulai.
+                $totalHariMagang = (int) $mulai->diffInDays($selesai) + 1;
 
                 if ($hariIni->lt($mulai)) {
-                    // Magang belum dimulai.
+                    // Periode magang belum dimulai.
                     $sisaDurasi = 'Belum dimulai';
                 } elseif ($hariIni->gt($selesai)) {
-                    // Magang sudah selesai.
+                    // Periode magang sudah berakhir.
                     $hariBerjalan = $totalHariMagang;
                     $progresPersen = 100;
                     $sisaDurasi = 'Selesai';
                 } else {
-                    // Magang sedang berlangsung.
+                    // Periode magang sedang berlangsung.
                     $periodeAktif = true;
 
-                    $hariBerjalan = $mulai->diffInDays($hariIni) + 1;
+                    $hariBerjalan = (int) $mulai->diffInDays($hariIni) + 1;
                     $hariBerjalan = min(
                         $hariBerjalan,
                         $totalHariMagang
@@ -72,7 +79,7 @@ class DashboardController extends Controller
                         ($hariBerjalan / $totalHariMagang) * 100
                     );
 
-                    // Sisa durasi kalender sampai tanggal selesai.
+                    // Menghitung sisa kalender berdasarkan tanggal selesai.
                     $selisih = $hariIni->diff($selesai);
 
                     $bulan = ($selisih->y * 12) + $selisih->m;
@@ -96,7 +103,7 @@ class DashboardController extends Controller
                 */
 
                 if ($hariIni->gte($mulai)) {
-                    // Batasi penghitungan hingga hari ini atau akhir magang.
+                    // Penghitungan dibatasi sampai hari ini atau akhir magang.
                     $tanggalAkhirHitung = $hariIni->gt($selesai)
                         ? $selesai
                         : $hariIni;
@@ -105,11 +112,7 @@ class DashboardController extends Controller
                         'user_id',
                         $user->id
                     )
-                        ->whereDate(
-                            'date',
-                            '>=',
-                            $mulai->toDateString()
-                        )
+                        ->whereDate('date', '>=', $mulai->toDateString())
                         ->whereDate(
                             'date',
                             '<=',

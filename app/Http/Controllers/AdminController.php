@@ -197,11 +197,13 @@ class AdminController extends Controller
     }
 
     /**
-     * Mengatur periode magang selama 3, 4, 5, atau 6 bulan.
+     * Mengatur tanggal mulai dan tanggal selesai periode magang.
      */
     public function updateInternshipPeriod(Request $request, User $user)
     {
-        if ($user->role !== 'magang') {
+        $role = strtolower(trim((string) $user->role));
+
+        if (!in_array($role, ['magang', 'intern'], true)) {
             return back()->with(
                 'error',
                 'Periode magang hanya dapat diatur untuk mahasiswa magang.'
@@ -209,14 +211,21 @@ class AdminController extends Controller
         }
 
         $validated = $request->validate([
-            'start_date' => ['required', 'date_format:Y-m-d'],
-            'duration_months' => ['required', 'integer', 'in:3,4,5,6'],
+            'start_date' => [
+                'required',
+                'date_format:Y-m-d',
+            ],
+            'end_date' => [
+                'required',
+                'date_format:Y-m-d',
+                'after_or_equal:start_date',
+            ],
         ], [
             'start_date.required' => 'Tanggal mulai magang wajib diisi.',
             'start_date.date_format' => 'Format tanggal mulai tidak valid.',
-            'duration_months.required' => 'Durasi magang wajib dipilih.',
-            'duration_months.integer' => 'Durasi magang tidak valid.',
-            'duration_months.in' => 'Durasi magang harus 3, 4, 5, atau 6 bulan.',
+            'end_date.required' => 'Tanggal selesai magang wajib diisi.',
+            'end_date.date_format' => 'Format tanggal selesai tidak valid.',
+            'end_date.after_or_equal' => 'Tanggal selesai tidak boleh lebih awal daripada tanggal mulai.',
         ]);
 
         $startDate = Carbon::createFromFormat(
@@ -225,11 +234,11 @@ class AdminController extends Controller
             'Asia/Jakarta'
         );
 
-        $duration = (int) $validated['duration_months'];
-
-        $endDate = $startDate->copy()
-            ->addMonthsNoOverflow($duration)
-            ->subDay();
+        $endDate = Carbon::createFromFormat(
+            '!Y-m-d',
+            $validated['end_date'],
+            'Asia/Jakarta'
+        );
 
         $user->start_date = $startDate->toDateString();
         $user->end_date = $endDate->toDateString();
@@ -240,9 +249,11 @@ class AdminController extends Controller
             ->with(
                 'success',
                 'Periode magang ' . $user->name
-                . ' berhasil disimpan selama ' . $duration
-                . ' bulan, dari ' . $startDate->format('d-m-Y')
-                . ' sampai ' . $endDate->format('d-m-Y') . '.'
+                . ' berhasil disimpan dari '
+                . $startDate->format('d-m-Y')
+                . ' sampai '
+                . $endDate->format('d-m-Y')
+                . '.'
             );
     }
 

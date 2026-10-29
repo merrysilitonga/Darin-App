@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -16,6 +15,7 @@
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #fcfbf9;
         }
 
         .form-input {
@@ -48,72 +48,24 @@
     </style>
 </head>
 
-<body class="min-h-screen bg-gray-100 text-gray-800">
+<body class="min-h-screen text-gray-800">
 
-    {{-- HEADER --}}
-    <header class="bg-[#191712] text-white shadow-lg">
-        <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+<div class="flex min-h-screen items-stretch">
 
-            <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3">
-                <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#ffc107] text-xl text-[#191712]">
-                    ⚡
-                </span>
+    {{-- SIDEBAR DARIN: MENGGUNAKAN LAYOUT BERSAMA --}}
+    @include('layouts.sidebar')
 
-                <span>
-                    <span class="block text-lg font-extrabold tracking-wide">
-                        DARIN<span class="text-[#ffc107]">.</span>
-                    </span>
-                    <span class="block text-[10px] uppercase tracking-widest text-gray-400">
-                        Admin / HR Portal
-                    </span>
-                </span>
-            </a>
+    {{-- KONTEN UTAMA --}}
+    <main class="min-w-0 flex-1 p-5 md:p-8">
 
-            <nav class="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                <a href="{{ route('admin.dashboard') }}"
-                   class="rounded-lg px-3 py-2 text-gray-300 hover:bg-white/10 hover:text-white">
-                    Dashboard
-                </a>
-
-                <a href="{{ route('admin.users') }}"
-                   class="rounded-lg px-3 py-2 text-gray-300 hover:bg-white/10 hover:text-white">
-                    Pengguna
-                </a>
-
-                <a href="{{ route('admin.divisions') }}"
-                   class="rounded-lg px-3 py-2 text-gray-300 hover:bg-white/10 hover:text-white">
-                    Divisi
-                </a>
-
-                <a href="{{ route('admin.locations') }}"
-                   aria-current="page"
-                   class="rounded-lg bg-[#ffc107] px-3 py-2 font-extrabold text-[#191712]">
-                    Lokasi
-                </a>
-
-                <a href="{{ route('admin.attendance') }}"
-                   class="rounded-lg px-3 py-2 text-gray-300 hover:bg-white/10 hover:text-white">
-                    Absensi
-                </a>
-
-                <a href="{{ route('admin.settings') }}"
-                   class="rounded-lg px-3 py-2 text-gray-300 hover:bg-white/10 hover:text-white">
-                    Pengaturan
-                </a>
-            </nav>
-        </div>
-    </header>
-
-    <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-
-        {{-- JUDUL --}}
-        <div class="mb-7 flex flex-wrap items-start justify-between gap-4">
+        {{-- HEADER HALAMAN --}}
+        <header class="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-                <p class="mb-2 text-xs font-extrabold uppercase tracking-widest text-amber-700">
-                    Pengelolaan Lokasi
+                <p class="mb-2 text-xs font-bold uppercase tracking-wider text-amber-700">
+                    Administrator / Lokasi
                 </p>
 
-                <h1 class="text-2xl font-extrabold text-gray-900 sm:text-3xl">
+                <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">
                     Lokasi Kerja
                 </h1>
 
@@ -121,34 +73,47 @@
                     Kelola titik koordinat kantor atau tempat kerja mahasiswa
                     yang digunakan untuk validasi radius absensi DARIN.
                 </p>
+
+                <div class="mt-3 h-1 w-16 rounded-full bg-[#ffc107]"></div>
             </div>
 
-            <a href="{{ route('admin.users') }}"
-               class="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-3 text-xs font-bold text-gray-700 shadow-sm transition hover:bg-gray-50">
-                Kelola Penempatan Mahasiswa →
+            <a
+                href="{{ route('admin.users') }}"
+                class="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-xs font-bold text-gray-700 shadow-sm transition hover:bg-gray-50"
+            >
+                👥 Kelola Penempatan Mahasiswa
             </a>
-        </div>
+        </header>
 
-        {{-- NOTIFIKASI --}}
+        {{-- NOTIFIKASI BERHASIL --}}
         @if (session('success'))
-            <div role="status"
-                 class="mb-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-800">
+            <div
+                role="status"
+                class="mb-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-800"
+            >
                 ✓ {{ session('success') }}
             </div>
         @endif
 
+        {{-- NOTIFIKASI ERROR --}}
         @if (session('error'))
-            <div role="alert"
-                 class="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800">
+            <div
+                role="alert"
+                class="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800"
+            >
                 {{ session('error') }}
             </div>
         @endif
 
         {{-- ERROR VALIDASI --}}
         @if ($errors->any())
-            <div role="alert"
-                 class="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                <p class="mb-2 font-bold">Periksa kembali data yang dimasukkan:</p>
+            <div
+                role="alert"
+                class="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+            >
+                <p class="mb-2 font-bold">
+                    Periksa kembali data yang dimasukkan:
+                </p>
 
                 <ul class="list-inside list-disc space-y-1">
                     @foreach ($errors->all() as $error)
@@ -159,16 +124,22 @@
         @endif
 
         {{-- KARTU RINGKASAN --}}
-        <div class="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <section class="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
 
+            {{-- TOTAL LOKASI --}}
             <div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                 <div class="flex items-center justify-between gap-3">
                     <div>
                         <p class="text-xs font-semibold text-gray-500">
                             Total Lokasi
                         </p>
+
                         <p class="mt-2 text-3xl font-extrabold text-gray-900">
                             {{ $totalLocations }}
+                        </p>
+
+                        <p class="mt-1 text-xs text-gray-400">
+                            Seluruh lokasi terdaftar
                         </p>
                     </div>
 
@@ -178,14 +149,20 @@
                 </div>
             </div>
 
+            {{-- LOKASI AKTIF --}}
             <div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                 <div class="flex items-center justify-between gap-3">
                     <div>
                         <p class="text-xs font-semibold text-gray-500">
                             Lokasi Aktif
                         </p>
+
                         <p class="mt-2 text-3xl font-extrabold text-green-700">
                             {{ $activeLocations }}
+                        </p>
+
+                        <p class="mt-1 text-xs text-gray-400">
+                            Lokasi yang dapat digunakan
                         </p>
                     </div>
 
@@ -195,14 +172,20 @@
                 </div>
             </div>
 
+            {{-- MAHASISWA DITEMPATKAN --}}
             <div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                 <div class="flex items-center justify-between gap-3">
                     <div>
                         <p class="text-xs font-semibold text-gray-500">
                             Mahasiswa Ditempatkan
                         </p>
+
                         <p class="mt-2 text-3xl font-extrabold text-blue-700">
                             {{ $assignedStudents }}
+                        </p>
+
+                        <p class="mt-1 text-xs text-gray-400">
+                            Mahasiswa dengan lokasi kerja
                         </p>
                     </div>
 
@@ -212,12 +195,13 @@
                 </div>
             </div>
 
-        </div>
+        </section>
 
-        <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+        {{-- FORM TAMBAH DAN DAFTAR LOKASI --}}
+        <div class="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
 
             {{-- FORM TAMBAH LOKASI --}}
-            <section class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6 lg:col-span-1">
+            <section class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6 xl:col-span-1">
 
                 <div class="mb-5">
                     <div class="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-xl">
@@ -233,9 +217,11 @@
                     </p>
                 </div>
 
-                <form action="{{ route('admin.locations.store') }}"
-                      method="POST"
-                      class="space-y-4">
+                <form
+                    action="{{ route('admin.locations.store') }}"
+                    method="POST"
+                    class="space-y-4"
+                >
                     @csrf
 
                     <div>
@@ -263,7 +249,7 @@
                         <textarea
                             id="address"
                             name="address"
-                            rows="2"
+                            rows="3"
                             maxlength="255"
                             class="form-input"
                             placeholder="Alamat lengkap lokasi"
@@ -343,8 +329,9 @@
                             <span class="block text-xs font-bold text-gray-800">
                                 Aktifkan lokasi
                             </span>
+
                             <span class="mt-1 block text-[11px] text-gray-500">
-                                Lokasi ini siap dipilih untuk penempatan mahasiswa.
+                                Lokasi siap dipilih untuk penempatan mahasiswa.
                             </span>
                         </span>
                     </label>
@@ -358,9 +345,10 @@
 
                 </form>
 
+                {{-- TIPS KOORDINAT --}}
                 <div class="mt-5 rounded-xl border border-blue-100 bg-blue-50 p-3">
                     <p class="text-xs font-bold text-blue-900">
-                        Tips koordinat
+                        Tips Koordinat
                     </p>
 
                     <p class="mt-1 text-[11px] leading-5 text-blue-800">
@@ -372,7 +360,7 @@
             </section>
 
             {{-- DAFTAR LOKASI --}}
-            <section class="space-y-4 lg:col-span-2">
+            <section class="min-w-0 space-y-4 xl:col-span-2">
 
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -385,7 +373,7 @@
                         </p>
                     </div>
 
-                    <span class="rounded-full bg-gray-200 px-3 py-1.5 text-xs font-bold text-gray-600">
+                    <span class="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-bold text-gray-600">
                         {{ $locations->total() }} lokasi
                     </span>
                 </div>
@@ -396,6 +384,7 @@
 
                         <div class="p-5 sm:p-6">
 
+                            {{-- NAMA DAN STATUS LOKASI --}}
                             <div class="flex flex-wrap items-start justify-between gap-3">
 
                                 <div class="flex min-w-0 items-start gap-3">
@@ -426,12 +415,14 @@
 
                             </div>
 
+                            {{-- KOORDINAT DAN RADIUS --}}
                             <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
 
                                 <div class="rounded-xl bg-gray-50 p-3">
                                     <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">
                                         Latitude
                                     </p>
+
                                     <p class="mt-1 break-all text-xs font-bold text-gray-800">
                                         {{ $location->latitude }}
                                     </p>
@@ -441,6 +432,7 @@
                                     <p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">
                                         Longitude
                                     </p>
+
                                     <p class="mt-1 break-all text-xs font-bold text-gray-800">
                                         {{ $location->longitude }}
                                     </p>
@@ -450,6 +442,7 @@
                                     <p class="text-[10px] font-bold uppercase tracking-wide text-amber-700">
                                         Radius Absensi
                                     </p>
+
                                     <p class="mt-1 text-sm font-extrabold text-gray-900">
                                         {{ $location->radius_meters }} meter
                                     </p>
@@ -457,10 +450,12 @@
 
                             </div>
 
+                            {{-- JUMLAH MAHASISWA DAN GOOGLE MAPS --}}
                             <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4">
 
                                 <p class="text-xs text-gray-500">
                                     Mahasiswa ditempatkan:
+
                                     <strong class="text-gray-800">
                                         {{ $location->assigned_users_count }}
                                     </strong>
@@ -477,9 +472,10 @@
 
                             </div>
 
-                            {{-- FORM EDIT LOKASI --}}
+                            {{-- EDIT DATA LOKASI --}}
                             <details class="mt-5 rounded-xl border border-gray-200">
-                                <summary class="cursor-pointer px-4 py-3 text-xs font-extrabold text-gray-700 hover:bg-gray-50">
+
+                                <summary class="cursor-pointer rounded-xl px-4 py-3 text-xs font-extrabold text-gray-700 transition hover:bg-gray-50">
                                     ✎ Edit Data Lokasi
                                 </summary>
 
@@ -517,7 +513,7 @@
                                             <textarea
                                                 id="edit-address-{{ $location->id }}"
                                                 name="address"
-                                                rows="2"
+                                                rows="3"
                                                 maxlength="255"
                                                 class="form-input"
                                             >{{ $location->address }}</textarea>
@@ -590,14 +586,20 @@
                                                 class="h-4 w-4 accent-yellow-500"
                                             >
 
-                                            <span class="text-xs font-bold text-gray-700">
-                                                Lokasi aktif
+                                            <span>
+                                                <span class="block text-xs font-bold text-gray-700">
+                                                    Lokasi aktif
+                                                </span>
+
+                                                <span class="mt-1 block text-[11px] text-gray-500">
+                                                    Izinkan lokasi digunakan untuk validasi absensi.
+                                                </span>
                                             </span>
                                         </label>
 
                                         <button
                                             type="submit"
-                                            class="w-full rounded-xl bg-[#191712] px-4 py-3 text-xs font-bold text-white transition hover:bg-gray-800"
+                                            class="w-full rounded-xl bg-[#191712] px-4 py-3 text-xs font-bold text-white transition hover:bg-gray-800 focus:outline-none focus:ring-4 focus:ring-gray-200"
                                         >
                                             Simpan Perubahan
                                         </button>
@@ -619,7 +621,7 @@
 
                                 <button
                                     type="submit"
-                                    class="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-50"
+                                    class="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-4 focus:ring-red-100"
                                 >
                                     Hapus Lokasi
                                 </button>
@@ -631,8 +633,12 @@
 
                 @empty
 
+                    {{-- KEADAAN KOSONG --}}
                     <div class="rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-12 text-center">
-                        <div class="mb-3 text-4xl">📍</div>
+
+                        <div class="mb-3 text-4xl">
+                            📍
+                        </div>
 
                         <h3 class="text-base font-extrabold text-gray-900">
                             Belum Ada Lokasi
@@ -642,6 +648,7 @@
                             Tambahkan lokasi kantor melalui formulir di sebelah kiri.
                             Lokasi yang dibuat akan muncul di sini.
                         </p>
+
                     </div>
 
                 @endforelse
@@ -657,11 +664,14 @@
 
         </div>
 
+        {{-- FOOTER --}}
         <footer class="mt-10 border-t border-gray-200 py-5 text-center text-[11px] leading-5 text-gray-400">
             © {{ date('Y') }} DARIN — Sistem Presensi Geospasial Terintegrasi ESDM
         </footer>
 
     </main>
+
+</div>
 
 </body>
 </html>
