@@ -314,17 +314,36 @@ class AttendanceController extends Controller
         }
 
         try {
-            $attendance->clock_out = $now->format('H:i:s');
-            $attendance->clock_out_photo_path = $photoPath;
-            $attendance->clock_out_latitude = $latitude;
-            $attendance->clock_out_longitude = $longitude;
-            $attendance->clock_out_location_id = $location->id;
-            $attendance->clock_out_location_name = $location->name;
-            $attendance->clock_out_distance_meters = $distanceMeters;
-            $attendance->save();
+            // Update hanya jika absensi pulang belum pernah tercatat.
+            // Kondisi whereNull diperiksa langsung oleh database sehingga
+            // permintaan kedua tidak dapat menimpa data clock-out pertama.
+            $updated = Attendance::query()
+                ->whereKey($attendance->getKey())
+                ->whereNull('clock_out')
+                ->update([
+                    'clock_out' => $now->format('H:i:s'),
+                    'clock_out_photo_path' => $photoPath,
+                    'clock_out_latitude' => $latitude,
+                    'clock_out_longitude' => $longitude,
+                    'clock_out_location_id' => $location->id,
+                    'clock_out_location_name' => $location->name,
+                    'clock_out_distance_meters' => $distanceMeters,
+                ]);
         } catch (\Throwable $e) {
+            // Hapus foto jika proses penyimpanan ke database gagal.
             Storage::disk('local')->delete($photoPath);
             throw $e;
+        }
+
+        // Jika permintaan lain lebih dahulu mencatat clock-out,
+        // update bernilai 0 dan foto dari permintaan ini tidak digunakan.
+        if ($updated !== 1) {
+            Storage::disk('local')->delete($photoPath);
+
+            return back()->with(
+                'error',
+                'Absensi pulang sudah tercatat. Anda tidak dapat melakukan absensi pulang dua kali.'
+            );
         }
 
         return redirect()->route('absen')->with(

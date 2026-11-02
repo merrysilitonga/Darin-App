@@ -22,23 +22,28 @@ class SystemSettingsController extends Controller
      */
     public function update(Request $request)
     {
+        // Validasi format seluruh pengaturan jam.
         $validated = $request->validate([
             'clock_in_start' => [
                 'required',
                 'date_format:H:i',
             ],
+
             'clock_in_end' => [
                 'required',
                 'date_format:H:i',
             ],
+
             'friday_clock_in_end' => [
                 'required',
                 'date_format:H:i',
             ],
+
             'clock_out_time' => [
                 'required',
                 'date_format:H:i',
             ],
+
             'friday_clock_out_time' => [
                 'required',
                 'date_format:H:i',
@@ -50,9 +55,9 @@ class SystemSettingsController extends Controller
                 'Format jam mulai absensi masuk tidak valid.',
 
             'clock_in_end.required' =>
-                'Batas akhir absensi masuk Senin–Kamis wajib diisi.',
+                'Batas akhir absensi masuk Senin-Kamis wajib diisi.',
             'clock_in_end.date_format' =>
-                'Format batas akhir absensi masuk Senin–Kamis tidak valid.',
+                'Format batas akhir absensi masuk Senin-Kamis tidak valid.',
 
             'friday_clock_in_end.required' =>
                 'Batas akhir absensi masuk hari Jumat wajib diisi.',
@@ -60,9 +65,9 @@ class SystemSettingsController extends Controller
                 'Format batas akhir absensi masuk hari Jumat tidak valid.',
 
             'clock_out_time.required' =>
-                'Jam pulang Senin–Kamis wajib diisi.',
+                'Jam pulang Senin-Kamis wajib diisi.',
             'clock_out_time.date_format' =>
-                'Format jam pulang Senin–Kamis tidak valid.',
+                'Format jam pulang Senin-Kamis tidak valid.',
 
             'friday_clock_out_time.required' =>
                 'Jam pulang hari Jumat wajib diisi.',
@@ -75,15 +80,15 @@ class SystemSettingsController extends Controller
         | VALIDASI URUTAN JAM KERJA
         |--------------------------------------------------------------------------
         |
-        | Format HH:MM menggunakan nol di depan, sehingga perbandingan
-        | string dapat digunakan untuk membandingkan urutan waktu.
+        | Format H:i menggunakan dua digit jam dan menit.
+        | Karena itu, perbandingan string dapat digunakan untuk
+        | membandingkan urutan waktu dalam format 24 jam.
         |
         */
 
-        // Jam mulai harus sebelum batas akhir masuk Senin–Kamis.
+        // Jam mulai harus sebelum batas akhir masuk Senin-Kamis.
         if (
-            $validated['clock_in_start']
-            >= $validated['clock_in_end']
+            $validated['clock_in_start'] >= $validated['clock_in_end']
         ) {
             return back()
                 ->withInput()
@@ -95,8 +100,7 @@ class SystemSettingsController extends Controller
 
         // Jam mulai harus sebelum batas akhir masuk hari Jumat.
         if (
-            $validated['clock_in_start']
-            >= $validated['friday_clock_in_end']
+            $validated['clock_in_start'] >= $validated['friday_clock_in_end']
         ) {
             return back()
                 ->withInput()
@@ -106,23 +110,21 @@ class SystemSettingsController extends Controller
                 ]);
         }
 
-        // Jam pulang tidak boleh sebelum batas akhir masuk Senin–Kamis.
+        // Jam pulang Senin-Kamis tidak boleh sebelum batas akhir masuk.
         if (
-            $validated['clock_out_time']
-            < $validated['clock_in_end']
+            $validated['clock_out_time'] < $validated['clock_in_end']
         ) {
             return back()
                 ->withInput()
                 ->withErrors([
                     'clock_out_time' =>
-                        'Jam pulang Senin–Kamis tidak boleh sebelum batas akhir absensi masuk.',
+                        'Jam pulang Senin-Kamis tidak boleh sebelum batas akhir absensi masuk.',
                 ]);
         }
 
-        // Jam pulang tidak boleh sebelum batas akhir masuk hari Jumat.
+        // Jam pulang Jumat tidak boleh sebelum batas akhir masuk Jumat.
         if (
-            $validated['friday_clock_out_time']
-            < $validated['friday_clock_in_end']
+            $validated['friday_clock_out_time'] < $validated['friday_clock_in_end']
         ) {
             return back()
                 ->withInput()
@@ -134,7 +136,7 @@ class SystemSettingsController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | SIMPAN KE DATABASE
+        | SIMPAN PENGATURAN KE DATABASE
         |--------------------------------------------------------------------------
         */
 

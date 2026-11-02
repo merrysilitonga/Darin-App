@@ -6,6 +6,7 @@ use App\Models\Attendance;
 use App\Models\Division;
 use App\Models\Logbook;
 use App\Models\Location;
+use App\Models\LeaveRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -489,6 +490,57 @@ class AdminController extends Controller
 
         $logbooks = $logbooksQuery->get();
 
+        // Pengajuan izin/sakit: periode pengajuan dapat melintasi bulan laporan.
+        // Karena itu, filter bulan menggunakan irisan rentang tanggal.
+        $leaveRequestsQuery = LeaveRequest::with([
+            'user.division',
+            'user.mentor',
+            'reviewer',
+        ])
+            ->orderByRaw(
+                "CASE WHEN status = 'Menunggu' THEN 0 WHEN status = 'Disetujui' THEN 1 ELSE 2 END"
+            )
+            ->orderByDesc('created_at');
+
+        if ($search !== '') {
+            $leaveRequestsQuery->whereHas('user', function ($userQuery) use ($search) {
+                $userQuery->where(function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%');
+                });
+            });
+        }
+
+        if ($validMonth) {
+            $leavePeriod = Carbon::createFromFormat(
+                '!Y-m',
+                $month,
+                'Asia/Jakarta'
+            );
+
+            $leaveRequestsQuery
+                ->whereDate('start_date', '<=', $leavePeriod->copy()->endOfMonth()->toDateString())
+                ->whereDate('end_date', '>=', $leavePeriod->copy()->startOfMonth()->toDateString());
+        }
+
+        if ($validDivisionId) {
+            $leaveRequestsQuery->whereHas('user', function ($userQuery) use ($divisionId) {
+                $userQuery->where('division_id', (int) $divisionId);
+            });
+        }
+
+        if ($validMentorId) {
+            $leaveRequestsQuery->whereHas('user', function ($userQuery) use ($selectedMentor) {
+                if ($selectedMentor) {
+                    $userQuery->where('mentor_id', $selectedMentor->id);
+                } else {
+                    $userQuery->whereRaw('1 = 0');
+                }
+            });
+        }
+
+        $leaveRequests = $leaveRequestsQuery->get();
+
         $divisions = Division::orderBy('name')->get();
 
         $mentors = User::where('role', 'mentor')
@@ -503,11 +555,27 @@ class AdminController extends Controller
             'terlambat' => $attendances->where('status', 'Terlambat')->count(),
             'logbook' => $logbooks->count(),
             'logbook_menunggu' => $logbooks->where('status', 'Menunggu')->count(),
+
+            // Semua status pengajuan ditampilkan, tetapi hanya yang Disetujui
+            // dihitung sebagai izin/sakit yang telah disahkan.
+            'leave_total' => $leaveRequests->count(),
+            'leave_approved' => $leaveRequests->where('status', 'Disetujui')->count(),
+            'leave_pending' => $leaveRequests->where('status', 'Menunggu')->count(),
+            'leave_rejected' => $leaveRequests->where('status', 'Ditolak')->count(),
+            'leave_izin_approved' => $leaveRequests
+                ->where('request_type', 'Izin')
+                ->where('status', 'Disetujui')
+                ->count(),
+            'leave_sakit_approved' => $leaveRequests
+                ->where('request_type', 'Sakit')
+                ->where('status', 'Disetujui')
+                ->count(),
         ];
 
         return view('admin.attendance', compact(
             'attendances',
             'logbooks',
+            'leaveRequests',
             'divisions',
             'mentors',
             'stats',
