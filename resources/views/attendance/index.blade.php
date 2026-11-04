@@ -3,754 +3,1219 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rekap Absensi & Logbook Global - DARIN</title>
+
+    <title>Absensi Harian - DARIN</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
 
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background: #f8f9fa;
+            background-color: #fcfbf9;
         }
 
-        .card {
-            border: 1px solid #eceef2;
-            box-shadow: 0 4px 18px rgba(15, 23, 42, .035);
+        button:disabled {
+            cursor: not-allowed;
         }
 
-        @media print {
-            aside,
-            .no-print,
-            header .admin-identitas {
-                display: none !important;
-            }
-
-            main {
-                padding: 0 !important;
-            }
-
-            body {
-                background: #fff !important;
-            }
-
-            .card {
-                box-shadow: none !important;
-                break-inside: avoid;
-            }
+        video,
+        #previewFoto {
+            background: #191712;
         }
     </style>
 </head>
 
-<body class="bg-[#f8f9fa] text-gray-800 antialiased">
+<body class="flex min-h-screen text-gray-800">
 
-@php
-    $adminName = auth()->user()->name ?? 'Administrator';
-
-    $statusClass = static function ($status) {
-        return match ($status) {
-            'Hadir', 'Disetujui' => 'bg-emerald-100 text-emerald-700',
-            'Terlambat', 'Menunggu' => 'bg-amber-100 text-amber-700',
-            'Ditolak', 'Alpa' => 'bg-red-100 text-red-700',
-            'Sakit' => 'bg-blue-100 text-blue-700',
-            'Izin' => 'bg-violet-100 text-violet-700',
-            default => 'bg-gray-100 text-gray-700',
-        };
-    };
-@endphp
-
-<div class="flex min-h-screen">
-
+    {{-- SIDEBAR DARIN --}}
     @include('layouts.sidebar')
 
-        <!-- KONTEN UTAMA -->
-    <div class="flex min-w-0 flex-1 flex-col">
+    @php
+        $attendanceComplete = $attendance && $attendance->clock_out;
+    @endphp
 
-        <!-- HEADER -->
-        <header class="flex flex-col justify-between gap-4 border-b border-gray-200 bg-white px-5 py-5 shadow-sm sm:flex-row sm:items-center md:px-8">
-            <div>
-                <p class="text-xs text-gray-500">
-                    Administrator / Laporan
-                </p>
+    {{-- KONTEN UTAMA --}}
+    <main class="min-w-0 flex-1 p-5 md:p-10">
 
-                <h2 class="mt-1 text-xl font-extrabold text-gray-900 md:text-2xl">
-                    Rekapitulasi Absensi & Logbook
-                </h2>
+        {{-- HEADER --}}
+        <header class="mb-8">
+            <h1 class="text-2xl font-bold tracking-tight">
+                Portal Absensi Harian
+            </h1>
 
-                <p class="mt-1 text-sm text-gray-500">
-                    Data dari database DARIN sesuai filter yang dipilih.
-                </p>
-            </div>
+            <p class="mt-1 text-sm text-gray-500">
+                Lakukan absensi harian dengan verifikasi foto selfie dan lokasi GPS.
+            </p>
 
-            <div class="admin-identitas flex items-center gap-3">
-                <div class="text-right">
-                    <p class="text-sm font-bold text-gray-800">
-                        {{ $adminName }}
-                    </p>
-
-                    <p class="text-xs text-gray-500">
-                        Human Resources / Administrator
-                    </p>
-                </div>
-
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#ffc107] font-extrabold text-black">
-                    {{ collect(explode(' ', trim($adminName)))->take(2)->map(fn ($word) => mb_strtoupper(mb_substr($word, 0, 1)))->implode('') ?: 'A' }}
-                </div>
-            </div>
+            <div class="mt-2 h-1 w-16 rounded-full bg-[#ffc107]"></div>
         </header>
 
-        <main class="min-w-0 flex-1 space-y-6 p-5 md:p-8">
+        {{-- PESAN SUKSES --}}
+        @if(session('success'))
+            <div
+                role="status"
+                class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-700"
+            >
+                {{ session('success') }}
+            </div>
+        @endif
 
-            <!-- NOTIFIKASI -->
-            @if(session('success'))
-                <div role="status"
-                     class="rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-800">
-                    ✓ {{ session('success') }}
-                </div>
-            @endif
+        {{-- PESAN ERROR --}}
+        @if(session('error'))
+            <div
+                role="alert"
+                class="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+            >
+                {{ session('error') }}
+            </div>
+        @endif
 
-            @if(session('error'))
-                <div role="alert"
-                     class="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
-                    {{ session('error') }}
-                </div>
-            @endif
+        {{-- VALIDASI --}}
+        @if($errors->any())
+            <div
+                role="alert"
+                class="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+            >
+                <p class="mb-2 font-bold">
+                    Terjadi kesalahan:
+                </p>
 
-            @if($errors->any())
-                <div role="alert"
-                     class="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
-                    <p class="font-bold">Terjadi kesalahan.</p>
+                <ul class="list-inside list-disc space-y-1">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
-                    <ul class="mt-2 list-inside list-disc space-y-1">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+        {{-- SECTION ABSENSI --}}
+        <div class="grid grid-cols-1 gap-8 lg:grid-cols-2" id="section-absen">
 
-            <!-- FILTER LAPORAN -->
-            <section class="card space-y-5 rounded-3xl bg-white p-5 md:p-7">
-                <div class="flex flex-col justify-between gap-2 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">
-                    <div>
-                        <h3 class="text-lg font-extrabold text-gray-900">
-                            Filter Laporan
-                        </h3>
+            {{-- KAMERA DAN GPS --}}
+            <section class="flex flex-col items-center rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
 
-                        <p class="mt-1 text-sm text-gray-500">
-                            Filter berlaku untuk data absensi, logbook, dan pengajuan izin/sakit.
+                <h2 class="mb-4 self-start font-bold text-gray-700">
+                    {{ $attendanceComplete
+                        ? 'Absensi Hari Ini Selesai'
+                        : ($attendance
+                            ? 'Selfie & GPS untuk Absen Pulang'
+                            : 'Kamera & Verifikasi Lokasi GPS') }}
+                </h2>
+
+                {{-- ABSENSI SUDAH LENGKAP --}}
+                @if($attendanceComplete)
+
+                    <div class="mx-auto flex aspect-[3/4] w-full max-w-sm flex-col items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-700">
+
+                        <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+                            <span class="text-3xl font-bold">Selesai</span>
+                        </div>
+
+                        <p class="text-sm font-bold">
+                            Anda sudah absen hari ini
+                        </p>
+
+                        <p class="mt-3 text-xs text-emerald-600">
+                            Jam masuk:
+                            {{ $attendance->clock_in
+                                ? \Carbon\Carbon::parse($attendance->clock_in)->format('H:i')
+                                : '-' }} WIB
+                        </p>
+
+                        <p class="mt-1 text-xs text-emerald-600">
+                            Jam pulang:
+                            {{ $attendance->clock_out
+                                ? \Carbon\Carbon::parse($attendance->clock_out)->format('H:i')
+                                : '-' }} WIB
                         </p>
                     </div>
 
-                    <span class="text-xs text-gray-500">
-                        {{ $attendances->count() }} catatan absensi ditemukan
-                    </span>
-                </div>
+                {{-- LOKASI KANTOR BELUM TERSEDIA --}}
+                @elseif(!$attendance && !$canClockInLocation)
 
-                <form method="GET"
-                      action="{{ route('admin.attendance') }}"
-                      class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                    <div class="w-full rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
 
-                    <div>
-                        <label for="search"
-                               class="mb-2 block text-xs font-bold text-gray-700">
-                            Nama / Email Mahasiswa
-                        </label>
+                        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-100">
+                            <span class="text-lg font-bold text-amber-800">!</span>
+                        </div>
 
+                        <h3 class="mt-3 font-bold text-amber-900">
+                            Lokasi Kantor Belum Tersedia
+                        </h3>
+
+                        <p class="mt-2 text-sm leading-6 text-amber-800">
+                            Akun Anda belum ditetapkan ke lokasi kantor yang aktif.
+                            Hubungi Admin/HR agar lokasi dan radius absensi ditetapkan
+                            sebelum melakukan absensi masuk.
+                        </p>
+                    </div>
+
+                {{-- KAMERA DAN FORM ABSENSI --}}
+                @else
+
+                    {{-- AREA KAMERA --}}
+                    <div class="relative mx-auto mb-4 aspect-[3/4] w-full max-w-sm overflow-hidden rounded-2xl border border-gray-800 bg-gray-900">
+
+                        <video
+                            id="video"
+                            autoplay
+                            playsinline
+                            muted
+                            class="absolute inset-0 h-full w-full object-cover"
+                            style="transform:scaleX(-1);"
+                        ></video>
+
+                        {{-- PRATINJAU FOTO --}}
+                        <img
+                            id="previewFoto"
+                            src=""
+                            alt="Pratinjau foto selfie absensi"
+                            class="absolute inset-0 hidden h-full w-full object-contain"
+                        >
+
+                        <canvas id="canvas" class="hidden"></canvas>
+
+                        {{-- STATUS GPS --}}
+                        <div class="absolute bottom-3 left-3 flex items-center gap-2 rounded-lg bg-black/70 px-3 py-2 text-[10px] font-mono text-amber-400 backdrop-blur-md">
+
+                            <span
+                                id="gpsDot"
+                                class="h-2 w-2 animate-pulse rounded-full bg-amber-500"
+                            ></span>
+
+                            <span id="gpsText">
+                                Mencari lokasi...
+                            </span>
+                        </div>
+
+                    </div>
+
+                    {{-- PESAN KAMERA --}}
+                    <p
+                        id="pesanKamera"
+                        class="mb-3 hidden w-full text-xs text-red-500"
+                    ></p>
+
+                    {{-- PESAN PRATINJAU --}}
+                    <div
+                        id="panelPesanFoto"
+                        class="mb-4 hidden w-full rounded-xl border border-amber-200 bg-amber-50 p-4"
+                    >
+                        <p
+                            id="judulFoto"
+                            class="text-sm font-bold text-amber-800"
+                        >
+                            Periksa Foto Selfie
+                        </p>
+
+                        <p
+                            id="pesanFoto"
+                            class="mt-1 text-xs text-amber-700"
+                        >
+                            Pastikan wajah terlihat jelas sebelum mengirim absensi.
+                        </p>
+                    </div>
+
+                    {{-- FORM ABSENSI --}}
+                    <form
+                        id="formAbsen"
+                        action="{{ $attendance ? route('absen.checkout') : route('absen.store') }}"
+                        method="POST"
+                        enctype="multipart/form-data"
+                        class="w-full"
+                    >
+                        @csrf
+
+                        {{-- LATITUDE --}}
                         <input
-                            id="search"
-                            name="search"
-                            type="search"
-                            value="{{ $search }}"
-                            placeholder="Cari mahasiswa..."
-                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100">
-                    </div>
+                            type="hidden"
+                            name="latitude"
+                            id="inpLat"
+                        >
 
-                    <div>
-                        <label for="division_id"
-                               class="mb-2 block text-xs font-bold text-gray-700">
-                            Divisi
-                        </label>
-
-                        <select id="division_id"
-                                name="division_id"
-                                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none">
-                            <option value="">Semua Divisi</option>
-
-                            @foreach($divisions as $division)
-                                <option value="{{ $division->id }}"
-                                    {{ (string) $divisionId === (string) $division->id ? 'selected' : '' }}>
-                                    {{ $division->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="mentor_id"
-                               class="mb-2 block text-xs font-bold text-gray-700">
-                            Mentor Pembimbing
-                        </label>
-
-                        <select id="mentor_id"
-                                name="mentor_id"
-                                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none">
-                            <option value="">Semua Mentor</option>
-
-                            @foreach($mentors as $mentor)
-                                <option value="{{ $mentor->id }}"
-                                    {{ (string) $mentorId === (string) $mentor->id ? 'selected' : '' }}>
-                                    {{ $mentor->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="month"
-                               class="mb-2 block text-xs font-bold text-gray-700">
-                            Periode / Bulan
-                        </label>
-
+                        {{-- LONGITUDE --}}
                         <input
-                            id="month"
-                            name="month"
-                            type="month"
-                            value="{{ preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) ? $month : '' }}"
-                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none">
-                    </div>
+                            type="hidden"
+                            name="longitude"
+                            id="inpLng"
+                        >
 
-                    <div class="flex items-end gap-2">
-                        <button type="submit"
-                                class="flex-1 rounded-xl bg-[#ffc107] px-4 py-3 text-sm font-extrabold text-black transition hover:bg-amber-400">
-                            Terapkan
+                        {{-- FOTO SELFIE --}}
+                        <input
+                            type="file"
+                            name="photo"
+                            id="photoInput"
+                            accept="image/jpeg"
+                            class="hidden"
+                        >
+
+                        {{-- PILIHAN WFA / WFO HARI JUMAT --}}
+                        @if(!$attendance && $isFriday)
+
+                            <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+
+                                <label
+                                    for="work_location"
+                                    class="mb-2 block text-sm font-bold text-amber-900"
+                                >
+                                    Metode Kerja Hari Jumat
+                                </label>
+
+                                <select
+                                    id="work_location"
+                                    name="work_location"
+                                    required
+                                    class="w-full rounded-lg border border-amber-200 bg-white px-3 py-3 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                                >
+                                    <option value="">
+                                        Pilih metode kerja
+                                    </option>
+
+                                    <option
+                                        value="WFO"
+                                        {{ old('work_location') === 'WFO' ? 'selected' : '' }}
+                                    >
+                                        WFO - Bekerja di kantor (wajib dalam radius)
+                                    </option>
+
+                                    <option
+                                        value="WFA"
+                                        {{ old('work_location') === 'WFA' ? 'selected' : '' }}
+                                    >
+                                        WFA - Bekerja dari lokasi lain
+                                    </option>
+                                </select>
+
+                                <p class="mt-2 text-xs leading-5 text-amber-800">
+                                    Pilihan WFO diverifikasi dengan radius kantor.
+                                    Pilihan WFA tetap menyimpan koordinat GPS sebagai bukti.
+                                </p>
+
+                                @error('work_location')
+                                    <p class="mt-2 text-xs text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+
+                            </div>
+
+                        @endif
+
+                        {{-- AMBIL FOTO --}}
+                        <button
+                            type="button"
+                            id="btnAmbil"
+                            disabled
+                            class="w-full rounded-xl bg-[#ffc107] py-3 font-bold text-black shadow-md transition hover:bg-[#e0a800] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            Ambil Foto
                         </button>
 
-                        <a href="{{ route('admin.attendance') }}"
-                           class="rounded-xl border border-gray-200 px-4 py-3 text-sm font-bold text-gray-600 hover:bg-gray-50">
-                            Reset
-                        </a>
-                    </div>
-                </form>
+                        {{-- ULANGI / GUNAKAN FOTO --}}
+                        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
 
-                <p class="text-xs leading-5 text-gray-400">
-                    Filter mentor berdasarkan penugasan langsung pada akun mahasiswa.
-                    Filter divisi tetap menggunakan divisi mahasiswa.
-                </p>
+                            <button
+                                type="button"
+                                id="btnUlangi"
+                                class="hidden w-full rounded-xl bg-gray-800 py-3 font-bold text-white transition hover:bg-gray-700"
+                            >
+                                Ulangi Foto
+                            </button>
+
+                            <button
+                                type="button"
+                                id="btnGunakan"
+                                class="hidden w-full rounded-xl bg-emerald-600 py-3 font-bold text-white transition hover:bg-emerald-700"
+                            >
+                                Gunakan Foto
+                            </button>
+
+                        </div>
+
+                        {{-- KIRIM ABSENSI --}}
+                        <button
+                            type="button"
+                            id="btnKirim"
+                            disabled
+                            class="mt-3 hidden w-full rounded-xl bg-emerald-600 py-3 font-bold text-white shadow-md transition hover:bg-emerald-700 disabled:opacity-50"
+                        >
+                            Kirim Absensi
+                        </button>
+
+                    </form>
+
+                    <p class="mt-4 text-center text-xs text-gray-400">
+                        Foto hanya dikirim setelah Anda menyetujui hasil pratinjau.
+                    </p>
+
+                @endif
+
             </section>
 
-            <!-- KARTU RINGKASAN -->
-            <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div class="card rounded-2xl bg-white p-5">
-                    <p class="text-sm text-gray-500">Catatan Absensi</p>
-                    <p class="mt-3 text-3xl font-extrabold text-gray-900">
-                        {{ $stats['total'] }}
-                    </p>
-                    <p class="mt-2 text-xs text-gray-400">Sesuai filter aktif</p>
-                </div>
+            {{-- STATUS KEHADIRAN --}}
+            <section class="flex flex-col justify-between rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
 
-                <div class="card rounded-2xl bg-white p-5">
-                    <p class="text-sm text-gray-500">Mahasiswa Tercatat</p>
-                    <p class="mt-3 text-3xl font-extrabold text-blue-600">
-                        {{ $stats['mahasiswa'] }}
-                    </p>
-                    <p class="mt-2 text-xs text-gray-400">Mahasiswa unik pada hasil</p>
-                </div>
-
-                <div class="card rounded-2xl bg-white p-5">
-                    <p class="text-sm text-gray-500">Hadir</p>
-                    <p class="mt-3 text-3xl font-extrabold text-emerald-600">
-                        {{ $stats['hadir'] }}
-                    </p>
-                    <p class="mt-2 text-xs text-gray-400">Status Hadir</p>
-                </div>
-
-                <div class="card rounded-2xl bg-white p-5">
-                    <p class="text-sm text-gray-500">Terlambat</p>
-                    <p class="mt-3 text-3xl font-extrabold text-amber-600">
-                        {{ $stats['terlambat'] }}
-                    </p>
-                    <p class="mt-2 text-xs text-gray-400">Status Terlambat</p>
-                </div>
-            </section>
-
-            <!-- RINGKASAN PENGAJUAN IZIN / SAKIT -->
-            <section class="space-y-3">
                 <div>
-                    <h3 class="text-lg font-extrabold text-gray-900">
-                        Ringkasan Pengajuan Izin & Sakit
-                    </h3>
-                    <p class="mt-1 text-sm text-gray-500">
-                        Semua status pengajuan ditampilkan. Hanya pengajuan Disetujui yang dihitung sebagai izin atau sakit yang telah disahkan.
-                    </p>
+
+                    <h2 class="mb-4 font-bold text-gray-700">
+                        Status Kehadiran Hari Ini
+                    </h2>
+
+                    {{-- STATUS SUDAH ABSEN --}}
+                    @if($attendance)
+
+                        <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+
+                            <p class="mb-1 flex items-center gap-3 text-sm font-bold text-emerald-800">
+                                Status Absensi: {{ $attendance->status }}
+                            </p>
+
+                            <p class="text-xs leading-relaxed text-emerald-700">
+                                {{ $attendance->notes ?? 'Absensi berhasil dicatat.' }}
+                            </p>
+
+                        </div>
+
+                    @else
+
+                        <div class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+
+                            <p class="mb-1 text-sm font-bold text-amber-800">
+                                Status Absensi
+                            </p>
+
+                            <p class="text-xs leading-relaxed text-amber-700">
+                                Ambil foto, periksa hasilnya, lalu kirim absensi
+                                untuk mencatat kehadiran Anda.
+                            </p>
+
+                        </div>
+
+                    @endif
+
+                    {{-- INFORMASI MAHASISWA --}}
+                    <div class="space-y-3 text-sm text-gray-600">
+
+                        {{-- TANGGAL --}}
+                        <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
+
+                            <span class="text-gray-400">
+                                Tanggal
+                            </span>
+
+                            <span class="text-right font-semibold text-gray-800">
+                                {{ $now->translatedFormat('l, d F Y') }}
+                            </span>
+
+                        </div>
+
+                        {{-- NAMA --}}
+                        <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
+
+                            <span class="text-gray-400">
+                                Nama
+                            </span>
+
+                            <span class="text-right font-semibold text-gray-800">
+                                {{ $user->name ?? 'Pengguna' }}
+                            </span>
+
+                        </div>
+
+                        {{-- EMAIL --}}
+                        <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
+
+                            <span class="text-gray-400">
+                                Email
+                            </span>
+
+                            <span class="break-all text-right font-semibold text-gray-800">
+                                {{ $user->email ?? '-' }}
+                            </span>
+
+                        </div>
+
+                        {{-- JAM MASUK --}}
+                        <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
+
+                            <span class="text-gray-400">
+                                Jam Masuk
+                            </span>
+
+                            <span class="font-semibold text-gray-800">
+                                {{ $attendance && $attendance->clock_in
+                                    ? \Carbon\Carbon::parse($attendance->clock_in)->format('H:i:s')
+                                    : '-' }}
+                            </span>
+
+                        </div>
+
+                        {{-- JAM PULANG --}}
+                        <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
+
+                            <span class="text-gray-400">
+                                Jam Pulang
+                            </span>
+
+                            <span class="font-semibold text-gray-800">
+                                {{ $attendance && $attendance->clock_out
+                                    ? \Carbon\Carbon::parse($attendance->clock_out)->format('H:i:s')
+                                    : 'Belum absen pulang' }}
+                            </span>
+
+                        </div>
+
+                        {{-- LOKASI KERJA --}}
+                        <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
+
+                            <span class="text-gray-400">
+                                Lokasi Kerja
+                            </span>
+
+                            <span class="max-w-[65%] text-right font-semibold text-gray-800">
+                                {{ $attendance->location_name ?? ($location->name ?? 'Belum ditetapkan') }}
+                            </span>
+
+                        </div>
+
+                        {{-- JARAK ABSENSI MASUK --}}
+                        @if($attendance)
+
+                            <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
+
+                                <span class="text-gray-400">
+                                    Jarak Saat Masuk
+                                </span>
+
+                                <span class="font-semibold text-gray-800">
+                                    {{ $attendance->distance_meters !== null
+                                        ? $attendance->distance_meters . ' m'
+                                        : '-' }}
+                                </span>
+
+                            </div>
+
+                            {{-- JARAK ABSENSI PULANG --}}
+                            @if($attendance->clock_out)
+
+                                <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
+
+                                    <span class="text-gray-400">
+                                        Jarak Saat Pulang
+                                    </span>
+
+                                    <span class="font-semibold text-gray-800">
+                                        {{ $attendance->clock_out_distance_meters !== null
+                                            ? $attendance->clock_out_distance_meters . ' m'
+                                            : '-' }}
+                                    </span>
+
+                                </div>
+
+                            @endif
+
+                        @elseif($location)
+
+                            <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
+
+                                <span class="text-gray-400">
+                                    Radius Diizinkan
+                                </span>
+
+                                <span class="font-semibold text-gray-800">
+                                    {{ $location->radius_meters }} meter
+                                </span>
+
+                            </div>
+
+                        @endif
+
+                        {{-- KOORDINAT GPS --}}
+                        <div class="border-b border-gray-100 py-2">
+
+                            <div class="flex justify-between gap-4">
+
+                                <span class="text-gray-400">
+                                    Koordinat GPS
+                                </span>
+
+                                <span
+                                    id="koordinatGPS"
+                                    class="max-w-[65%] break-all text-right font-mono text-xs text-gray-500"
+                                >
+                                    @if(
+                                        $attendance &&
+                                        $attendance->latitude !== null &&
+                                        $attendance->longitude !== null
+                                    )
+                                        {{ $attendance->latitude }}, {{ $attendance->longitude }}
+                                    @else
+                                        Mendeteksi lokasi...
+                                    @endif
+                                </span>
+
+                            </div>
+
+                            <a
+                                id="linkPetaGPS"
+                                href="#"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="mt-2 hidden text-right text-xs text-blue-600 hover:underline"
+                            >
+                                Lihat di Google Maps
+                            </a>
+
+                        </div>
+
+                    </div>
+
                 </div>
 
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                    <div class="card rounded-2xl bg-white p-5">
-                        <p class="text-sm text-gray-500">Total Pengajuan</p>
-                        <p class="mt-3 text-3xl font-extrabold text-gray-900">
-                            {{ $stats['leave_total'] }}
-                        </p>
-                        <p class="mt-2 text-xs text-gray-400">Sesuai filter aktif</p>
-                    </div>
+                {{-- INFORMASI STATUS AKHIR --}}
+                <div class="mt-6">
 
-                    <div class="card rounded-2xl bg-white p-5">
-                        <p class="text-sm text-gray-500">Izin Disetujui</p>
-                        <p class="mt-3 text-3xl font-extrabold text-violet-600">
-                            {{ $stats['leave_izin_approved'] }}
-                        </p>
-                        <p class="mt-2 text-xs text-gray-400">Pengajuan izin sah</p>
-                    </div>
+                    @if($attendanceComplete)
 
-                    <div class="card rounded-2xl bg-white p-5">
-                        <p class="text-sm text-gray-500">Sakit Disetujui</p>
-                        <p class="mt-3 text-3xl font-extrabold text-blue-600">
-                            {{ $stats['leave_sakit_approved'] }}
-                        </p>
-                        <p class="mt-2 text-xs text-gray-400">Pengajuan sakit sah</p>
-                    </div>
+                        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
 
-                    <div class="card rounded-2xl bg-white p-5">
-                        <p class="text-sm text-gray-500">Menunggu</p>
-                        <p class="mt-3 text-3xl font-extrabold text-amber-600">
-                            {{ $stats['leave_pending'] }}
-                        </p>
-                        <p class="mt-2 text-xs text-gray-400">Belum diputuskan Mentor</p>
-                    </div>
+                            <p class="font-bold">
+                                Absensi Hari Ini Lengkap
+                            </p>
 
-                    <div class="card rounded-2xl bg-white p-5">
-                        <p class="text-sm text-gray-500">Ditolak</p>
-                        <p class="mt-3 text-3xl font-extrabold text-red-600">
-                            {{ $stats['leave_rejected'] }}
+                            <p class="mt-1 text-xs leading-5">
+                                Foto dan koordinat GPS masuk serta pulang telah tercatat.
+                            </p>
+
+                        </div>
+
+                    @elseif($attendance)
+
+                        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+
+                            <p class="font-bold">
+                                Absensi Pulang Belum Tercatat
+                            </p>
+
+                            <p class="mt-1 text-xs leading-5">
+                                Ambil selfie baru dan izinkan GPS pada panel sebelah kiri
+                                untuk melakukan absensi pulang setelah jadwal tersedia.
+                            </p>
+
+                        </div>
+
+                    @else
+
+                        <p class="text-xs leading-5 text-gray-400">
+                            Setelah absensi masuk tercatat, Anda dapat melakukan
+                            absensi pulang menggunakan selfie dan GPS terbaru.
                         </p>
-                        <p class="mt-2 text-xs text-gray-400">Tidak dihitung sebagai izin sah</p>
-                    </div>
+
+                    @endif
+
                 </div>
+
             </section>
 
-            <!-- TABEL ABSENSI -->
-            <section class="card overflow-hidden rounded-3xl bg-white">
-                <div class="flex flex-col justify-between gap-3 border-b border-gray-100 p-5 sm:flex-row sm:items-center md:p-7">
-                    <div>
-                        <h3 class="text-lg font-extrabold text-gray-900">
-                            Data Kehadiran Mahasiswa
-                        </h3>
+        </div>
 
-                        <p class="mt-1 text-sm text-gray-500">
-                            Jam masuk, jam pulang, status, selfie, dan koordinat GPS.
-                        </p>
-                    </div>
+    </main>
 
-                    <button type="button"
-                            onclick="window.print()"
-                            class="no-print rounded-xl bg-[#191712] px-5 py-3 text-sm font-bold text-white hover:bg-black">
-                        Cetak / Simpan PDF
-                    </button>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[1150px] text-left text-sm">
-                        <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
-                            <tr>
-                                <th class="px-4 py-4">No.</th>
-                                <th class="px-4 py-4">Tanggal</th>
-                                <th class="px-4 py-4">Mahasiswa</th>
-                                <th class="px-4 py-4">Divisi / Mentor</th>
-                                <th class="px-4 py-4">Jam Masuk</th>
-                                <th class="px-4 py-4">Jam Pulang</th>
-                                <th class="px-4 py-4">Metode</th>
-                                <th class="px-4 py-4">Status</th>
-                                <th class="px-4 py-4">Bukti / Lokasi</th>
-                            </tr>
-                        </thead>
-
-                        <tbody class="divide-y divide-gray-100">
-                            @forelse($attendances as $attendance)
-                                @php
-                                    $student = $attendance->user;
-                                    $division = $student?->division;
-
-                                    // Nama mentor sesuai penugasan langsung.
-                                    $assignedMentor = $student?->mentor_id
-                                        ? $mentors->firstWhere('id', $student->mentor_id)
-                                        : null;
-
-                                    $hasCoordinates =
-                                        $attendance->latitude !== null
-                                        && $attendance->longitude !== null;
-                                @endphp
-
-                                <tr class="align-top hover:bg-gray-50/70">
-                                    <td class="px-4 py-4 text-gray-400">
-                                        {{ $loop->iteration }}
-                                    </td>
-
-                                    <td class="whitespace-nowrap px-4 py-4 font-semibold text-gray-700">
-                                        {{ $attendance->date
-                                            ? \Illuminate\Support\Carbon::parse($attendance->date)->translatedFormat('d M Y')
-                                            : '-' }}
-                                    </td>
-
-                                    <td class="min-w-48 px-4 py-4">
-                                        <p class="font-bold text-gray-900">
-                                            {{ $student?->name ?? 'Pengguna tidak ditemukan' }}
-                                        </p>
-                                        <p class="mt-1 text-xs text-gray-500">
-                                            {{ $student?->email ?? '-' }}
-                                        </p>
-                                    </td>
-
-                                    <td class="min-w-44 px-4 py-4">
-                                        <p class="font-semibold text-gray-700">
-                                            {{ $division?->name ?? 'Belum ditetapkan' }}
-                                        </p>
-                                        <p class="mt-1 text-xs text-gray-500">
-                                            Mentor: {{ $assignedMentor?->name ?? 'Belum ditugaskan' }}
-                                        </p>
-                                    </td>
-
-                                    <td class="whitespace-nowrap px-4 py-4 font-semibold">
-                                        {{ $attendance->clock_in
-                                            ? \Illuminate\Support\Carbon::parse($attendance->clock_in)->format('H:i') . ' WIB'
-                                            : '-' }}
-                                    </td>
-
-                                    <td class="whitespace-nowrap px-4 py-4">
-                                        {{ $attendance->clock_out
-                                            ? \Illuminate\Support\Carbon::parse($attendance->clock_out)->format('H:i') . ' WIB'
-                                            : '-' }}
-                                    </td>
-
-                                    <td class="px-4 py-4">
-                                        {{ $attendance->work_location ?? '-' }}
-                                    </td>
-
-                                    <td class="whitespace-nowrap px-4 py-4">
-                                        <span class="inline-flex rounded-full px-3 py-1 text-xs font-bold {{ $statusClass($attendance->status ?? '') }}">
-                                            {{ $attendance->status ?? 'Belum ada status' }}
-                                        </span>
-                                    </td>
-
-                                    <td class="min-w-40 px-4 py-4">
-                                        <div class="flex flex-col items-start gap-2">
-                                            @if($attendance->photo_path)
-                                                <a href="{{ route('admin.attendance.photo', $attendance->id) }}"
-                                                   target="_blank"
-                                                   rel="noopener noreferrer"
-                                                   class="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100">
-                                                    Lihat Selfie
-                                                </a>
-                                            @else
-                                                <span class="text-xs text-gray-400">
-                                                    Foto tidak tersedia
-                                                </span>
-                                            @endif
-
-                                            @if($hasCoordinates)
-                                                <a href="https://www.google.com/maps?q={{ $attendance->latitude }},{{ $attendance->longitude }}"
-                                                   target="_blank"
-                                                   rel="noopener noreferrer"
-                                                   class="text-xs font-semibold text-blue-600 hover:underline">
-                                                    Lihat GPS
-                                                </a>
-
-                                                <span class="max-w-48 break-all text-[10px] text-gray-400">
-                                                    {{ $attendance->latitude }}, {{ $attendance->longitude }}
-                                                </span>
-                                            @else
-                                                <span class="text-xs text-gray-400">
-                                                    GPS tidak tersedia
-                                                </span>
-                                            @endif
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="9" class="px-6 py-14 text-center">
-                                        <p class="font-bold text-gray-700">
-                                            Belum ada data absensi
-                                        </p>
-                                        <p class="mt-2 text-sm text-gray-400">
-                                            Coba ubah filter atau pastikan mahasiswa sudah mengirim absensi.
-                                        </p>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="border-t border-gray-100 bg-gray-50 px-5 py-4 text-xs text-gray-500">
-                    Menampilkan {{ $attendances->count() }} catatan absensi dari database.
-                </div>
-            </section>
-
-            <!-- TABEL PENGAJUAN IZIN / SAKIT -->
-            <section class="card overflow-hidden rounded-3xl bg-white">
-                <div class="flex flex-col justify-between gap-3 border-b border-gray-100 p-5 sm:flex-row sm:items-center md:p-7">
-                    <div>
-                        <h3 class="text-lg font-extrabold text-gray-900">
-                            Rekapitulasi Pengajuan Izin & Sakit
-                        </h3>
-                        <p class="mt-1 text-sm text-gray-500">
-                            Menampilkan semua pengajuan mahasiswa, termasuk yang menunggu, disetujui, dan ditolak.
-                        </p>
-                    </div>
-
-                    <div class="text-sm text-gray-500">
-                        {{ $leaveRequests->count() }} pengajuan ditemukan
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[1150px] text-left text-sm">
-                        <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
-                            <tr>
-                                <th class="px-4 py-4">Tanggal Pengajuan</th>
-                                <th class="px-4 py-4">Mahasiswa</th>
-                                <th class="px-4 py-4">Divisi / Mentor</th>
-                                <th class="px-4 py-4">Jenis</th>
-                                <th class="px-4 py-4">Periode Pengajuan</th>
-                                <th class="px-4 py-4">Alasan</th>
-                                <th class="px-4 py-4">Status</th>
-                                <th class="px-4 py-4">Hasil Pemeriksaan</th>
-                            </tr>
-                        </thead>
-
-                        <tbody class="divide-y divide-gray-100">
-                            @forelse($leaveRequests as $item)
-                                @php
-                                    $leaveStudent = $item->user;
-                                    $leaveDivision = $leaveStudent?->division;
-                                    $leaveMentor = $leaveStudent?->mentor;
-
-                                    $requestTypeClass = match ($item->request_type) {
-                                        'Sakit' => 'bg-blue-100 text-blue-700',
-                                        'Izin' => 'bg-violet-100 text-violet-700',
-                                        default => 'bg-gray-100 text-gray-700',
-                                    };
-                                @endphp
-
-                                <tr class="align-top hover:bg-gray-50/70">
-                                    <td class="whitespace-nowrap px-4 py-4 text-gray-600">
-                                        {{ $item->created_at
-                                            ? $item->created_at->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB'
-                                            : '-' }}
-                                    </td>
-
-                                    <td class="min-w-44 px-4 py-4">
-                                        <p class="font-bold text-gray-900">
-                                            {{ $leaveStudent?->name ?? 'Pengguna tidak ditemukan' }}
-                                        </p>
-                                        <p class="mt-1 text-xs text-gray-500">
-                                            {{ $leaveStudent?->email ?? '-' }}
-                                        </p>
-                                        <p class="mt-1 text-xs text-gray-400">
-                                            NIM: {{ $leaveStudent?->nim ?? '-' }}
-                                        </p>
-                                    </td>
-
-                                    <td class="min-w-40 px-4 py-4">
-                                        <p class="font-semibold text-gray-700">
-                                            {{ $leaveDivision?->name ?? 'Belum ditetapkan' }}
-                                        </p>
-                                        <p class="mt-1 text-xs text-gray-500">
-                                            Mentor: {{ $leaveMentor?->name ?? 'Belum ditugaskan' }}
-                                        </p>
-                                    </td>
-
-                                    <td class="whitespace-nowrap px-4 py-4">
-                                        <span class="inline-flex rounded-full px-3 py-1 text-xs font-bold {{ $requestTypeClass }}">
-                                            {{ $item->request_type ?? '-' }}
-                                        </span>
-                                    </td>
-
-                                    <td class="whitespace-nowrap px-4 py-4">
-                                        <p class="font-semibold text-gray-700">
-                                            {{ $item->start_date?->format('d M Y') ?? '-' }}
-                                        </p>
-                                        <p class="mt-1 text-xs text-gray-500">
-                                            sampai {{ $item->end_date?->format('d M Y') ?? '-' }}
-                                        </p>
-                                    </td>
-
-                                    <td class="min-w-56 max-w-sm px-4 py-4">
-                                        <p class="whitespace-pre-line break-words text-gray-600">
-                                            {{ $item->reason ?? '-' }}
-                                        </p>
-                                    </td>
-
-                                    <td class="whitespace-nowrap px-4 py-4">
-                                        <span class="inline-flex rounded-full px-3 py-1 text-xs font-bold {{ $statusClass($item->status ?? '') }}">
-                                            {{ $item->status ?? 'Belum ada status' }}
-                                        </span>
-                                        @if($item->status === 'Disetujui')
-                                            <p class="mt-2 text-[11px] font-semibold text-emerald-700">
-                                                Dihitung sebagai {{ strtolower($item->request_type) }} disetujui
-                                            </p>
-                                        @elseif($item->status === 'Menunggu')
-                                            <p class="mt-2 text-[11px] text-amber-700">
-                                                Belum dihitung sebagai izin/sakit sah
-                                            </p>
-                                        @elseif($item->status === 'Ditolak')
-                                            <p class="mt-2 text-[11px] text-red-700">
-                                                Tidak dihitung sebagai izin/sakit sah
-                                            </p>
-                                        @endif
-                                    </td>
-
-                                    <td class="min-w-52 px-4 py-4">
-                                        @if($item->status === 'Menunggu')
-                                            <span class="text-xs text-amber-700">
-                                                Menunggu pemeriksaan Mentor
-                                            </span>
-                                        @else
-                                            <p class="text-xs text-gray-600">
-                                                Pemeriksa:
-                                                <span class="font-semibold text-gray-800">
-                                                    {{ $item->reviewer?->name ?? 'Tidak tersedia' }}
-                                                </span>
-                                            </p>
-                                            <p class="mt-1 text-xs text-gray-500">
-                                                {{ $item->reviewed_at
-                                                    ? $item->reviewed_at->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB'
-                                                    : '-' }}
-                                            </p>
-                                            @if($item->review_notes)
-                                                <p class="mt-2 whitespace-pre-line break-words text-xs text-red-700">
-                                                    Catatan: {{ $item->review_notes }}
-                                                </p>
-                                            @endif
-                                        @endif
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="8" class="px-6 py-14 text-center">
-                                        <p class="font-bold text-gray-700">
-                                            Belum ada pengajuan izin atau sakit
-                                        </p>
-                                        <p class="mt-2 text-sm text-gray-400">
-                                            Pengajuan mahasiswa yang sesuai filter akan muncul di sini.
-                                        </p>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="border-t border-gray-100 bg-gray-50 px-5 py-4 text-xs text-gray-500">
-                    Menampilkan {{ $leaveRequests->count() }} pengajuan izin/sakit sesuai filter aktif. Hanya status Disetujui yang dihitung sebagai pengajuan sah.
-                </div>
-            </section>
-
-            <!-- TABEL LOGBOOK -->
-            <section class="card overflow-hidden rounded-3xl bg-white">
-                <div class="flex flex-col justify-between gap-3 border-b border-gray-100 p-5 sm:flex-row sm:items-center md:p-7">
-                    <div>
-                        <h3 class="text-lg font-extrabold text-gray-900">
-                            Rekapitulasi Logbook Kolektif
-                        </h3>
-                        <p class="mt-1 text-sm text-gray-500">
-                            Aktivitas yang tercatat pada database DARIN.
-                        </p>
-                    </div>
-
-                    <div class="text-sm text-gray-500">
-                        {{ $stats['logbook'] }} catatan ·
-                        {{ $stats['logbook_menunggu'] }} menunggu
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[900px] text-left text-sm">
-                        <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
-                            <tr>
-                                <th class="px-4 py-4">Tanggal</th>
-                                <th class="px-4 py-4">Mahasiswa</th>
-                                <th class="px-4 py-4">Divisi</th>
-                                <th class="px-4 py-4">Topik / Pekerjaan</th>
-                                <th class="px-4 py-4">Deskripsi</th>
-                                <th class="px-4 py-4">Status</th>
-                                <th class="px-4 py-4">Catatan Mentor</th>
-                            </tr>
-                        </thead>
-
-                        <tbody class="divide-y divide-gray-100">
-                            @forelse($logbooks as $item)
-                                <tr class="align-top hover:bg-gray-50/70">
-                                    <td class="whitespace-nowrap px-4 py-4 font-semibold text-gray-600">
-                                        {{ $item->date
-                                            ? \Illuminate\Support\Carbon::parse($item->date)->translatedFormat('d M Y')
-                                            : '-' }}
-                                    </td>
-
-                                    <td class="min-w-40 px-4 py-4">
-                                        <p class="font-bold text-gray-900">
-                                            {{ $item->user?->name ?? 'Pengguna tidak ditemukan' }}
-                                        </p>
-                                        <p class="mt-1 text-xs text-gray-500">
-                                            {{ $item->user?->email ?? '-' }}
-                                        </p>
-                                    </td>
-
-                                    <td class="px-4 py-4">
-                                        {{ $item->user?->division?->name ?? 'Belum ditetapkan' }}
-                                    </td>
-
-                                    <td class="min-w-44 px-4 py-4 font-semibold text-gray-800">
-                                        {{ $item->topic ?? '-' }}
-                                    </td>
-
-                                    <td class="min-w-64 max-w-md px-4 py-4">
-                                        <p class="whitespace-pre-line break-words text-gray-600">
-                                            {{ $item->description ?? '-' }}
-                                        </p>
-                                    </td>
-
-                                    <td class="whitespace-nowrap px-4 py-4">
-                                        <span class="inline-flex rounded-full px-3 py-1 text-xs font-bold {{ $statusClass($item->status ?? '') }}">
-                                            {{ $item->status ?? 'Belum ditinjau' }}
-                                        </span>
-                                    </td>
-
-                                    <td class="min-w-44 px-4 py-4 text-gray-600">
-                                        {{ $item->mentor_feedback ?: '-' }}
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="7" class="px-6 py-14 text-center">
-                                        <p class="font-bold text-gray-700">
-                                            Belum ada data logbook
-                                        </p>
-                                        <p class="mt-2 text-sm text-gray-400">
-                                            Catatan mahasiswa akan muncul di sini setelah tersimpan.
-                                        </p>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="border-t border-gray-100 bg-gray-50 px-5 py-4 text-xs text-gray-500">
-                    Menampilkan {{ $logbooks->count() }} catatan logbook sesuai filter aktif.
-                </div>
-            </section>
-
-            <footer class="pb-4 text-center text-xs text-gray-400">
-                © {{ date('Y') }} DARIN — Sistem Presensi Geospasial Terintegrasi ESDM
-            </footer>
-
-        </main>
-    </div>
 </div>
+
+{{-- JAVASCRIPT KAMERA, FOTO, DAN GPS --}}
+<script>
+    @if((!$attendance && $canClockInLocation) || ($attendance && !$attendance->clock_out))
+
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const previewFoto = document.getElementById('previewFoto');
+        const photoInput = document.getElementById('photoInput');
+
+        const btnAmbil = document.getElementById('btnAmbil');
+        const btnUlangi = document.getElementById('btnUlangi');
+        const btnGunakan = document.getElementById('btnGunakan');
+        const btnKirim = document.getElementById('btnKirim');
+
+        const formAbsen = document.getElementById('formAbsen');
+
+        const gpsText = document.getElementById('gpsText');
+        const gpsDot = document.getElementById('gpsDot');
+
+        const koordinatGPS = document.getElementById('koordinatGPS');
+        const linkPetaGPS = document.getElementById('linkPetaGPS');
+
+        const pesanKamera = document.getElementById('pesanKamera');
+        const panelPesanFoto = document.getElementById('panelPesanFoto');
+        const pesanFoto = document.getElementById('pesanFoto');
+
+        let cameraStream = null;
+        let cameraReady = false;
+        let gpsReady = false;
+        let photoApproved = false;
+        let previewUrl = null;
+        let submitting = false;
+
+        // Memperbarui tombol berdasarkan kondisi kamera, GPS, dan foto.
+        function updateButtons() {
+            btnAmbil.disabled = !(cameraReady && gpsReady);
+            btnKirim.disabled = !(photoApproved && gpsReady);
+        }
+
+        // Menampilkan kesalahan kamera.
+        function showCameraError(message) {
+            pesanKamera.textContent = message;
+            pesanKamera.classList.remove('hidden');
+        }
+
+        // Menghentikan seluruh track kamera.
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => {
+                    track.stop();
+                });
+            }
+
+            cameraStream = null;
+            video.srcObject = null;
+            cameraReady = false;
+
+            updateButtons();
+        }
+
+        // Membersihkan URL pratinjau foto.
+        function clearPreviewUrl() {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+            }
+        }
+
+        // Mengaktifkan kamera perangkat.
+        async function startCamera() {
+            if (
+                !navigator.mediaDevices ||
+                !navigator.mediaDevices.getUserMedia
+            ) {
+                showCameraError(
+                    'Browser tidak mendukung kamera. Gunakan Chrome atau Edge melalui localhost.'
+                );
+
+                return;
+            }
+
+            btnAmbil.disabled = true;
+
+            try {
+                pesanKamera.classList.add('hidden');
+
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'user'
+                    },
+                    audio: false
+                });
+
+                const metadataReady = new Promise(resolve => {
+                    if (video.readyState >= 1) {
+                        resolve();
+                    } else {
+                        video.addEventListener(
+                            'loadedmetadata',
+                            resolve,
+                            { once: true }
+                        );
+                    }
+                });
+
+                video.srcObject = cameraStream;
+
+                await metadataReady;
+                await video.play();
+
+                cameraReady =
+                    video.videoWidth > 0 &&
+                    video.videoHeight > 0;
+
+                if (!cameraReady) {
+                    showCameraError(
+                        'Kamera belum siap. Silakan coba kembali.'
+                    );
+                }
+
+            } catch (error) {
+                stopCamera();
+
+                showCameraError(
+                    'Kamera gagal diakses. Izinkan akses kamera di browser, lalu muat ulang halaman.'
+                );
+            }
+
+            updateButtons();
+        }
+
+        // Menampilkan koordinat GPS dan tautan Google Maps.
+        function tampilkanKoordinat(latitude, longitude) {
+            if (koordinatGPS) {
+                koordinatGPS.textContent =
+                    latitude.toFixed(7) + ', ' +
+                    longitude.toFixed(7);
+            }
+
+            if (linkPetaGPS) {
+                linkPetaGPS.href =
+                    'https://www.google.com/maps?q=' +
+                    latitude + ',' + longitude;
+
+                linkPetaGPS.classList.remove('hidden');
+            }
+        }
+
+        // Mengambil lokasi perangkat untuk tampilan awal.
+        function getGPS() {
+            if (!navigator.geolocation) {
+                gpsText.textContent = 'Browser tidak mendukung GPS';
+
+                if (koordinatGPS) {
+                    koordinatGPS.textContent = 'GPS tidak didukung';
+                }
+
+                gpsDot.className =
+                    'h-2 w-2 rounded-full bg-red-500';
+
+                return;
+            }
+
+            gpsReady = false;
+            updateButtons();
+
+            gpsText.textContent = 'Mencari lokasi...';
+
+            gpsDot.className =
+                'h-2 w-2 animate-pulse rounded-full bg-amber-500';
+
+            if (koordinatGPS) {
+                koordinatGPS.textContent = 'Mendeteksi lokasi...';
+            }
+
+            navigator.geolocation.getCurrentPosition(
+
+                position => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+
+                    document.getElementById('inpLat').value = latitude;
+                    document.getElementById('inpLng').value = longitude;
+
+                    tampilkanKoordinat(latitude, longitude);
+
+                    gpsText.textContent = 'GPS Terdeteksi';
+
+                    gpsDot.className =
+                        'h-2 w-2 rounded-full bg-emerald-500';
+
+                    gpsReady = true;
+
+                    updateButtons();
+                },
+
+                error => {
+                    gpsReady = false;
+
+                    if (error.code === 1) {
+                        gpsText.textContent = 'Akses GPS ditolak';
+
+                        if (koordinatGPS) {
+                            koordinatGPS.textContent = 'Izinkan akses lokasi';
+                        }
+
+                    } else if (error.code === 3) {
+                        gpsText.textContent = 'GPS timeout';
+
+                        if (koordinatGPS) {
+                            koordinatGPS.textContent = 'Waktu deteksi habis';
+                        }
+
+                    } else {
+                        gpsText.textContent = 'GPS gagal terdeteksi';
+
+                        if (koordinatGPS) {
+                            koordinatGPS.textContent = 'Lokasi belum terdeteksi';
+                        }
+                    }
+
+                    if (linkPetaGPS) {
+                        linkPetaGPS.classList.add('hidden');
+                    }
+
+                    gpsDot.className =
+                        'h-2 w-2 rounded-full bg-red-500';
+
+                    updateButtons();
+                },
+
+                {
+                    enableHighAccuracy: true,
+                    timeout: 20000,
+                    maximumAge: 0
+                }
+
+            );
+        }
+
+        // AMBIL FOTO UNTUK PRATINJAU.
+        btnAmbil.addEventListener('click', function () {
+
+            if (!cameraReady || !gpsReady) {
+                alert(
+                    'Pastikan kamera dan GPS sudah siap sebelum mengambil foto.'
+                );
+
+                return;
+            }
+
+            if (!video.videoWidth || !video.videoHeight) {
+                alert(
+                    'Kamera belum siap. Silakan tunggu beberapa detik.'
+                );
+
+                return;
+            }
+
+            btnAmbil.disabled = true;
+            btnAmbil.textContent = 'Memproses foto...';
+
+            // Membatasi dimensi gambar agar ukuran file tidak terlalu besar.
+            const sourceWidth = video.videoWidth;
+            const sourceHeight = video.videoHeight;
+
+            const scale = Math.min(
+                1,
+                1600 / Math.max(sourceWidth, sourceHeight)
+            );
+
+            canvas.width = Math.round(sourceWidth * scale);
+            canvas.height = Math.round(sourceHeight * scale);
+
+            const context = canvas.getContext('2d');
+
+            if (!context) {
+                btnAmbil.textContent = 'Ambil Foto';
+
+                updateButtons();
+
+                alert('Foto gagal diproses. Silakan coba lagi.');
+
+                return;
+            }
+
+            // Menyesuaikan arah foto selfie dengan pratinjau kamera.
+            context.save();
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+
+            context.drawImage(
+                video,
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
+
+            context.restore();
+
+            canvas.toBlob(blob => {
+
+                if (!blob) {
+                    btnAmbil.textContent = 'Ambil Foto';
+
+                    updateButtons();
+
+                    alert('Foto gagal dibuat. Silakan coba lagi.');
+
+                    return;
+                }
+
+                try {
+                    const photoFile = new File(
+                        [blob],
+                        'selfie.jpg',
+                        {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        }
+                    );
+
+                    const transfer = new DataTransfer();
+
+                    transfer.items.add(photoFile);
+                    photoInput.files = transfer.files;
+
+                    clearPreviewUrl();
+
+                    previewUrl = URL.createObjectURL(blob);
+                    previewFoto.src = previewUrl;
+
+                    // Kamera dihentikan ketika pengguna memeriksa foto.
+                    stopCamera();
+
+                    video.classList.add('hidden');
+                    previewFoto.classList.remove('hidden');
+
+                    btnAmbil.classList.add('hidden');
+
+                    btnUlangi.classList.remove('hidden');
+                    btnGunakan.classList.remove('hidden');
+                    btnKirim.classList.add('hidden');
+
+                    btnUlangi.textContent = 'Ulangi Foto';
+
+                    photoApproved = false;
+
+                    panelPesanFoto.classList.remove('hidden');
+
+                    pesanFoto.textContent =
+                        'Periksa hasil foto. Pilih Ulangi Foto jika kurang sesuai, atau Gunakan Foto jika sudah benar.';
+
+                    panelPesanFoto.className =
+                        'mb-4 w-full rounded-xl border border-amber-200 bg-amber-50 p-4';
+
+                    pesanFoto.className =
+                        'mt-1 text-xs text-amber-700';
+
+                    btnAmbil.textContent = 'Ambil Foto';
+
+                    updateButtons();
+
+                } catch (error) {
+
+                    btnAmbil.textContent = 'Ambil Foto';
+
+                    showCameraError(
+                        'Foto gagal disiapkan. Silakan coba lagi.'
+                    );
+
+                    startCamera();
+                }
+
+            }, 'image/jpeg', 0.82);
+
+        });
+
+        // ULANGI FOTO.
+        btnUlangi.addEventListener('click', function () {
+
+            photoInput.value = '';
+            photoApproved = false;
+
+            clearPreviewUrl();
+
+            previewFoto.src = '';
+
+            previewFoto.classList.add('hidden');
+            video.classList.remove('hidden');
+
+            btnUlangi.classList.add('hidden');
+            btnGunakan.classList.add('hidden');
+            btnKirim.classList.add('hidden');
+
+            btnAmbil.classList.remove('hidden');
+            btnAmbil.textContent = 'Ambil Foto';
+            btnAmbil.disabled = true;
+
+            panelPesanFoto.classList.add('hidden');
+
+            startCamera();
+        });
+
+        // GUNAKAN FOTO.
+        btnGunakan.addEventListener('click', function () {
+
+            if (!photoInput.files || !photoInput.files.length) {
+                alert('Ambil foto terlebih dahulu.');
+
+                return;
+            }
+
+            if (!gpsReady) {
+                alert(
+                    'Lokasi GPS belum tersedia. Tunggu sampai GPS terdeteksi.'
+                );
+
+                return;
+            }
+
+            photoApproved = true;
+
+            btnGunakan.classList.add('hidden');
+
+            // Foto tetap dapat diganti sebelum dikirim.
+            btnUlangi.textContent = 'Ganti Foto';
+            btnUlangi.classList.remove('hidden');
+
+            btnKirim.classList.remove('hidden');
+
+            panelPesanFoto.className =
+                'mb-4 w-full rounded-xl border border-emerald-200 bg-emerald-50 p-4';
+
+            pesanFoto.textContent =
+                'Foto sudah dipilih. Periksa kembali sebelum mengirim absensi.';
+
+            pesanFoto.className =
+                'mt-1 text-xs text-emerald-700';
+
+            updateButtons();
+        });
+
+        // KIRIM ABSENSI DENGAN GPS TERBARU.
+        btnKirim.addEventListener('click', function () {
+
+            if (submitting) {
+                return;
+            }
+
+            if (!photoApproved) {
+                alert(
+                    'Silakan ambil dan setujui foto terlebih dahulu.'
+                );
+
+                return;
+            }
+
+            if (!photoInput.files || !photoInput.files.length) {
+                alert(
+                    'Foto belum tersedia. Silakan ambil foto kembali.'
+                );
+
+                return;
+            }
+
+            // Memeriksa field wajib sebelum mengirim.
+            if (!formAbsen.reportValidity()) {
+                return;
+            }
+
+            if (!navigator.geolocation) {
+                alert(
+                    'Browser tidak mendukung GPS. Gunakan browser yang mendukung lokasi.'
+                );
+
+                return;
+            }
+
+            const originalButtonText = btnKirim.textContent;
+
+            btnKirim.disabled = true;
+            btnKirim.textContent = 'Memperbarui GPS...';
+
+            // Mengambil posisi baru tepat sebelum mengirim ke server.
+            navigator.geolocation.getCurrentPosition(
+
+                function (position) {
+
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+
+                    if (
+                        !Number.isFinite(latitude) ||
+                        !Number.isFinite(longitude)
+                    ) {
+                        btnKirim.disabled = false;
+                        btnKirim.textContent = originalButtonText;
+
+                        alert(
+                            'Koordinat GPS tidak valid. Silakan coba kembali.'
+                        );
+
+                        return;
+                    }
+
+                    // Memperbarui koordinat yang akan dikirim.
+                    document.getElementById('inpLat').value = latitude;
+                    document.getElementById('inpLng').value = longitude;
+
+                    tampilkanKoordinat(latitude, longitude);
+
+                    gpsReady = true;
+
+                    gpsText.textContent = 'GPS Terbaru Terdeteksi';
+
+                    gpsDot.className =
+                        'h-2 w-2 rounded-full bg-emerald-500';
+
+                    // Validasi ulang seluruh field form.
+                    if (!formAbsen.reportValidity()) {
+                        btnKirim.disabled = false;
+
+                        updateButtons();
+
+                        return;
+                    }
+
+                    // Mencegah pengiriman ganda melalui browser.
+                    submitting = true;
+
+                    btnKirim.disabled = true;
+                    btnKirim.textContent = 'Mengirim Absensi...';
+
+                    formAbsen.submit();
+                },
+
+                function (error) {
+
+                    btnKirim.disabled = false;
+                    btnKirim.textContent = originalButtonText;
+
+                    let pesan = 'Lokasi GPS gagal diperbarui.';
+
+                    if (error.code === 1) {
+                        pesan =
+                            'Akses lokasi ditolak. Izinkan browser menggunakan lokasi perangkat.';
+
+                        gpsText.textContent = 'Akses GPS ditolak';
+
+                    } else if (error.code === 2) {
+                        pesan =
+                            'Lokasi perangkat tidak tersedia. Periksa GPS perangkat.';
+
+                        gpsText.textContent = 'GPS tidak tersedia';
+
+                    } else if (error.code === 3) {
+                        pesan =
+                            'Pengambilan GPS melewati batas waktu. Silakan coba kembali.';
+
+                        gpsText.textContent = 'GPS timeout';
+                    }
+
+                    alert(
+                        pesan +
+                        '\nAbsensi belum dikirim. Silakan coba kembali.'
+                    );
+                },
+
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0
+                }
+
+            );
+        });
+
+        // AKTIFKAN KAMERA DAN GPS.
+        startCamera();
+        getGPS();
+
+        // Hentikan kamera jika halaman ditinggalkan.
+        window.addEventListener('pagehide', stopCamera);
+
+    @endif
+</script>
 
 </body>
 </html>

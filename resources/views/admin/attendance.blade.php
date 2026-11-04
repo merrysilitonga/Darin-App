@@ -3,13 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rekap Absensi & Logbook Global - DARIN</title>
+
+    <title>Rekap Absensi & Logbook - DARIN</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
 
     <style>
         body {
@@ -60,28 +65,38 @@
             default => 'bg-gray-100 text-gray-700',
         };
     };
+
+    $requestTypeClass = static function ($type) {
+        return match ($type) {
+            'Sakit' => 'bg-blue-100 text-blue-700',
+            'Izin' => 'bg-violet-100 text-violet-700',
+            default => 'bg-gray-100 text-gray-700',
+        };
+    };
 @endphp
 
 <div class="flex min-h-screen">
 
+    {{-- SIDEBAR DARIN --}}
     @include('layouts.sidebar')
 
-        <!-- KONTEN UTAMA -->
+    {{-- KONTEN UTAMA --}}
     <div class="flex min-w-0 flex-1 flex-col">
 
-        <!-- HEADER -->
+        {{-- HEADER --}}
         <header class="flex flex-col justify-between gap-4 border-b border-gray-200 bg-white px-5 py-5 shadow-sm sm:flex-row sm:items-center md:px-8">
+
             <div>
                 <p class="text-xs text-gray-500">
                     Administrator / Laporan
                 </p>
 
-                <h2 class="mt-1 text-xl font-extrabold text-gray-900 md:text-2xl">
+                <h1 class="mt-1 text-xl font-extrabold text-gray-900 md:text-2xl">
                     Rekapitulasi Absensi & Logbook
-                </h2>
+                </h1>
 
                 <p class="mt-1 text-sm text-gray-500">
-                    Data dari database DARIN sesuai filter yang dipilih.
+                    Data absensi, izin, sakit, dan aktivitas mahasiswa DARIN.
                 </p>
             </div>
 
@@ -104,24 +119,30 @@
 
         <main class="min-w-0 flex-1 space-y-6 p-5 md:p-8">
 
-            <!-- NOTIFIKASI -->
+            {{-- NOTIFIKASI --}}
             @if(session('success'))
-                <div role="status"
-                     class="rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-800">
+                <div
+                    role="status"
+                    class="rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-800"
+                >
                     {{ session('success') }}
                 </div>
             @endif
 
             @if(session('error'))
-                <div role="alert"
-                     class="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
+                <div
+                    role="alert"
+                    class="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800"
+                >
                     {{ session('error') }}
                 </div>
             @endif
 
             @if($errors->any())
-                <div role="alert"
-                     class="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
+                <div
+                    role="alert"
+                    class="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800"
+                >
                     <p class="font-bold">Terjadi kesalahan.</p>
 
                     <ul class="mt-2 list-inside list-disc space-y-1">
@@ -132,16 +153,17 @@
                 </div>
             @endif
 
-            <!-- FILTER LAPORAN -->
+            {{-- FILTER LAPORAN --}}
             <section class="card space-y-5 rounded-3xl bg-white p-5 md:p-7">
+
                 <div class="flex flex-col justify-between gap-2 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">
                     <div>
-                        <h3 class="text-lg font-extrabold text-gray-900">
+                        <h2 class="text-lg font-extrabold text-gray-900">
                             Filter Laporan
-                        </h3>
+                        </h2>
 
                         <p class="mt-1 text-sm text-gray-500">
-                            Filter berlaku untuk data absensi dan logbook.
+                            Filter berlaku untuk absensi, logbook, dan pengajuan izin/sakit.
                         </p>
                     </div>
 
@@ -150,13 +172,15 @@
                     </span>
                 </div>
 
-                <form method="GET"
-                      action="{{ route('admin.attendance') }}"
-                      class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                <form
+                    method="GET"
+                    action="{{ route('admin.attendance') }}"
+                    class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5"
+                >
 
+                    {{-- PENCARIAN --}}
                     <div>
-                        <label for="search"
-                               class="mb-2 block text-xs font-bold text-gray-700">
+                        <label for="search" class="mb-2 block text-xs font-bold text-gray-700">
                             Nama / Email Mahasiswa
                         </label>
 
@@ -166,52 +190,61 @@
                             type="search"
                             value="{{ $search }}"
                             placeholder="Cari mahasiswa..."
-                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100">
+                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+                        >
                     </div>
 
+                    {{-- FILTER DIVISI --}}
                     <div>
-                        <label for="division_id"
-                               class="mb-2 block text-xs font-bold text-gray-700">
+                        <label for="division_id" class="mb-2 block text-xs font-bold text-gray-700">
                             Divisi
                         </label>
 
-                        <select id="division_id"
-                                name="division_id"
-                                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none">
+                        <select
+                            id="division_id"
+                            name="division_id"
+                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none"
+                        >
                             <option value="">Semua Divisi</option>
 
                             @foreach($divisions as $division)
-                                <option value="{{ $division->id }}"
-                                    {{ (string) $divisionId === (string) $division->id ? 'selected' : '' }}>
+                                <option
+                                    value="{{ $division->id }}"
+                                    {{ (string) $divisionId === (string) $division->id ? 'selected' : '' }}
+                                >
                                     {{ $division->name }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
 
+                    {{-- FILTER MENTOR --}}
                     <div>
-                        <label for="mentor_id"
-                               class="mb-2 block text-xs font-bold text-gray-700">
+                        <label for="mentor_id" class="mb-2 block text-xs font-bold text-gray-700">
                             Mentor Pembimbing
                         </label>
 
-                        <select id="mentor_id"
-                                name="mentor_id"
-                                class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none">
+                        <select
+                            id="mentor_id"
+                            name="mentor_id"
+                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none"
+                        >
                             <option value="">Semua Mentor</option>
 
                             @foreach($mentors as $mentor)
-                                <option value="{{ $mentor->id }}"
-                                    {{ (string) $mentorId === (string) $mentor->id ? 'selected' : '' }}>
+                                <option
+                                    value="{{ $mentor->id }}"
+                                    {{ (string) $mentorId === (string) $mentor->id ? 'selected' : '' }}
+                                >
                                     {{ $mentor->name }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
 
+                    {{-- FILTER BULAN --}}
                     <div>
-                        <label for="month"
-                               class="mb-2 block text-xs font-bold text-gray-700">
+                        <label for="month" class="mb-2 block text-xs font-bold text-gray-700">
                             Periode / Bulan
                         </label>
 
@@ -220,85 +253,194 @@
                             name="month"
                             type="month"
                             value="{{ preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) ? $month : '' }}"
-                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none">
+                            class="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm focus:border-amber-400 focus:outline-none"
+                        >
                     </div>
 
+                    {{-- TOMBOL FILTER --}}
                     <div class="flex items-end gap-2">
-                        <button type="submit"
-                                class="flex-1 rounded-xl bg-[#ffc107] px-4 py-3 text-sm font-extrabold text-black transition hover:bg-amber-400">
+                        <button
+                            type="submit"
+                            class="flex-1 rounded-xl bg-[#ffc107] px-4 py-3 text-sm font-extrabold text-black transition hover:bg-amber-400"
+                        >
                             Terapkan
                         </button>
 
-                        <a href="{{ route('admin.attendance') }}"
-                           class="rounded-xl border border-gray-200 px-4 py-3 text-sm font-bold text-gray-600 hover:bg-gray-50">
+                        <a
+                            href="{{ route('admin.attendance') }}"
+                            class="rounded-xl border border-gray-200 px-4 py-3 text-sm font-bold text-gray-600 hover:bg-gray-50"
+                        >
                             Reset
                         </a>
                     </div>
+
                 </form>
 
                 <p class="text-xs leading-5 text-gray-400">
                     Filter mentor berdasarkan penugasan langsung pada akun mahasiswa.
-                    Filter divisi tetap menggunakan divisi mahasiswa.
+                    Filter divisi menggunakan divisi mahasiswa.
                 </p>
             </section>
 
-            <!-- KARTU RINGKASAN -->
+            {{-- RINGKASAN ABSENSI --}}
             <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
                 <div class="card rounded-2xl bg-white p-5">
                     <p class="text-sm text-gray-500">Catatan Absensi</p>
+
                     <p class="mt-3 text-3xl font-extrabold text-gray-900">
                         {{ $stats['total'] }}
                     </p>
-                    <p class="mt-2 text-xs text-gray-400">Sesuai filter aktif</p>
+
+                    <p class="mt-2 text-xs text-gray-400">
+                        Sesuai filter aktif
+                    </p>
                 </div>
 
                 <div class="card rounded-2xl bg-white p-5">
                     <p class="text-sm text-gray-500">Mahasiswa Tercatat</p>
+
                     <p class="mt-3 text-3xl font-extrabold text-blue-600">
                         {{ $stats['mahasiswa'] }}
                     </p>
-                    <p class="mt-2 text-xs text-gray-400">Mahasiswa unik pada hasil</p>
+
+                    <p class="mt-2 text-xs text-gray-400">
+                        Mahasiswa unik pada hasil
+                    </p>
                 </div>
 
                 <div class="card rounded-2xl bg-white p-5">
                     <p class="text-sm text-gray-500">Hadir</p>
+
                     <p class="mt-3 text-3xl font-extrabold text-emerald-600">
                         {{ $stats['hadir'] }}
                     </p>
-                    <p class="mt-2 text-xs text-gray-400">Status Hadir</p>
+
+                    <p class="mt-2 text-xs text-gray-400">
+                        Status Hadir
+                    </p>
                 </div>
 
                 <div class="card rounded-2xl bg-white p-5">
                     <p class="text-sm text-gray-500">Terlambat</p>
+
                     <p class="mt-3 text-3xl font-extrabold text-amber-600">
                         {{ $stats['terlambat'] }}
                     </p>
-                    <p class="mt-2 text-xs text-gray-400">Status Terlambat</p>
+
+                    <p class="mt-2 text-xs text-gray-400">
+                        Status Terlambat
+                    </p>
+                </div>
+
+            </section>
+
+            {{-- RINGKASAN IZIN DAN SAKIT --}}
+            <section class="space-y-3">
+
+                <div>
+                    <h2 class="text-lg font-extrabold text-gray-900">
+                        Ringkasan Pengajuan Izin & Sakit
+                    </h2>
+
+                    <p class="mt-1 text-sm text-gray-500">
+                        Semua status pengajuan ditampilkan. Hanya pengajuan Disetujui yang dihitung sebagai izin atau sakit yang telah disahkan.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+
+                    <div class="card rounded-2xl bg-white p-5">
+                        <p class="text-sm text-gray-500">Total Pengajuan</p>
+
+                        <p class="mt-3 text-3xl font-extrabold text-gray-900">
+                            {{ $stats['leave_total'] }}
+                        </p>
+
+                        <p class="mt-2 text-xs text-gray-400">
+                            Sesuai filter aktif
+                        </p>
+                    </div>
+
+                    <div class="card rounded-2xl bg-white p-5">
+                        <p class="text-sm text-gray-500">Izin Disetujui</p>
+
+                        <p class="mt-3 text-3xl font-extrabold text-violet-600">
+                            {{ $stats['leave_izin_approved'] }}
+                        </p>
+
+                        <p class="mt-2 text-xs text-gray-400">
+                            Pengajuan izin sah
+                        </p>
+                    </div>
+
+                    <div class="card rounded-2xl bg-white p-5">
+                        <p class="text-sm text-gray-500">Sakit Disetujui</p>
+
+                        <p class="mt-3 text-3xl font-extrabold text-blue-600">
+                            {{ $stats['leave_sakit_approved'] }}
+                        </p>
+
+                        <p class="mt-2 text-xs text-gray-400">
+                            Pengajuan sakit sah
+                        </p>
+                    </div>
+
+                    <div class="card rounded-2xl bg-white p-5">
+                        <p class="text-sm text-gray-500">Menunggu</p>
+
+                        <p class="mt-3 text-3xl font-extrabold text-amber-600">
+                            {{ $stats['leave_pending'] }}
+                        </p>
+
+                        <p class="mt-2 text-xs text-gray-400">
+                            Belum diputuskan Mentor
+                        </p>
+                    </div>
+
+                    <div class="card rounded-2xl bg-white p-5">
+                        <p class="text-sm text-gray-500">Ditolak</p>
+
+                        <p class="mt-3 text-3xl font-extrabold text-red-600">
+                            {{ $stats['leave_rejected'] }}
+                        </p>
+
+                        <p class="mt-2 text-xs text-gray-400">
+                            Tidak dihitung sebagai izin sah
+                        </p>
+                    </div>
+
                 </div>
             </section>
 
-            <!-- TABEL ABSENSI -->
+            {{-- TABEL ABSENSI MAHASISWA --}}
             <section class="card overflow-hidden rounded-3xl bg-white">
+
                 <div class="flex flex-col justify-between gap-3 border-b border-gray-100 p-5 sm:flex-row sm:items-center md:p-7">
+
                     <div>
-                        <h3 class="text-lg font-extrabold text-gray-900">
+                        <h2 class="text-lg font-extrabold text-gray-900">
                             Data Kehadiran Mahasiswa
-                        </h3>
+                        </h2>
 
                         <p class="mt-1 text-sm text-gray-500">
                             Jam masuk, jam pulang, status, selfie, dan koordinat GPS.
                         </p>
                     </div>
 
-                    <button type="button"
-                            onclick="window.print()"
-                            class="no-print rounded-xl bg-[#191712] px-5 py-3 text-sm font-bold text-white hover:bg-black">
+                    <button
+                        type="button"
+                        onclick="window.print()"
+                        class="no-print rounded-xl bg-[#191712] px-5 py-3 text-sm font-bold text-white hover:bg-black"
+                    >
                         Cetak / Simpan PDF
                     </button>
+
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full min-w-[1150px] text-left text-sm">
+
                         <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
                             <tr>
                                 <th class="px-4 py-4">No.</th>
@@ -314,12 +456,13 @@
                         </thead>
 
                         <tbody class="divide-y divide-gray-100">
+
                             @forelse($attendances as $attendance)
+
                                 @php
                                     $student = $attendance->user;
                                     $division = $student?->division;
 
-                                    // Nama mentor sesuai penugasan langsung.
                                     $assignedMentor = $student?->mentor_id
                                         ? $mentors->firstWhere('id', $student->mentor_id)
                                         : null;
@@ -330,6 +473,7 @@
                                 @endphp
 
                                 <tr class="align-top hover:bg-gray-50/70">
+
                                     <td class="px-4 py-4 text-gray-400">
                                         {{ $loop->iteration }}
                                     </td>
@@ -344,6 +488,7 @@
                                         <p class="font-bold text-gray-900">
                                             {{ $student?->name ?? 'Pengguna tidak ditemukan' }}
                                         </p>
+
                                         <p class="mt-1 text-xs text-gray-500">
                                             {{ $student?->email ?? '-' }}
                                         </p>
@@ -353,6 +498,7 @@
                                         <p class="font-semibold text-gray-700">
                                             {{ $division?->name ?? 'Belum ditetapkan' }}
                                         </p>
+
                                         <p class="mt-1 text-xs text-gray-500">
                                             Mentor: {{ $assignedMentor?->name ?? 'Belum ditugaskan' }}
                                         </p>
@@ -382,11 +528,14 @@
 
                                     <td class="min-w-40 px-4 py-4">
                                         <div class="flex flex-col items-start gap-2">
+
                                             @if($attendance->photo_path)
-                                                <a href="{{ route('admin.attendance.photo', $attendance->id) }}"
-                                                   target="_blank"
-                                                   rel="noopener noreferrer"
-                                                   class="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100">
+                                                <a
+                                                    href="{{ route('admin.attendance.photo', $attendance->id) }}"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="inline-flex items-center rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100"
+                                                >
                                                     Lihat Selfie
                                                 </a>
                                             @else
@@ -396,10 +545,12 @@
                                             @endif
 
                                             @if($hasCoordinates)
-                                                <a href="https://www.google.com/maps?q={{ $attendance->latitude }},{{ $attendance->longitude }}"
-                                                   target="_blank"
-                                                   rel="noopener noreferrer"
-                                                   class="text-xs font-semibold text-blue-600 hover:underline">
+                                                <a
+                                                    href="https://www.google.com/maps?q={{ $attendance->latitude }},{{ $attendance->longitude }}"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="text-xs font-semibold text-blue-600 hover:underline"
+                                                >
                                                     Lihat GPS
                                                 </a>
 
@@ -411,21 +562,28 @@
                                                     GPS tidak tersedia
                                                 </span>
                                             @endif
+
                                         </div>
                                     </td>
+
                                 </tr>
+
                             @empty
+
                                 <tr>
                                     <td colspan="9" class="px-6 py-14 text-center">
                                         <p class="font-bold text-gray-700">
                                             Belum ada data absensi
                                         </p>
+
                                         <p class="mt-2 text-sm text-gray-400">
                                             Coba ubah filter atau pastikan mahasiswa sudah mengirim absensi.
                                         </p>
                                     </td>
                                 </tr>
+
                             @endforelse
+
                         </tbody>
                     </table>
                 </div>
@@ -433,15 +591,211 @@
                 <div class="border-t border-gray-100 bg-gray-50 px-5 py-4 text-xs text-gray-500">
                     Menampilkan {{ $attendances->count() }} catatan absensi dari database.
                 </div>
+
             </section>
 
-            <!-- TABEL LOGBOOK -->
+            {{-- TABEL PENGAJUAN IZIN / SAKIT --}}
             <section class="card overflow-hidden rounded-3xl bg-white">
+
                 <div class="flex flex-col justify-between gap-3 border-b border-gray-100 p-5 sm:flex-row sm:items-center md:p-7">
+
                     <div>
-                        <h3 class="text-lg font-extrabold text-gray-900">
+                        <h2 class="text-lg font-extrabold text-gray-900">
+                            Rekapitulasi Pengajuan Izin & Sakit
+                        </h2>
+
+                        <p class="mt-1 text-sm text-gray-500">
+                            Menampilkan seluruh pengajuan mahasiswa, termasuk yang menunggu, disetujui, dan ditolak.
+                        </p>
+                    </div>
+
+                    <div class="text-sm text-gray-500">
+                        {{ $leaveRequests->count() }} pengajuan ditemukan
+                    </div>
+
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[1150px] text-left text-sm">
+
+                        <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
+                            <tr>
+                                <th class="px-4 py-4">Tanggal Pengajuan</th>
+                                <th class="px-4 py-4">Mahasiswa</th>
+                                <th class="px-4 py-4">Divisi / Mentor</th>
+                                <th class="px-4 py-4">Jenis</th>
+                                <th class="px-4 py-4">Periode Pengajuan</th>
+                                <th class="px-4 py-4">Alasan</th>
+                                <th class="px-4 py-4">Status</th>
+                                <th class="px-4 py-4">Hasil Pemeriksaan</th>
+                            </tr>
+                        </thead>
+
+                        <tbody class="divide-y divide-gray-100">
+
+                            @forelse($leaveRequests as $item)
+
+                                @php
+                                    $leaveStudent = $item->user;
+                                    $leaveDivision = $leaveStudent?->division;
+                                    $leaveMentor = $leaveStudent?->mentor;
+                                @endphp
+
+                                <tr class="align-top hover:bg-gray-50/70">
+
+                                    {{-- TANGGAL PENGAJUAN --}}
+                                    <td class="whitespace-nowrap px-4 py-4 text-gray-600">
+                                        {{ $item->created_at
+                                            ? $item->created_at->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB'
+                                            : '-' }}
+                                    </td>
+
+                                    {{-- IDENTITAS MAHASISWA --}}
+                                    <td class="min-w-44 px-4 py-4">
+                                        <p class="font-bold text-gray-900">
+                                            {{ $leaveStudent?->name ?? 'Pengguna tidak ditemukan' }}
+                                        </p>
+
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            {{ $leaveStudent?->email ?? '-' }}
+                                        </p>
+
+                                        <p class="mt-1 text-xs text-gray-400">
+                                            NIM: {{ $leaveStudent?->nim ?? '-' }}
+                                        </p>
+                                    </td>
+
+                                    {{-- DIVISI DAN MENTOR --}}
+                                    <td class="min-w-40 px-4 py-4">
+                                        <p class="font-semibold text-gray-700">
+                                            {{ $leaveDivision?->name ?? 'Belum ditetapkan' }}
+                                        </p>
+
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            Mentor: {{ $leaveMentor?->name ?? 'Belum ditugaskan' }}
+                                        </p>
+                                    </td>
+
+                                    {{-- JENIS PENGAJUAN --}}
+                                    <td class="whitespace-nowrap px-4 py-4">
+                                        <span class="inline-flex rounded-full px-3 py-1 text-xs font-bold {{ $requestTypeClass($item->request_type) }}">
+                                            {{ $item->request_type ?? '-' }}
+                                        </span>
+                                    </td>
+
+                                    {{-- PERIODE --}}
+                                    <td class="whitespace-nowrap px-4 py-4">
+                                        <p class="font-semibold text-gray-700">
+                                            {{ $item->start_date?->format('d M Y') ?? '-' }}
+                                        </p>
+
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            sampai {{ $item->end_date?->format('d M Y') ?? '-' }}
+                                        </p>
+                                    </td>
+
+                                    {{-- ALASAN --}}
+                                    <td class="min-w-56 max-w-sm px-4 py-4">
+                                        <p class="whitespace-pre-line break-words text-gray-600">
+                                            {{ $item->reason ?? '-' }}
+                                        </p>
+                                    </td>
+
+                                    {{-- STATUS PENGAJUAN --}}
+                                    <td class="whitespace-nowrap px-4 py-4">
+                                        <span class="inline-flex rounded-full px-3 py-1 text-xs font-bold {{ $statusClass($item->status ?? '') }}">
+                                            {{ $item->status ?? 'Belum ada status' }}
+                                        </span>
+
+                                        @if($item->status === 'Disetujui')
+                                            <p class="mt-2 text-[11px] font-semibold text-emerald-700">
+                                                Pengajuan telah disahkan
+                                            </p>
+                                        @elseif($item->status === 'Menunggu')
+                                            <p class="mt-2 text-[11px] text-amber-700">
+                                                Belum dihitung sebagai izin/sakit sah
+                                            </p>
+                                        @elseif($item->status === 'Ditolak')
+                                            <p class="mt-2 text-[11px] text-red-700">
+                                                Tidak dihitung sebagai izin/sakit sah
+                                            </p>
+                                        @endif
+                                    </td>
+
+                                    {{-- HASIL PEMERIKSAAN --}}
+                                    <td class="min-w-52 px-4 py-4">
+
+                                        @if($item->status === 'Menunggu')
+
+                                            <span class="text-xs text-amber-700">
+                                                Menunggu pemeriksaan Mentor
+                                            </span>
+
+                                        @else
+
+                                            <p class="text-xs text-gray-600">
+                                                Pemeriksa:
+
+                                                <span class="font-semibold text-gray-800">
+                                                    {{ $item->reviewer?->name ?? 'Tidak tersedia' }}
+                                                </span>
+                                            </p>
+
+                                            <p class="mt-1 text-xs text-gray-500">
+                                                {{ $item->reviewed_at
+                                                    ? $item->reviewed_at->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB'
+                                                    : '-' }}
+                                            </p>
+
+                                            @if($item->review_notes)
+                                                <p class="mt-2 whitespace-pre-line break-words text-xs text-red-700">
+                                                    Catatan: {{ $item->review_notes }}
+                                                </p>
+                                            @endif
+
+                                        @endif
+
+                                    </td>
+
+                                </tr>
+
+                            @empty
+
+                                <tr>
+                                    <td colspan="8" class="px-6 py-14 text-center">
+                                        <p class="font-bold text-gray-700">
+                                            Belum ada pengajuan izin atau sakit
+                                        </p>
+
+                                        <p class="mt-2 text-sm text-gray-400">
+                                            Pengajuan mahasiswa yang sesuai filter akan muncul di sini.
+                                        </p>
+                                    </td>
+                                </tr>
+
+                            @endforelse
+
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="border-t border-gray-100 bg-gray-50 px-5 py-4 text-xs text-gray-500">
+                    Menampilkan {{ $leaveRequests->count() }} pengajuan izin/sakit sesuai filter aktif.
+                    Hanya status Disetujui yang dihitung sebagai pengajuan sah.
+                </div>
+
+            </section>
+
+            {{-- TABEL LOGBOOK --}}
+            <section class="card overflow-hidden rounded-3xl bg-white">
+
+                <div class="flex flex-col justify-between gap-3 border-b border-gray-100 p-5 sm:flex-row sm:items-center md:p-7">
+
+                    <div>
+                        <h2 class="text-lg font-extrabold text-gray-900">
                             Rekapitulasi Logbook Kolektif
-                        </h3>
+                        </h2>
+
                         <p class="mt-1 text-sm text-gray-500">
                             Aktivitas yang tercatat pada database DARIN.
                         </p>
@@ -451,10 +805,12 @@
                         {{ $stats['logbook'] }} catatan ·
                         {{ $stats['logbook_menunggu'] }} menunggu
                     </div>
+
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full min-w-[900px] text-left text-sm">
+
                         <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
                             <tr>
                                 <th class="px-4 py-4">Tanggal</th>
@@ -468,8 +824,11 @@
                         </thead>
 
                         <tbody class="divide-y divide-gray-100">
+
                             @forelse($logbooks as $item)
+
                                 <tr class="align-top hover:bg-gray-50/70">
+
                                     <td class="whitespace-nowrap px-4 py-4 font-semibold text-gray-600">
                                         {{ $item->date
                                             ? \Illuminate\Support\Carbon::parse($item->date)->translatedFormat('d M Y')
@@ -480,6 +839,7 @@
                                         <p class="font-bold text-gray-900">
                                             {{ $item->user?->name ?? 'Pengguna tidak ditemukan' }}
                                         </p>
+
                                         <p class="mt-1 text-xs text-gray-500">
                                             {{ $item->user?->email ?? '-' }}
                                         </p>
@@ -508,19 +868,25 @@
                                     <td class="min-w-44 px-4 py-4 text-gray-600">
                                         {{ $item->mentor_feedback ?: '-' }}
                                     </td>
+
                                 </tr>
+
                             @empty
+
                                 <tr>
                                     <td colspan="7" class="px-6 py-14 text-center">
                                         <p class="font-bold text-gray-700">
                                             Belum ada data logbook
                                         </p>
+
                                         <p class="mt-2 text-sm text-gray-400">
                                             Catatan mahasiswa akan muncul di sini setelah tersimpan.
                                         </p>
                                     </td>
                                 </tr>
+
                             @endforelse
+
                         </tbody>
                     </table>
                 </div>
@@ -528,8 +894,10 @@
                 <div class="border-t border-gray-100 bg-gray-50 px-5 py-4 text-xs text-gray-500">
                     Menampilkan {{ $logbooks->count() }} catatan logbook sesuai filter aktif.
                 </div>
+
             </section>
 
+            {{-- FOOTER --}}
             <footer class="pb-4 text-center text-xs text-gray-400">
                 © {{ date('Y') }} DARIN — Sistem Presensi Geospasial Terintegrasi ESDM
             </footer>

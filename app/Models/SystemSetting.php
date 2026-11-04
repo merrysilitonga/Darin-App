@@ -23,20 +23,32 @@ class SystemSetting extends Model
     ];
 
     /**
-     * Mengambil satu baris pengaturan sistem.
-     * Jika belum ada, buat pengaturan default dengan ID 1.
+     * Mengambil satu konfigurasi global DARIN.
+     *
+     * ID 1 digunakan sebagai identitas tetap konfigurasi.
+     * Pengaturan yang sudah tersimpan tidak akan ditimpa
+     * oleh nilai default.
      */
     public static function current(): self
     {
-        return static::query()->firstOrCreate(
-            ['id' => 1],
-            [
-                'clock_in_start' => '08:00',
-                'clock_in_end' => '17:00',
-                'friday_clock_in_end' => '17:30',
-                'clock_out_time' => '17:00',
-                'friday_clock_out_time' => '17:30',
-            ]
-        );
+        $settings = static::query()->find(1);
+
+        if ($settings) {
+            return $settings;
+        }
+
+        // Buat konfigurasi hanya jika ID 1 belum tersedia.
+        $settings = new static([
+            'clock_in_start' => '08:00',
+            'clock_in_end' => '17:00',
+            'friday_clock_in_end' => '17:30',
+            'clock_out_time' => '17:00',
+            'friday_clock_out_time' => '17:30',
+        ]);
+
+        $settings->setAttribute('id', 1);
+        $settings->save();
+
+        return $settings;
     }
 }

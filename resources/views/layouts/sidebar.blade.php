@@ -68,117 +68,177 @@
 
         {{-- MENU MAHASISWA --}}
         @if ($isStudent)
+
             <p class="mb-3 px-4 text-xs font-bold uppercase tracking-wider text-gray-500">
                 Menu Mahasiswa
             </p>
 
             <nav class="space-y-2">
-                <a href="{{ route('dashboard.magang') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('dashboard.magang') ? $activeClass : $inactiveClass }}">
+
+                <a
+                    href="{{ route('dashboard.magang') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('dashboard.magang') ? $activeClass : $inactiveClass }}"
+                >
                     Dashboard
                 </a>
 
-                <a href="{{ route('absen') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('absen', 'absen.store', 'absen.checkout') ? $activeClass : $inactiveClass }}">
+                <a
+                    href="{{ route('absen') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('absen', 'absen.store', 'absen.checkout') ? $activeClass : $inactiveClass }}"
+                >
                     Mulai Absen
                 </a>
 
-                <a href="{{ route('riwayat.absen') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('riwayat.absen', 'riwayat.export-*') ? $activeClass : $inactiveClass }}">
+                <a
+                    href="{{ route('riwayat.absen') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('riwayat.absen', 'riwayat.export-*') ? $activeClass : $inactiveClass }}"
+                >
                     Riwayat Absensi
                 </a>
 
-                <a href="{{ route('logbook') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('logbook', 'logbook.*') ? $activeClass : $inactiveClass }}">
+                {{-- PENGAJUAN IZIN / SAKIT --}}
+                <a
+                    href="{{ route('izin.create') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('izin.create', 'izin.store') ? $activeClass : $inactiveClass }}"
+                >
+                    Pengajuan Izin / Sakit
+                </a>
+
+                {{-- RIWAYAT IZIN / SAKIT --}}
+                <a
+                    href="{{ route('izin.history') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('izin.history', 'izin.download') ? $activeClass : $inactiveClass }}"
+                >
+                    Riwayat Izin / Sakit
+                </a>
+
+                <a
+                    href="{{ route('logbook') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('logbook', 'logbook.*') ? $activeClass : $inactiveClass }}"
+                >
                     Logbook Harian
                 </a>
+
             </nav>
 
         {{-- MENU MENTOR --}}
         @elseif ($isMentor)
+
             <p class="mb-3 px-4 text-xs font-bold uppercase tracking-wider text-gray-500">
                 Menu Mentor
             </p>
 
             <nav class="space-y-2">
-                <a href="{{ route('mentor.dashboard') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('mentor.dashboard') ? $activeClass : $inactiveClass }}">
+
+                <a
+                    href="{{ route('mentor.dashboard') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('mentor.dashboard') ? $activeClass : $inactiveClass }}"
+                >
                     Dashboard
                 </a>
 
-                <a href="{{ route('mentor.interns') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('mentor.interns') ? $activeClass : $inactiveClass }}">
+                <a
+                    href="{{ route('mentor.interns') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('mentor.interns') ? $activeClass : $inactiveClass }}"
+                >
                     Mahasiswa Bimbingan
                 </a>
 
-                <a href="{{ route('mentor.logbook') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('mentor.logbook*') ? $activeClass : $inactiveClass }}">
+                <a
+                    href="{{ route('mentor.logbook') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('mentor.logbook*') ? $activeClass : $inactiveClass }}"
+                >
                     Validasi Logbook
                 </a>
 
-                <a href="{{ route('mentor.leave-requests') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('mentor.leave-requests*') ? $activeClass : $inactiveClass }}">
+                <a
+                    href="{{ route('mentor.leave-requests') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('mentor.leave-requests*') ? $activeClass : $inactiveClass }}"
+                >
                     Pengajuan Izin / Sakit
                 </a>
 
-                <a href="{{ route('mentor.attendance') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('mentor.attendance') ? $activeClass : $inactiveClass }}">
+                <a
+                    href="{{ route('mentor.attendance') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('mentor.attendance') ? $activeClass : $inactiveClass }}"
+                >
                     Data Kehadiran
                 </a>
 
-                <a href="{{ route('mentor.assessment') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('mentor.assessment') ? $activeClass : $inactiveClass }}">
+                <a
+                    href="{{ route('mentor.assessment') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('mentor.assessment') ? $activeClass : $inactiveClass }}"
+                >
                     Penilaian Magang
                 </a>
+
             </nav>
 
         {{-- MENU ADMIN --}}
         @elseif ($isAdmin)
+
             <p class="mb-3 px-4 text-xs font-bold uppercase tracking-wider text-gray-500">
                 Menu Administrator
             </p>
 
             <nav class="space-y-2">
-                <a href="{{ route('admin.dashboard') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('admin.dashboard') ? $activeClass : $inactiveClass }}">
+
+                <a
+                    href="{{ route('admin.dashboard') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.dashboard') ? $activeClass : $inactiveClass }}"
+                >
                     Dashboard Utama
                 </a>
 
-                <a href="{{ route('admin.users') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('admin.users*') ? $activeClass : $inactiveClass }}">
+                <a
+                    href="{{ route('admin.users') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.users*') ? $activeClass : $inactiveClass }}"
+                >
                     Manajemen Pengguna
                 </a>
 
-                <a href="{{ route('admin.divisions') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('admin.divisions*') ? $activeClass : $inactiveClass }}">
+                <a
+                    href="{{ route('admin.divisions') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.divisions*') ? $activeClass : $inactiveClass }}"
+                >
                     Manajemen Divisi
                 </a>
 
-                <a href="{{ route('admin.locations') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('admin.locations*') ? $activeClass : $inactiveClass }}">
+                <a
+                    href="{{ route('admin.locations') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.locations*') ? $activeClass : $inactiveClass }}"
+                >
                     Manajemen Lokasi
                 </a>
 
-                <a href="{{ route('admin.attendance') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('admin.attendance*') ? $activeClass : $inactiveClass }}">
+                <a
+                    href="{{ route('admin.attendance') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.attendance*') ? $activeClass : $inactiveClass }}"
+                >
                     Rekap Absensi
                 </a>
 
-                <a href="{{ route('admin.settings') }}"
-                   class="{{ $menuItemClass }} {{ request()->routeIs('admin.settings*') ? $activeClass : $inactiveClass }}">
+                <a
+                    href="{{ route('admin.settings') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.settings*') ? $activeClass : $inactiveClass }}"
+                >
                     Pengaturan Sistem
                 </a>
+
             </nav>
 
         @else
+
             <p class="rounded-xl bg-amber-500/10 p-4 text-sm text-amber-200">
                 Role akun belum dikenali. Silakan hubungi administrator.
             </p>
+
         @endif
     </div>
 
     {{-- LOGOUT --}}
     <div class="mt-8 border-t border-white/10 pt-5">
+
         <form action="{{ route('logout') }}" method="POST">
             @csrf
 
@@ -189,6 +249,7 @@
                 Logout
             </button>
         </form>
+
     </div>
 
 </aside>
