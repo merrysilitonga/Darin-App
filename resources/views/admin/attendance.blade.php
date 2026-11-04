@@ -132,8 +132,7 @@
             @if(session('error'))
                 <div
                     role="alert"
-                    class="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800"
-                >
+                    class="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800"                >
                     {{ session('error') }}
                 </div>
             @endif
@@ -141,8 +140,7 @@
             @if($errors->any())
                 <div
                     role="alert"
-                    class="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800"
-                >
+                    class="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800"                >
                     <p class="font-bold">Terjadi kesalahan.</p>
 
                     <ul class="mt-2 list-inside list-disc space-y-1">
@@ -234,7 +232,7 @@
                             @foreach($mentors as $mentor)
                                 <option
                                     value="{{ $mentor->id }}"
-                                    {{ (string) $mentorId === (string) $mentor->id ? 'selected' : '' }}
+                                    {{ (string) $mentorId === (string) $mentor->id ? 'selected' : ''}}
                                 >
                                     {{ $mentor->name }}
                                 </option>
@@ -413,6 +411,81 @@
                 </div>
             </section>
 
+            {{-- RINGKASAN HARI KERJA EFEKTIF --}}
+            <section class="space-y-3">
+                <div class="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+                    <div>
+                        <h2 class="text-lg font-extrabold text-gray-900">
+                            Ringkasan Hari Kerja Efektif
+                        </h2>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Periode perhitungan: {{ $workdayPeriodLabel }}
+                        </p>
+                    </div>
+                    <span class="text-xs text-gray-400">
+                        {{ $workdayStats['students'] }} mahasiswa dalam perhitungan
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <div class="card rounded-2xl bg-white p-5">
+                        <p class="text-sm text-gray-500">Hari Kerja Efektif</p>
+                        <p class="mt-3 text-3xl font-extrabold text-gray-900">
+                            {{ $workdayStats['effective_workdays'] }}
+                        </p>
+                        <p class="mt-2 text-xs text-gray-400">Akumulasi hari kerja seluruh mahasiswa</p>
+                    </div>
+
+                    <div class="card rounded-2xl bg-white p-5">
+                        <p class="text-sm text-gray-500">Hari Hadir</p>
+                        <p class="mt-3 text-3xl font-extrabold text-emerald-600">
+                            {{ $workdayStats['attendance_days'] }}
+                        </p>
+                        <p class="mt-2 text-xs text-gray-400">Memiliki catatan absen masuk</p>
+                    </div>
+
+                    <div class="card rounded-2xl bg-white p-5">
+                        <p class="text-sm text-gray-500">Izin Disetujui</p>
+                        <p class="mt-3 text-3xl font-extrabold text-violet-600">
+                            {{ $workdayStats['leave_days'] }}
+                        </p>
+                        <p class="mt-2 text-xs text-gray-400">Hari kerja dengan izin yang disahkan</p>
+                    </div>
+
+                    <div class="card rounded-2xl bg-white p-5">
+                        <p class="text-sm text-gray-500">Sakit Disetujui</p>
+                        <p class="mt-3 text-3xl font-extrabold text-blue-600">
+                            {{ $workdayStats['sick_days'] }}
+                        </p>
+                        <p class="mt-2 text-xs text-gray-400">Hari kerja dengan sakit yang disahkan</p>
+                    </div>
+
+                    <div class="card rounded-2xl bg-white p-5">
+                        <p class="text-sm text-gray-500">Tidak Hadir / Belum Tercatat</p>
+                        <p class="mt-3 text-3xl font-extrabold text-red-600">
+                            {{ $workdayStats['alpha_days'] }}
+                        </p>
+                        <p class="mt-2 text-xs text-gray-400">Hari kerja tanpa absensi atau izin/sakit yang disetujui</p>
+                    </div>
+
+                    <div class="card rounded-2xl bg-white p-5">
+                        <p class="text-sm text-gray-500">Tanggal Libur Aktif</p>
+                        <p class="mt-3 text-3xl font-extrabold text-amber-600">
+                            {{ $workdayStats['holiday_dates'] }}
+                        </p>
+                        <p class="mt-2 text-xs text-gray-400">Tanggal unik pada Kalender Hari Libur</p>
+                    </div>
+                </div>
+
+                <p class="text-xs leading-5 text-gray-400">
+                    Perhitungan mengikuti tanggal mulai dan selesai magang masing-masing mahasiswa.
+                    Sabtu, Minggu, serta hari libur aktif tidak masuk hari kerja efektif.
+                    Izin dan sakit hanya mengurangi alfa apabila status pengajuannya Disetujui.
+                    Hari setelah tanggal hari ini tidak dihitung sebagai alfa.
+                    Angka merupakan akumulasi hari per mahasiswa, bukan jumlah tanggal kalender unik.
+                </p>
+            </section>
+
             {{-- TABEL ABSENSI MAHASISWA --}}
             <section class="card overflow-hidden rounded-3xl bg-white">
 
@@ -441,8 +514,7 @@
                 <div class="overflow-x-auto">
                     <table class="w-full min-w-[1150px] text-left text-sm">
 
-                        <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
-                            <tr>
+                        <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">                            <tr>
                                 <th class="px-4 py-4">No.</th>
                                 <th class="px-4 py-4">Tanggal</th>
                                 <th class="px-4 py-4">Mahasiswa</th>
@@ -618,8 +690,7 @@
                 <div class="overflow-x-auto">
                     <table class="w-full min-w-[1150px] text-left text-sm">
 
-                        <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
-                            <tr>
+                        <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">                            <tr>
                                 <th class="px-4 py-4">Tanggal Pengajuan</th>
                                 <th class="px-4 py-4">Mahasiswa</th>
                                 <th class="px-4 py-4">Divisi / Mentor</th>
@@ -646,7 +717,7 @@
                                     {{-- TANGGAL PENGAJUAN --}}
                                     <td class="whitespace-nowrap px-4 py-4 text-gray-600">
                                         {{ $item->created_at
-                                            ? $item->created_at->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB'
+                                            ? $item->created_at->timezone('Asia/Jakarta')->format('dM Y, H:i') . ' WIB'
                                             : '-' }}
                                     </td>
 
@@ -802,7 +873,7 @@
                     </div>
 
                     <div class="text-sm text-gray-500">
-                        {{ $stats['logbook'] }} catatan ·
+                        {{ $stats['logbook'] }} catatan Â·
                         {{ $stats['logbook_menunggu'] }} menunggu
                     </div>
 
@@ -811,8 +882,7 @@
                 <div class="overflow-x-auto">
                     <table class="w-full min-w-[900px] text-left text-sm">
 
-                        <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">
-                            <tr>
+                        <thead class="bg-gray-50 text-[11px] uppercase tracking-wider text-gray-500">                            <tr>
                                 <th class="px-4 py-4">Tanggal</th>
                                 <th class="px-4 py-4">Mahasiswa</th>
                                 <th class="px-4 py-4">Divisi</th>
@@ -899,7 +969,7 @@
 
             {{-- FOOTER --}}
             <footer class="pb-4 text-center text-xs text-gray-400">
-                © {{ date('Y') }} DARIN — Sistem Presensi Geospasial Terintegrasi ESDM
+                Â© {{ date('Y') }} DARIN â€” Sistem Presensi Geospasial Terintegrasi ESDM
             </footer>
 
         </main>

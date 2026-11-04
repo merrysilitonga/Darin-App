@@ -218,6 +218,14 @@
                     Rekap Absensi
                 </a>
 
+                {{-- KALENDER HARI LIBUR --}}
+                <a
+                    href="{{ route('admin.holidays') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.holidays*') ? $activeClass : $inactiveClass }}"
+                >
+                    Kalender Hari Libur
+                </a>
+
                 <a
                     href="{{ route('admin.settings') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('admin.settings*') ? $activeClass : $inactiveClass }}"

@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\Attendance;
 
 use App\Http\Controllers\AdminLocationController;
+use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\SystemSettingsController;
@@ -521,6 +522,29 @@ Route::middleware([
         '/settings',
         [SystemSettingsController::class, 'update']
     )->name('admin.settings.update');
+
+    // Manajemen Kalender Hari Libur.
+    Route::get(
+        '/holidays',
+        [HolidayController::class, 'index']
+    )->name('admin.holidays');
+
+    Route::post(
+        '/holidays',
+        [HolidayController::class, 'store']
+    )->name('admin.holidays.store');
+
+    Route::put(
+        '/holidays/{id}',
+        [HolidayController::class, 'update']
+    )->whereNumber('id')
+     ->name('admin.holidays.update');
+
+    Route::delete(
+        '/holidays/{id}',
+        [HolidayController::class, 'destroy']
+    )->whereNumber('id')
+     ->name('admin.holidays.destroy');
 
     // Manajemen lokasi kantor untuk absensi geospasial.
     Route::get(

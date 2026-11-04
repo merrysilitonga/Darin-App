@@ -16,6 +16,178 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
             background: #fcfbf9;
         }
+
+        /* Area laporan hanya ditampilkan saat dicetak */
+        #print-report {
+            display: none;
+        }
+
+        @media print {
+
+            @page {
+                size: A4 portrait;
+                margin: 15mm 12mm;
+            }
+
+            html,
+            body {
+                width: 100%;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+            }
+
+            body * {
+                visibility: hidden !important;
+            }
+
+            #print-report,
+            #print-report * {
+                visibility: visible !important;
+            }
+
+            #print-report {
+                display: block !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                color: #111827;
+                background: #fff;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 11px;
+            }
+
+            .print-header {
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                margin-bottom: 25px;
+                padding-bottom: 15px;
+                border-bottom: 2px solid #222;
+            }
+
+            .print-logo {
+                width: 75px;
+                height: 75px;
+                object-fit: contain;
+                flex-shrink: 0;
+            }
+
+            .print-header-title {
+                flex: 1;
+                text-align: center;
+            }
+
+            .print-header-title h1 {
+                font-size: 15px;
+                font-weight: 700;
+                text-transform: uppercase;
+                line-height: 1.5;
+            }
+
+            .print-header-title p {
+                font-size: 12px;
+                margin-top: 3px;
+            }
+
+            .print-identity {
+                margin-bottom: 18px;
+                line-height: 1.9;
+                font-size: 11px;
+            }
+
+            .print-identity-row {
+                display: flex;
+            }
+
+            .print-identity-label {
+                width: 115px;
+                flex-shrink: 0;
+            }
+
+            .print-table {
+                width: 100%;
+                border-collapse: collapse;
+                table-layout: fixed;
+            }
+
+            .print-table th,
+            .print-table td {
+                border: 1px solid #777;
+                padding: 7px;
+                vertical-align: top;
+                text-align: left;
+                line-height: 1.5;
+            }
+
+            .print-table th {
+                background: #eef2f7 !important;
+                color: #111827 !important;
+                font-size: 11px;
+                font-weight: 700;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .print-table th:nth-child(1),
+            .print-table td:nth-child(1) {
+                width: 17%;
+            }
+
+            .print-table th:nth-child(2),
+            .print-table td:nth-child(2) {
+                width: 13%;
+            }
+
+            .print-table th:nth-child(3),
+            .print-table td:nth-child(3) {
+                width: 70%;
+            }
+
+            .print-description {
+                white-space: pre-wrap;
+                overflow-wrap: anywhere;
+                word-break: normal;
+            }
+
+            .print-table thead {
+                display: table-header-group;
+            }
+
+            .print-table tr {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .print-approval {
+                margin-top: 35px;
+                margin-left: auto;
+                width: 230px;
+                text-align: center;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .print-signature-space {
+                height: 75px;
+            }
+
+            .print-signature-line {
+                width: 180px;
+                margin: 0 auto;
+                border-bottom: 1px solid #333;
+            }
+
+            .print-footer {
+                margin-top: 20px;
+                padding-top: 8px;
+                border-top: 1px solid #ddd;
+                text-align: center;
+                color: #666;
+                font-size: 9px;
+            }
+        }
     </style>
 </head>
 
@@ -55,6 +227,15 @@
                         class="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-amber-400"
                     >
                 </form>
+
+                {{-- TOMBOL CETAK --}}
+                <button
+                    type="button"
+                    onclick="window.print()"
+                    class="rounded-xl bg-[#191712] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-gray-800"
+                >
+                    Cetak Laporan
+                </button>
 
                 @php
                     $badgeClass = match ($monthStatus) {
@@ -236,10 +417,12 @@
                                         <span class="mt-2 inline-block rounded-full bg-green-50 px-2 py-1 text-[10px] font-bold text-green-700">
                                             Disetujui Mentor
                                         </span>
+
                                     @elseif ($item->status === 'Menunggu')
                                         <span class="mt-2 inline-block rounded-full bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700">
                                             Menunggu Approval
                                         </span>
+
                                     @elseif ($item->status === 'Ditolak')
                                         <span class="mt-2 inline-block rounded-full bg-red-50 px-2 py-1 text-[10px] font-bold text-red-700">
                                             Perlu Revisi
@@ -250,6 +433,7 @@
                                                 Catatan Mentor: {{ $item->mentor_feedback }}
                                             </p>
                                         @endif
+
                                     @else
                                         <span class="mt-2 inline-block rounded-full bg-gray-100 px-2 py-1 text-[10px] font-bold text-gray-600">
                                             Draft
@@ -346,10 +530,12 @@
                     <p class="mt-1 text-xs text-amber-700">
                         Entri sedang menunggu pemeriksaan Mentor.
                     </p>
+
                 @elseif ($monthStatus === 'Disetujui')
                     <p class="mt-1 text-xs text-green-700">
                         Seluruh entri bulan ini sudah disetujui.
                     </p>
+
                 @else
                     <p class="mt-1 text-xs text-gray-400">
                         Setelah dikirim, entri bulan ini terkunci sampai pemeriksaan selesai.
@@ -403,6 +589,144 @@
     </main>
 
 </div>
+
+{{-- =========================================================
+     TEMPLATE KHUSUS CETAK LAPORAN LOGBOOK
+========================================================= --}}
+
+@php
+    $printUser = auth()->user();
+
+    $printDivisionName = optional($printUser->division)->name
+        ?? $printUser->position
+        ?? '-';
+
+    $printUniversity = $printUser->university ?: '-';
+@endphp
+
+<section id="print-report">
+
+    {{-- KOP LAPORAN --}}
+    <div class="print-header">
+
+        <img
+            src="{{ asset('images/logo-esdm.png') }}"
+            alt="Logo Kementerian ESDM"
+            class="print-logo"
+        >
+
+        <div class="print-header-title">
+            <h1>Kementerian Energi dan Sumber Daya Mineral</h1>
+            <p>Republik Indonesia</p>
+            <p style="font-size: 14px; font-weight: bold; margin-top: 8px;">
+                LAPORAN LOGBOOK PESERTA MAGANG
+            </p>
+        </div>
+
+    </div>
+
+    {{-- IDENTITAS PESERTA --}}
+    <div class="print-identity">
+
+        <div class="print-identity-row">
+            <span class="print-identity-label">Nama Peserta</span>
+            <span>: {{ $printUser->name ?? '-' }}</span>
+        </div>
+
+        <div class="print-identity-row">
+            <span class="print-identity-label">Universitas</span>
+            <span>: {{ $printUniversity }}</span>
+        </div>
+
+        <div class="print-identity-row">
+            <span class="print-identity-label">Unit / Lokasi</span>
+            <span>: {{ $printDivisionName }}</span>
+        </div>
+
+        <div class="print-identity-row">
+            <span class="print-identity-label">Bulan Laporan</span>
+            <span>: {{ $bulan }}</span>
+        </div>
+
+    </div>
+
+    {{-- TABEL KEGIATAN --}}
+    <table class="print-table">
+
+        <thead>
+            <tr>
+                <th>Tanggal</th>
+                <th>Hari</th>
+                <th>Deskripsi Pekerjaan</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            @forelse ($logbooks as $item)
+
+                @php
+                    $printHari = match ($item->date?->dayOfWeekIso) {
+                        1 => 'Senin',
+                        2 => 'Selasa',
+                        3 => 'Rabu',
+                        4 => 'Kamis',
+                        5 => 'Jumat',
+                        6 => 'Sabtu',
+                        7 => 'Minggu',
+                        default => '-',
+                    };
+                @endphp
+
+                <tr>
+                    <td>
+                        {{ $item->date?->format('d/m/Y') ?? '-' }}
+                    </td>
+
+                    <td>
+                        {{ $printHari }}
+                    </td>
+
+                    <td class="print-description">
+                        {{ $item->description }}
+                    </td>
+                </tr>
+
+            @empty
+
+                <tr>
+                    <td colspan="3" style="text-align: center;">
+                        Belum ada entri logbook untuk bulan ini.
+                    </td>
+                </tr>
+
+            @endforelse
+
+        </tbody>
+
+    </table>
+
+    {{-- AREA PERSETUJUAN --}}
+    <div class="print-approval">
+
+        <p>Disetujui Oleh,</p>
+        <p style="font-weight: bold;">Mentor</p>
+
+        <div class="print-signature-space"></div>
+
+        <div class="print-signature-line"></div>
+
+        <p style="margin-top: 5px;">
+            Nama dan Tanda Tangan Mentor
+        </p>
+
+    </div>
+
+    <div class="print-footer">
+        DARIN - Sistem Presensi Geospasial Terintegrasi ESDM
+    </div>
+
+</section>
 
 {{-- MODAL EDIT --}}
 <div

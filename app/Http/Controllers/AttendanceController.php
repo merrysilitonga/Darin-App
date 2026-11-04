@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Models\Holiday;
 use App\Models\Location;
 use App\Models\SystemSetting;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -48,7 +49,8 @@ class AttendanceController extends Controller
     }
 
     /**
-     * Memproses absensi masuk dengan selfie dan validasi radius GPS.
+     * Memproses absensi masuk dengan selfie,
+     * validasi radius GPS, dan validasi kalender hari libur.
      */
     public function storeClockIn(Request $request)
     {
@@ -67,8 +69,30 @@ class AttendanceController extends Controller
             return back()->with('error', 'Pengaturan sistem belum tersedia. Hubungi Admin/HR.');
         }
 
+        /*
+         * Validasi akhir pekan.
+         * Sabtu dan Minggu tetap otomatis menjadi hari libur.
+         */
         if ($now->isWeekend()) {
             return back()->with('error', 'Absensi hanya tersedia pada hari kerja.');
+        }
+
+        /*
+         * VALIDASI KALENDER HARI LIBUR
+         *
+         * Jika tanggal hari ini terdaftar pada tabel holidays
+         * dan statusnya aktif, mahasiswa tidak dapat absen masuk.
+         */
+        $holiday = Holiday::query()
+            ->where('is_active', true)
+            ->whereDate('date', $today)
+            ->first();
+
+        if ($holiday) {
+            return back()->with(
+                'error',
+                "Hari ini ditetapkan sebagai hari libur: {$holiday->name}. Absensi masuk tidak tersedia."
+            );
         }
 
         if (!$user->start_date || !$user->end_date) {
@@ -95,19 +119,28 @@ class AttendanceController extends Controller
         }
 
         $batasMasuk = $now->copy()->setTimeFromTimeString($settings->clock_in_start);
+
         $waktuAkhirMasuk = $isFriday
             ? $settings->friday_clock_in_end
             : $settings->clock_in_end;
+
         $batasAkhir = $now->copy()->setTimeFromTimeString($waktuAkhirMasuk);
+
         $jadwalMulai = str_replace(':', '.', substr((string) $settings->clock_in_start, 0, 5));
         $jadwalAkhir = str_replace(':', '.', substr((string) $waktuAkhirMasuk, 0, 5));
 
         if ($now->lt($batasMasuk)) {
-            return back()->with('error', "Absensi masuk tersedia mulai pukul {$jadwalMulai} WIB.");
+            return back()->with(
+                'error',
+                "Absensi masuk tersedia mulai pukul {$jadwalMulai} WIB."
+            );
         }
 
         if ($now->gte($batasAkhir)) {
-            return back()->with('error', "Batas absensi masuk hari ini pukul {$jadwalAkhir} WIB telah berakhir.");
+            return back()->with(
+                'error',
+                "Batas absensi masuk hari ini pukul {$jadwalAkhir} WIB telah berakhir."
+            );
         }
 
         $validated = $request->validate([
@@ -136,6 +169,7 @@ class AttendanceController extends Controller
 
         $latitude = (float) $validated['latitude'];
         $longitude = (float) $validated['longitude'];
+
         $distanceMeters = $this->distanceInMeters(
             $latitude,
             $longitude,
@@ -143,7 +177,8 @@ class AttendanceController extends Controller
             (float) $location->longitude
         );
 
-        // WFA pada Jumat tidak dibatasi radius kantor. WFO dan hari kerja biasa wajib berada dalam radius.
+        // WFA pada Jumat tidak dibatasi radius kantor.
+        // WFO dan hari kerja biasa wajib berada dalam radius.
         $isWfa = $isFriday && ($validated['work_location'] ?? null) === 'WFA';
 
         if (!$isWfa && $distanceMeters > (int) $location->radius_meters) {
@@ -154,6 +189,7 @@ class AttendanceController extends Controller
         }
 
         $status = $now->greaterThan($batasMasuk) ? 'Terlambat' : 'Hadir';
+
         $photoPath = $request->file('photo')->store('attendance/selfies', 'local');
 
         if (!is_string($photoPath) || $photoPath === '') {
@@ -202,6 +238,9 @@ class AttendanceController extends Controller
 
     /**
      * Memproses absensi pulang dengan selfie dan validasi radius GPS terbaru.
+     *
+     * Tidak melakukan pemeriksaan kalender hari libur agar mahasiswa
+     * yang sudah memiliki absensi masuk tetap dapat melakukan absen pulang.
      */
     public function storeClockOut(Request $request)
     {
@@ -252,11 +291,15 @@ class AttendanceController extends Controller
         $waktuPulang = $now->dayOfWeekIso === 5
             ? $settings->friday_clock_out_time
             : $settings->clock_out_time;
+
         $batasPulang = $now->copy()->setTimeFromTimeString($waktuPulang);
         $jadwal = str_replace(':', '.', substr((string) $waktuPulang, 0, 5)) . ' WIB';
 
         if ($now->lt($batasPulang)) {
-            return back()->with('error', "Absensi pulang baru tersedia mulai pukul {$jadwal}.");
+            return back()->with(
+                'error',
+                "Absensi pulang baru tersedia mulai pukul {$jadwal}."
+            );
         }
 
         $validated = $request->validate([
@@ -276,7 +319,8 @@ class AttendanceController extends Controller
             'longitude.between' => 'Nilai longitude tidak valid.',
         ]);
 
-        // Gunakan lokasi yang tersimpan saat clock-in, bukan lokasi yang mungkin baru diubah oleh Admin.
+        // Gunakan lokasi yang tersimpan saat clock-in,
+        // bukan lokasi yang mungkin baru diubah oleh Admin.
         $location = $attendance->location_id
             ? Location::find($attendance->location_id)
             : $user->location;
@@ -290,6 +334,7 @@ class AttendanceController extends Controller
 
         $latitude = (float) $validated['latitude'];
         $longitude = (float) $validated['longitude'];
+
         $distanceMeters = $this->distanceInMeters(
             $latitude,
             $longitude,
@@ -315,8 +360,7 @@ class AttendanceController extends Controller
 
         try {
             // Update hanya jika absensi pulang belum pernah tercatat.
-            // Kondisi whereNull diperiksa langsung oleh database sehingga
-            // permintaan kedua tidak dapat menimpa data clock-out pertama.
+            // Kondisi whereNull diperiksa langsung oleh database.
             $updated = Attendance::query()
                 ->whereKey($attendance->getKey())
                 ->whereNull('clock_out')
@@ -330,13 +374,12 @@ class AttendanceController extends Controller
                     'clock_out_distance_meters' => $distanceMeters,
                 ]);
         } catch (\Throwable $e) {
-            // Hapus foto jika proses penyimpanan ke database gagal.
             Storage::disk('local')->delete($photoPath);
             throw $e;
         }
 
         // Jika permintaan lain lebih dahulu mencatat clock-out,
-        // update bernilai 0 dan foto dari permintaan ini tidak digunakan.
+        // foto dari permintaan ini tidak digunakan.
         if ($updated !== 1) {
             Storage::disk('local')->delete($photoPath);
 
