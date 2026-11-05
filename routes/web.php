@@ -24,6 +24,7 @@ use App\Http\Controllers\LogbookController;
 use App\Http\Controllers\MentorLogbookController;
 use App\Http\Controllers\MentorLeaveRequestController;
 use App\Http\Controllers\MentorDashboardController;
+use App\Http\Controllers\MentorAttendanceController;
 
 use App\Http\Middleware\RoleMiddleware;
 
@@ -69,6 +70,7 @@ Route::middleware([
     'auth',
     RoleMiddleware::class . ':admin,hr',
 ])->group(function () {
+
     Route::get(
         '/register/mentor',
         [AuthController::class, 'showMentorRegister']
@@ -78,6 +80,7 @@ Route::middleware([
         '/register/mentor',
         [AuthController::class, 'processMentorRegister']
     )->name('mentor.register.process');
+
 });
 
 
@@ -92,6 +95,7 @@ Route::get('/forgot-password', function () {
 })->middleware('guest')->name('password.request');
 
 Route::post('/forgot-password', function (Request $request) {
+
     $request->validate([
         'email' => ['required', 'email'],
     ]);
@@ -110,6 +114,7 @@ Route::post('/forgot-password', function (Request $request) {
     return back()->withErrors([
         'email' => 'Link reset belum dapat dikirim. Periksa konfigurasi email aplikasi.',
     ]);
+
 })->middleware('guest')->name('password.email');
 
 Route::get('/reset-password/{token}', function (
@@ -120,9 +125,11 @@ Route::get('/reset-password/{token}', function (
         'token' => $token,
         'email' => $request->query('email', ''),
     ]);
+
 })->middleware('guest')->name('password.reset');
 
 Route::post('/reset-password', function (Request $request) {
+
     $request->validate([
         'token' => ['required'],
         'email' => ['required', 'email'],
@@ -142,6 +149,7 @@ Route::post('/reset-password', function (Request $request) {
             'token'
         ),
         function (User $user, string $password) {
+
             $user->forceFill([
                 'password' => Hash::make($password),
             ]);
@@ -165,6 +173,7 @@ Route::post('/reset-password', function (Request $request) {
     return back()->withErrors([
         'email' => 'Link reset tidak valid atau sudah kedaluwarsa. Silakan minta link baru.',
     ]);
+
 })->middleware('guest')->name('password.update');
 
 
@@ -175,6 +184,7 @@ Route::post('/reset-password', function (Request $request) {
 */
 
 Route::middleware(['auth'])->group(function () {
+
     Route::get('/profil', [ProfileController::class, 'edit'])
         ->name('profil');
 
@@ -183,6 +193,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout'])
         ->name('logout');
+
 });
 
 
@@ -203,7 +214,9 @@ Route::middleware([
         [DashboardController::class, 'index']
     )->name('dashboard.magang');
 
+
     // Absensi.
+
     Route::get(
         '/absen',
         [AttendanceController::class, 'index']
@@ -219,13 +232,14 @@ Route::middleware([
         [AttendanceController::class, 'storeClockOut']
     )->name('absen.checkout');
 
+
     // Logbook.
+
     Route::get(
         '/logbook',
         [LogbookController::class, 'index']
     )->name('logbook');
 
-    // Route menyimpan entri logbook baru dari formulir mahasiswa.
     Route::post(
         '/logbook',
         [LogbookController::class, 'store']
@@ -246,8 +260,11 @@ Route::middleware([
         [LogbookController::class, 'destroy']
     )->whereNumber('id')->name('logbook.destroy');
 
+
     // Riwayat absensi.
+
     Route::get('/riwayat-absen', function (Request $request) {
+
         $user = $request->user();
         $bulan = $request->query('bulan');
 
@@ -277,6 +294,7 @@ Route::middleware([
             'attendance.history',
             compact('user', 'attendances', 'periode')
         );
+
     })->name('riwayat.absen');
 
     Route::get(
@@ -289,7 +307,9 @@ Route::middleware([
         [AttendanceController::class, 'exportCsv']
     )->name('riwayat.export-csv');
 
+
     // Pengajuan izin/sakit.
+
     Route::get(
         '/pengajuan-izin',
         [LeaveRequestController::class, 'create']
@@ -309,6 +329,7 @@ Route::middleware([
         '/pengajuan-izin/{id}/surat',
         [LeaveRequestController::class, 'download']
     )->whereNumber('id')->name('izin.download');
+
 });
 
 
@@ -320,6 +341,7 @@ Route::middleware([
 */
 
 Route::get('/', function () {
+
     if (!auth()->check()) {
         return redirect()->route('login');
     }
@@ -350,6 +372,7 @@ Route::get('/', function () {
     return redirect()->route('login')->withErrors([
         'email' => 'Role akun tidak dikenali. Silakan hubungi administrator.',
     ]);
+
 });
 
 
@@ -369,8 +392,11 @@ Route::middleware([
         [MentorDashboardController::class, 'index']
     )->name('mentor.dashboard');
 
+
     // Daftar mahasiswa berdasarkan penugasan mentor.
+
     Route::get('/interns', function (Request $request) {
+
         $mentor = $request->user();
 
         $students = User::where('role', 'magang')
@@ -386,9 +412,12 @@ Route::middleware([
             'students',
             'assignmentMissing'
         ));
+
     })->name('mentor.interns');
 
+
     // Logbook.
+
     Route::get(
         '/logbook',
         [MentorLogbookController::class, 'index']
@@ -404,7 +433,9 @@ Route::middleware([
         [MentorLogbookController::class, 'reject']
     )->whereNumber('id')->name('mentor.logbook.reject');
 
+
     // Izin/sakit.
+
     Route::get(
         '/leave-requests',
         [MentorLeaveRequestController::class, 'index']
@@ -425,14 +456,23 @@ Route::middleware([
         [MentorLeaveRequestController::class, 'download']
     )->whereNumber('id')->name('mentor.leave-requests.document');
 
-    // Halaman absensi dan penilaian.
-    Route::get('/attendance', function () {
-        return view('mentor.attendance');
-    })->name('mentor.attendance');
+
+    // Halaman absensi mentor: mengambil data dari database.
+
+    Route::get(
+        '/attendance',
+        [MentorAttendanceController::class, 'index']
+    )->name('mentor.attendance');
+
+
+    // Halaman penilaian mentor.
+    // Sementara tetap menggunakan view lama sampai controller
+    // dan fitur penyimpanan penilaian selesai dibuat.
 
     Route::get('/assessment', function () {
         return view('mentor.assessment');
     })->name('mentor.assessment');
+
 });
 
 
@@ -447,13 +487,17 @@ Route::middleware([
     RoleMiddleware::class . ':admin,hr',
 ])->prefix('admin')->group(function () {
 
+
     // Dashboard.
+
     Route::get(
         '/dashboard',
         [AdminController::class, 'dashboard']
     )->name('admin.dashboard');
 
+
     // Manajemen pengguna.
+
     Route::get(
         '/users',
         [AdminController::class, 'users']
@@ -474,13 +518,14 @@ Route::middleware([
         [AdminController::class, 'updateInternshipPeriod']
     )->whereNumber('user')->name('admin.users.internship-period');
 
-    // Penempatan lokasi kerja untuk mahasiswa magang.
     Route::put(
         '/users/{user}/location',
         [AdminController::class, 'updateUserLocation']
     )->whereNumber('user')->name('admin.users.location');
 
+
     // CRUD Divisi.
+
     Route::get(
         '/divisions',
         [AdminController::class, 'divisions']
@@ -501,7 +546,9 @@ Route::middleware([
         [AdminController::class, 'destroyDivision']
     )->whereNumber('division')->name('admin.divisions.destroy');
 
+
     // Rekap absensi.
+
     Route::get(
         '/attendance',
         [AdminController::class, 'attendance']
@@ -512,7 +559,9 @@ Route::middleware([
         [AdminController::class, 'attendancePhoto']
     )->whereNumber('attendance')->name('admin.attendance.photo');
 
+
     // Pengaturan sistem.
+
     Route::get(
         '/settings',
         [SystemSettingsController::class, 'edit']
@@ -523,7 +572,9 @@ Route::middleware([
         [SystemSettingsController::class, 'update']
     )->name('admin.settings.update');
 
+
     // Manajemen Kalender Hari Libur.
+
     Route::get(
         '/holidays',
         [HolidayController::class, 'index']
@@ -537,16 +588,16 @@ Route::middleware([
     Route::put(
         '/holidays/{id}',
         [HolidayController::class, 'update']
-    )->whereNumber('id')
-     ->name('admin.holidays.update');
+    )->whereNumber('id')->name('admin.holidays.update');
 
     Route::delete(
         '/holidays/{id}',
         [HolidayController::class, 'destroy']
-    )->whereNumber('id')
-     ->name('admin.holidays.destroy');
+    )->whereNumber('id')->name('admin.holidays.destroy');
+
 
     // Manajemen lokasi kantor untuk absensi geospasial.
+
     Route::get(
         '/locations',
         [AdminLocationController::class, 'index']
@@ -560,12 +611,11 @@ Route::middleware([
     Route::put(
         '/locations/{location}',
         [AdminLocationController::class, 'update']
-    )->whereNumber('location')
-     ->name('admin.locations.update');
+    )->whereNumber('location')->name('admin.locations.update');
 
     Route::delete(
         '/locations/{location}',
         [AdminLocationController::class, 'destroy']
-    )->whereNumber('location')
-     ->name('admin.locations.destroy');
+    )->whereNumber('location')->name('admin.locations.destroy');
+
 });

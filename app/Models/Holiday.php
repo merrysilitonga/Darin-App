@@ -11,9 +11,6 @@ class Holiday extends Model
 
     protected $table = 'holidays';
 
-    // Migration holidays tidak menggunakan created_at dan updated_at.
-    public $timestamps = false;
-
     protected $fillable = [
         'date',
         'name',

@@ -79,9 +79,6 @@ class AttendanceController extends Controller
 
         /*
          * VALIDASI KALENDER HARI LIBUR
-         *
-         * Jika tanggal hari ini terdaftar pada tabel holidays
-         * dan statusnya aktif, mahasiswa tidak dapat absen masuk.
          */
         $holiday = Holiday::query()
             ->where('is_active', true)
@@ -118,7 +115,11 @@ class AttendanceController extends Controller
             );
         }
 
-        $batasMasuk = $now->copy()->setTimeFromTimeString($settings->clock_in_start);
+        // Jam buka absen mulai pukul 06.00 pagi
+        $jamBukaAbsen = $now->copy()->setTime(6, 0, 0);
+
+        // Batas jam masuk tepat waktu (clock_in_start)
+        $batasTepatWaktu = $now->copy()->setTimeFromTimeString($settings->clock_in_start);
 
         $waktuAkhirMasuk = $isFriday
             ? $settings->friday_clock_in_end
@@ -129,11 +130,8 @@ class AttendanceController extends Controller
         $jadwalMulai = str_replace(':', '.', substr((string) $settings->clock_in_start, 0, 5));
         $jadwalAkhir = str_replace(':', '.', substr((string) $waktuAkhirMasuk, 0, 5));
 
-        if ($now->lt($batasMasuk)) {
-            return back()->with(
-                'error',
-                "Absensi masuk tersedia mulai pukul {$jadwalMulai} WIB."
-            );
+        if ($now->lt($jamBukaAbsen)) {
+            return back()->with('error', 'Absensi masuk baru dibuka mulai pukul 06.00 WIB.');
         }
 
         if ($now->gte($batasAkhir)) {
@@ -177,8 +175,6 @@ class AttendanceController extends Controller
             (float) $location->longitude
         );
 
-        // WFA pada Jumat tidak dibatasi radius kantor.
-        // WFO dan hari kerja biasa wajib berada dalam radius.
         $isWfa = $isFriday && ($validated['work_location'] ?? null) === 'WFA';
 
         if (!$isWfa && $distanceMeters > (int) $location->radius_meters) {
@@ -188,7 +184,8 @@ class AttendanceController extends Controller
             );
         }
 
-        $status = $now->greaterThan($batasMasuk) ? 'Terlambat' : 'Hadir';
+        // Status Hadir jika absen sebelum atau pas jam masuk, Terlambat jika melewati jam masuk
+        $status = $now->greaterThan($batasTepatWaktu) ? 'Terlambat' : 'Hadir';
 
         $photoPath = $request->file('photo')->store('attendance/selfies', 'local');
 
@@ -238,9 +235,6 @@ class AttendanceController extends Controller
 
     /**
      * Memproses absensi pulang dengan selfie dan validasi radius GPS terbaru.
-     *
-     * Tidak melakukan pemeriksaan kalender hari libur agar mahasiswa
-     * yang sudah memiliki absensi masuk tetap dapat melakukan absen pulang.
      */
     public function storeClockOut(Request $request)
     {
@@ -319,8 +313,6 @@ class AttendanceController extends Controller
             'longitude.between' => 'Nilai longitude tidak valid.',
         ]);
 
-        // Gunakan lokasi yang tersimpan saat clock-in,
-        // bukan lokasi yang mungkin baru diubah oleh Admin.
         $location = $attendance->location_id
             ? Location::find($attendance->location_id)
             : $user->location;
@@ -359,8 +351,6 @@ class AttendanceController extends Controller
         }
 
         try {
-            // Update hanya jika absensi pulang belum pernah tercatat.
-            // Kondisi whereNull diperiksa langsung oleh database.
             $updated = Attendance::query()
                 ->whereKey($attendance->getKey())
                 ->whereNull('clock_out')
@@ -378,8 +368,6 @@ class AttendanceController extends Controller
             throw $e;
         }
 
-        // Jika permintaan lain lebih dahulu mencatat clock-out,
-        // foto dari permintaan ini tidak digunakan.
         if ($updated !== 1) {
             Storage::disk('local')->delete($photoPath);
 
@@ -419,6 +407,19 @@ class AttendanceController extends Controller
         $centralAngle = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return (int) round($earthRadius * $centralAngle);
+    }
+
+    /**
+     * Menampilkan halaman riwayat absensi mahasiswa.
+     */
+    public function history(Request $request)
+    {
+        [$user, $attendances, $periode] = $this->riwayatBulanIni($request);
+
+        return view(
+            'attendance.history',
+            compact('user', 'attendances', 'periode')
+        );
     }
 
     /**
@@ -515,9 +516,9 @@ class AttendanceController extends Controller
                 'Jam Pulang',
                 'Metode Kerja',
                 'Status',
-                'Latitude',
-                'Longitude',
-                'Foto',
+                'Lokasi Kantor',
+                'Jarak Masuk (m)',
+                'Jarak Pulang (m)',
                 'Catatan',
             ], ';', '"', '\\');
 
@@ -531,9 +532,9 @@ class AttendanceController extends Controller
                     $attendance->clock_out ?? '-',
                     $attendance->work_location ?? '-',
                     $attendance->status ?? '-',
-                    $attendance->latitude ?? '-',
-                    $attendance->longitude ?? '-',
-                    $attendance->photo_path ?? '-',
+                    $attendance->location_name ?? '-',
+                    $attendance->distance_meters ?? '-',
+                    $attendance->clock_out_distance_meters ?? '-',
                     $attendance->notes ?? '-',
                 ], ';', '"', '\\');
             }

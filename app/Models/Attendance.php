@@ -45,16 +45,25 @@ class Attendance extends Model
         ];
     }
 
+    /**
+     * Relasi absensi dengan pemilik akun.
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Relasi absensi dengan lokasi saat masuk.
+     */
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'location_id');
     }
 
+    /**
+     * Relasi absensi dengan lokasi saat pulang.
+     */
     public function clockOutLocation(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'clock_out_location_id');

@@ -270,6 +270,7 @@ class AuthController extends Controller
             $user->end_date = null;
 
             $user->save();
+
         } catch (Throwable $e) {
             /*
              * Hapus foto apabila pembuatan akun gagal.
@@ -307,7 +308,8 @@ class AuthController extends Controller
     {
         $this->authorizeAdminOrHr();
 
-        return view('auth.mentor-register');
+        // Menggunakan file resources/views/auth/register-mentor.blade.php
+        return view('auth.register-mentor');
     }
 
     /**
@@ -366,6 +368,9 @@ class AuthController extends Controller
         $mentor->phone = $validated['phone'] ?? null;
         $mentor->position = $validated['position'] ?? null;
 
+        /*
+         * Penempatan dilakukan melalui Manajemen Pengguna Admin/HR.
+         */
         $mentor->division_id = null;
         $mentor->mentor_id = null;
         $mentor->start_date = null;

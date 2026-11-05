@@ -20,7 +20,8 @@ class MentorLeaveRequestController extends Controller
         $mentor = $request->user();
 
         // Ambil mahasiswa yang benar-benar ditugaskan kepada mentor.
-        $studentIds = User::where('role', 'magang')
+        $studentIds = User::query()
+            ->where('role', 'magang')
             ->where('mentor_id', $mentor->id)
             ->pluck('id');
 
@@ -29,7 +30,10 @@ class MentorLeaveRequestController extends Controller
         if ($assignmentMissing) {
             $requests = collect();
         } else {
-            $requests = LeaveRequest::with('user')
+            $requests = LeaveRequest::with([
+                'user',
+                'reviewer',
+            ])
                 ->whereIn('user_id', $studentIds)
                 ->orderByRaw(
                     "CASE WHEN status = 'Menunggu' THEN 0 ELSE 1 END"
@@ -40,7 +44,11 @@ class MentorLeaveRequestController extends Controller
 
         return view(
             'mentor.leave-requests',
-            compact('mentor', 'requests', 'assignmentMissing')
+            compact(
+                'mentor',
+                'requests',
+                'assignmentMissing'
+            )
         );
     }
 
@@ -62,6 +70,7 @@ class MentorLeaveRequestController extends Controller
         }
 
         DB::transaction(function () use ($leaveRequest, $mentor) {
+
             $lockedRequest = LeaveRequest::whereKey($leaveRequest->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -126,6 +135,7 @@ class MentorLeaveRequestController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            // Periksa ulang status sebelum menyimpan penolakan.
             if ($lockedRequest->status !== 'Menunggu') {
                 throw ValidationException::withMessages([
                     'review' => 'Pengajuan ini sudah diproses.',
@@ -153,7 +163,7 @@ class MentorLeaveRequestController extends Controller
     {
         $mentor = $request->user();
 
-        // Pastikan hak akses diperiksa sebelum file diberikan.
+        // Periksa hak akses sebelum file diberikan.
         $leaveRequest = $this->findAssignedRequest($mentor, $id);
 
         $documentPath = $leaveRequest->document_path;
@@ -176,18 +186,22 @@ class MentorLeaveRequestController extends Controller
     }
 
     /**
-     * Memastikan pengajuan berasal dari mahasiswa bimbingan mentor.
+     * Memastikan pengajuan berasal dari mahasiswa
+     * dengan role magang yang ditugaskan kepada mentor.
+     *
+     * Mentor tidak dapat mengakses pengajuan milik
+     * mahasiswa yang ditugaskan kepada mentor lain.
      */
     private function findAssignedRequest(
-        $mentor,
+        User $mentor,
         int $id
     ): LeaveRequest {
-        return LeaveRequest::whereHas(
-            'user',
-            function ($query) use ($mentor) {
-                $query->where('mentor_id', $mentor->id)
-                    ->where('role', 'magang');
-            }
-        )->findOrFail($id);
+        return LeaveRequest::query()
+            ->whereKey($id)
+            ->whereHas('user', function ($query) use ($mentor) {
+                $query->where('role', 'magang')
+                    ->where('mentor_id', $mentor->id);
+            })
+            ->firstOrFail();
     }
 }
