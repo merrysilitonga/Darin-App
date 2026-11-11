@@ -13,6 +13,11 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
+        // Mentor pembimbing yang ditetapkan Admin/HR (beserta divisinya).
+        $user->loadMissing('mentor.division');
+        $mentor = $user->mentor;
+        $mentorWhatsapp = $this->whatsappNumber($mentor?->phone);
+
         // Gunakan tanggal hari ini berdasarkan zona waktu Indonesia.
         $hariIni = Carbon::today('Asia/Jakarta');
 
@@ -138,7 +143,35 @@ class DashboardController extends Controller
             'progresPersen',
             'sisaDurasi',
             'periodeAktif',
-            'jumlahLaporan'
+            'jumlahLaporan',
+            'mentor',
+            'mentorWhatsapp'
         ));
+    }
+
+    /**
+     * Mengubah nomor HP Indonesia ke format wa.me (contoh: 0812-3456 → 628123456).
+     * Mengembalikan null jika nomor kosong atau tidak valid.
+     */
+    private function whatsappNumber(?string $phone): ?string
+    {
+        if ($phone === null) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+
+        if (str_starts_with($digits, '0')) {
+            $digits = '62' . substr($digits, 1);
+        } elseif (str_starts_with($digits, '8')) {
+            $digits = '62' . $digits;
+        }
+
+        // Nomor Indonesia valid: diawali 62 dan panjang wajar.
+        if (!str_starts_with($digits, '62') || strlen($digits) < 10 || strlen($digits) > 15) {
+            return null;
+        }
+
+        return $digits;
     }
 }

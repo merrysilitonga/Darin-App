@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminController extends Controller
 {
@@ -397,78 +399,58 @@ class AdminController extends Controller
      */
     public function attendance(Request $request)
     {
-        $search = trim((string) $request->query('search', ''));
-        $month = (string) $request->query('month', '');
-        $divisionId = $request->query('division_id');
-        $mentorId = $request->query('mentor_id');
+        $filters = $this->rekapFilters($request);
 
-        $validMonth = preg_match(
-            '/^\d{4}-(0[1-9]|1[0-2])$/',
-            $month
-        ) === 1;
+        [
+            'search' => $search,
+            'month' => $month,
+            'divisionId' => $divisionId,
+            'mentorId' => $mentorId,
+            'validMonth' => $validMonth,
+            'validDivisionId' => $validDivisionId,
+            'validMentorId' => $validMentorId,
+            'selectedMentor' => $selectedMentor,
+        ] = $filters;
 
-        $validDivisionId = filter_var($divisionId, FILTER_VALIDATE_INT) !== false
-            && $divisionId !== null && $divisionId !== '';
+        $perPage = (int) $request->query('per_page', 25);
 
-        $validMentorId = filter_var($mentorId, FILTER_VALIDATE_INT) !== false
-            && $mentorId !== null && $mentorId !== '';
+        if (!in_array($perPage, self::REKAP_PER_PAGE_OPTIONS, true)) {
+            $perPage = 25;
+        }
 
-        $selectedMentor = $validMentorId
-            ? User::where('role', 'mentor')->with('division')->find((int) $mentorId)
-            : null;
+        /*
+         * Statistik dihitung dari query (seluruh data terfilter),
+         * sedangkan tabel dipaginasi agar halaman tetap ringan.
+         */
+        $attendanceBase = $this->applyRekapFilters(Attendance::query(), $filters);
 
-        $applyFilters = function ($query) use (
-            $search, $validMonth, $month, $validDivisionId,
-            $divisionId, $validMentorId, $selectedMentor
-        ) {
-            if ($search !== '') {
-                $query->whereHas('user', function ($userQuery) use ($search) {
-                    $userQuery->where(function ($q) use ($search) {
-                        $q->where('name', 'like', '%' . $search . '%')
-                            ->orWhere('email', 'like', '%' . $search . '%');
-                    });
-                });
-            }
+        $attendanceStats = [
+            'total' => (clone $attendanceBase)->count(),
+            'mahasiswa' => (clone $attendanceBase)->distinct()->count('user_id'),
+            'hadir' => (clone $attendanceBase)->where('status', 'Hadir')->count(),
+            'terlambat' => (clone $attendanceBase)->where('status', 'Terlambat')->count(),
+        ];
 
-            if ($validMonth) {
-                $period = Carbon::createFromFormat('!Y-m', $month, 'Asia/Jakarta');
-                $query->whereBetween('date', [
-                    $period->copy()->startOfMonth()->toDateString(),
-                    $period->copy()->endOfMonth()->toDateString(),
-                ]);
-            }
-
-            if ($validDivisionId) {
-                $query->whereHas('user', function ($userQuery) use ($divisionId) {
-                    $userQuery->where('division_id', (int) $divisionId);
-                });
-            }
-
-            if ($validMentorId) {
-                $query->whereHas('user', function ($userQuery) use ($selectedMentor) {
-                    if ($selectedMentor) {
-                        $userQuery->where('mentor_id', $selectedMentor->id);
-                    } else {
-                        $userQuery->whereRaw('1 = 0');
-                    }
-                });
-            }
-
-            return $query;
-        };
-
-        // Data absensi dan logbook tetap memakai filter yang sudah ada.
-        $attendancesQuery = Attendance::with(['user.division'])
+        $attendances = (clone $attendanceBase)
+            ->with(['user.division'])
             ->orderByDesc('date')
-            ->orderByDesc('clock_in');
-        $applyFilters($attendancesQuery);
-        $attendances = $attendancesQuery->get();
+            ->orderByDesc('clock_in')
+            ->paginate($perPage, ['*'], 'page')
+            ->withQueryString();
 
-        $logbooksQuery = Logbook::with(['user.division'])
+        $logbookBase = $this->applyRekapFilters(Logbook::query(), $filters);
+
+        $logbookStats = [
+            'logbook' => (clone $logbookBase)->count(),
+            'logbook_menunggu' => (clone $logbookBase)->where('status', 'Menunggu')->count(),
+        ];
+
+        $logbooks = (clone $logbookBase)
+            ->with(['user.division'])
             ->orderByDesc('date')
-            ->orderByDesc('created_at');
-        $applyFilters($logbooksQuery);
-        $logbooks = $logbooksQuery->get();
+            ->orderByDesc('created_at')
+            ->paginate($perPage, ['*'], 'logbook_page')
+            ->withQueryString();
 
         // Pengajuan izin/sakit yang melintasi bulan tetap ditampilkan
         // apabila rentang pengajuannya beririsan dengan bulan laporan.
@@ -698,13 +680,7 @@ class AdminController extends Controller
             }
         }
 
-        $stats = [
-            'total' => $attendances->count(),
-            'mahasiswa' => $attendances->pluck('user_id')->unique()->count(),
-            'hadir' => $attendances->where('status', 'Hadir')->count(),
-            'terlambat' => $attendances->where('status', 'Terlambat')->count(),
-            'logbook' => $logbooks->count(),
-            'logbook_menunggu' => $logbooks->where('status', 'Menunggu')->count(),
+        $stats = $attendanceStats + $logbookStats + [
             'leave_total' => $leaveRequests->count(),
             'leave_approved' => $leaveRequests->where('status', 'Disetujui')->count(),
             'leave_pending' => $leaveRequests->where('status', 'Menunggu')->count(),
@@ -731,16 +707,197 @@ class AdminController extends Controller
             'search',
             'month',
             'divisionId',
-            'mentorId'
+            'mentorId',
+            'perPage'
         ));
+    }
+
+    /**
+     * Pilihan jumlah baris per halaman tabel rekap.
+     */
+    private const REKAP_PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
+    /**
+     * Membaca & memvalidasi parameter filter rekap dari query string.
+     *
+     * @return array{search: string, month: string, divisionId: mixed, mentorId: mixed,
+     *     validMonth: bool, validDivisionId: bool, validMentorId: bool, selectedMentor: ?User}
+     */
+    private function rekapFilters(Request $request): array
+    {
+        $search = trim((string) $request->query('search', ''));
+        $month = (string) $request->query('month', '');
+        $divisionId = $request->query('division_id');
+        $mentorId = $request->query('mentor_id');
+
+        $validMonth = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) === 1;
+
+        $validDivisionId = $divisionId !== null && $divisionId !== ''
+            && filter_var($divisionId, FILTER_VALIDATE_INT) !== false;
+
+        $validMentorId = $mentorId !== null && $mentorId !== ''
+            && filter_var($mentorId, FILTER_VALIDATE_INT) !== false;
+
+        $selectedMentor = $validMentorId
+            ? User::where('role', 'mentor')->with('division')->find((int) $mentorId)
+            : null;
+
+        return compact(
+            'search', 'month', 'divisionId', 'mentorId',
+            'validMonth', 'validDivisionId', 'validMentorId', 'selectedMentor'
+        );
+    }
+
+    /**
+     * Menerapkan filter rekap (nama/email, bulan, divisi, mentor)
+     * pada query model yang memiliki relasi `user` dan kolom `date`.
+     */
+    private function applyRekapFilters($query, array $filters)
+    {
+        $search = $filters['search'];
+
+        if ($search !== '') {
+            $query->whereHas('user', function ($userQuery) use ($search) {
+                $userQuery->where(function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%');
+                });
+            });
+        }
+
+        if ($filters['validMonth']) {
+            $period = Carbon::createFromFormat('!Y-m', $filters['month'], 'Asia/Jakarta');
+            $query->whereBetween('date', [
+                $period->copy()->startOfMonth()->toDateString(),
+                $period->copy()->endOfMonth()->toDateString(),
+            ]);
+        }
+
+        if ($filters['validDivisionId']) {
+            $divisionId = (int) $filters['divisionId'];
+            $query->whereHas('user', fn ($userQuery) => $userQuery->where('division_id', $divisionId));
+        }
+
+        if ($filters['validMentorId']) {
+            $selectedMentor = $filters['selectedMentor'];
+            $query->whereHas('user', function ($userQuery) use ($selectedMentor) {
+                if ($selectedMentor) {
+                    $userQuery->where('mentor_id', $selectedMentor->id);
+                } else {
+                    $userQuery->whereRaw('1 = 0');
+                }
+            });
+        }
+
+        return $query;
+    }
+
+    /**
+     * Mengambil SELURUH data absensi sesuai filter aktif (tanpa pagination) untuk ekspor.
+     */
+    private function rekapAttendancesForExport(Request $request): array
+    {
+        $filters = $this->rekapFilters($request);
+
+        $attendances = $this->applyRekapFilters(Attendance::query(), $filters)
+            ->with(['user.division', 'user.mentor'])
+            ->orderBy('date')
+            ->orderBy('clock_in')
+            ->get();
+
+        if ($filters['validMonth']) {
+            $label = Carbon::createFromFormat('!Y-m', $filters['month'], 'Asia/Jakarta')
+                ->locale('id')
+                ->translatedFormat('F Y');
+            $slug = $filters['month'];
+        } else {
+            $label = 'Semua periode';
+            $slug = 'semua';
+        }
+
+        return [$attendances, $filters, $label, $slug];
+    }
+
+    /**
+     * Ekspor rekap absensi (seluruh data terfilter) ke CSV yang terbaca Excel.
+     */
+    public function exportAttendanceCsv(Request $request): StreamedResponse
+    {
+        [$attendances, , , $slug] = $this->rekapAttendancesForExport($request);
+
+        $fileName = 'rekap-absensi-' . $slug . '.csv';
+
+        return response()->stream(function () use ($attendances) {
+            $file = fopen('php://output', 'w');
+
+            // BOM agar UTF-8 terbaca dengan benar di Excel.
+            fwrite($file, "\xEF\xBB\xBF");
+
+            fputcsv($file, [
+                'Tanggal', 'Nama', 'Email', 'Divisi', 'Mentor',
+                'Jam Masuk', 'Jam Pulang', 'Metode Kerja', 'Status',
+                'Kelengkapan', 'Lokasi', 'Jarak Masuk (m)', 'Jarak Pulang (m)',
+            ], ';', '"', '\\');
+
+            foreach ($attendances as $attendance) {
+                fputcsv($file, [
+                    $attendance->date?->toDateString() ?? '-',
+                    $attendance->user?->name ?? '-',
+                    $attendance->user?->email ?? '-',
+                    $attendance->user?->division?->name ?? '-',
+                    $attendance->user?->mentor?->name ?? '-',
+                    $attendance->clock_in ? substr((string) $attendance->clock_in, 0, 5) : '-',
+                    $attendance->clock_out ? substr((string) $attendance->clock_out, 0, 5) : '-',
+                    $attendance->work_location ?? '-',
+                    $attendance->status === 'Hadir' ? 'Tepat Waktu' : ($attendance->status ?? '-'),
+                    $attendance->clock_out ? 'Lengkap' : 'Belum absen pulang',
+                    $attendance->location_name ?? '-',
+                    $attendance->distance_meters ?? '-',
+                    $attendance->clock_out_distance_meters ?? '-',
+                ], ';', '"', '\\');
+            }
+
+            fclose($file);
+        }, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+        ]);
+    }
+
+    /**
+     * Ekspor rekap absensi (seluruh data terfilter) ke PDF.
+     */
+    public function exportAttendancePdf(Request $request)
+    {
+        [$attendances, $filters, $periodLabel, $slug] = $this->rekapAttendancesForExport($request);
+
+        $filterNotes = array_filter([
+            $filters['search'] !== '' ? 'Pencarian: ' . $filters['search'] : null,
+            $filters['validDivisionId']
+                ? 'Divisi: ' . (Division::find((int) $filters['divisionId'])?->name ?? '-')
+                : null,
+            $filters['selectedMentor'] ? 'Mentor: ' . $filters['selectedMentor']->name : null,
+        ]);
+
+        $pdf = Pdf::loadView('admin.attendance-export-pdf', [
+            'attendances' => $attendances,
+            'periodLabel' => $periodLabel,
+            'filterNotes' => $filterNotes,
+            'generatedAt' => Carbon::now('Asia/Jakarta'),
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download('rekap-absensi-' . $slug . '.pdf');
     }
 
     /**
      * Menampilkan foto selfie absensi untuk Admin/HR yang berwenang.
      */
-    public function attendancePhoto(Attendance $attendance)
+    public function attendancePhoto(Request $request, Attendance $attendance)
     {
-        $path = $attendance->photo_path;
+        // ?type=pulang menampilkan selfie absen pulang; default selfie absen masuk.
+        $path = $request->query('type') === 'pulang'
+            ? $attendance->clock_out_photo_path
+            : $attendance->photo_path;
 
         abort_unless($path, 404, 'Foto absensi tidak tersedia.');
 

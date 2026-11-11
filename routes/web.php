@@ -6,10 +6,8 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Http\Request;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
 use App\Models\User;
-use App\Models\Attendance;
 
 use App\Http\Controllers\AdminLocationController;
 use App\Http\Controllers\HolidayController;
@@ -26,6 +24,7 @@ use App\Http\Controllers\MentorLeaveRequestController;
 use App\Http\Controllers\MentorDashboardController;
 use App\Http\Controllers\MentorAttendanceController;
 
+use App\Http\Middleware\EnsureInternshipActive;
 use App\Http\Middleware\RoleMiddleware;
 
 
@@ -207,6 +206,8 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware([
     'auth',
     RoleMiddleware::class . ':magang',
+    // Setelah periode magang berakhir, akun otomatis menjadi baca-saja.
+    EnsureInternshipActive::class,
 ])->group(function () {
 
     Route::get(
@@ -263,39 +264,11 @@ Route::middleware([
 
     // Riwayat absensi.
 
-    Route::get('/riwayat-absen', function (Request $request) {
-
-        $user = $request->user();
-        $bulan = $request->query('bulan');
-
-        if (
-            !is_string($bulan) ||
-            !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $bulan)
-        ) {
-            $bulan = Carbon::now('Asia/Jakarta')->format('Y-m');
-        }
-
-        $periode = Carbon::createFromFormat(
-            '!Y-m',
-            $bulan,
-            'Asia/Jakarta'
-        );
-
-        $attendances = Attendance::where('user_id', $user->id)
-            ->whereBetween('date', [
-                $periode->copy()->startOfMonth()->toDateString(),
-                $periode->copy()->endOfMonth()->toDateString(),
-            ])
-            ->orderByDesc('date')
-            ->orderByDesc('clock_in')
-            ->get();
-
-        return view(
-            'attendance.history',
-            compact('user', 'attendances', 'periode')
-        );
-
-    })->name('riwayat.absen');
+    // Logika riwayat dipusatkan di AttendanceController (dipakai juga oleh ekspor).
+    Route::get(
+        '/riwayat-absen',
+        [AttendanceController::class, 'history']
+    )->name('riwayat.absen');
 
     Route::get(
         '/riwayat-absen/export-pdf',
@@ -553,6 +526,17 @@ Route::middleware([
         '/attendance',
         [AdminController::class, 'attendance']
     )->name('admin.attendance');
+
+    // Ekspor memakai seluruh data sesuai filter aktif (bukan hanya halaman yang tampil).
+    Route::get(
+        '/attendance/export-csv',
+        [AdminController::class, 'exportAttendanceCsv']
+    )->name('admin.attendance.export-csv');
+
+    Route::get(
+        '/attendance/export-pdf',
+        [AdminController::class, 'exportAttendancePdf']
+    )->name('admin.attendance.export-pdf');
 
     Route::get(
         '/attendance/{attendance}/photo',

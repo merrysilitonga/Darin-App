@@ -35,6 +35,21 @@
         {{-- KONTEN DASHBOARD --}}
         <main class="min-w-0 flex-1 p-5 md:p-10">
 
+            {{-- NOTIFIKASI (mis. penolakan aksi saat periode magang berakhir) --}}
+            @if (session('error'))
+                <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            @if (auth()->user()?->isInternshipEnded())
+                <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    <span class="font-bold">Periode magang telah berakhir.</span>
+                    Anda masih dapat melihat dan mengunduh riwayat, tetapi tidak dapat absen,
+                    mengisi logbook, atau mengajukan izin.
+                </div>
+            @endif
+
             <!-- HEADER -->
             <header class="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
@@ -159,7 +174,7 @@
 
                 </div>
 
-                <!-- KOLOM KANAN: MENTOR -->
+                <!-- KOLOM KANAN: MENTOR (data asli dari penugasan Admin/HR) -->
                 <div class="flex flex-col justify-between rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
                     <div>
                         <div class="mb-4 flex items-center justify-between">
@@ -167,62 +182,105 @@
                                 Mentor Pembimbing
                             </h3>
 
-                            <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                            <span class="h-2 w-2 rounded-full {{ $mentor ? 'bg-emerald-500' : 'bg-gray-300' }}"></span>
                         </div>
 
-                        <!-- PROFIL MENTOR -->
-                        <div class="mb-4 flex flex-col items-center rounded-2xl border border-gray-100 bg-gray-50/60 p-4 text-center">
-                            <div class="mb-3 flex h-16 w-16 items-center justify-center rounded-full border-2 border-white bg-amber-100 text-xl font-bold text-amber-800 shadow-sm">
-                                👨‍💻
-                            </div>
+                        @if ($mentor)
 
-                            <h4 class="text-sm font-bold text-gray-800">
-                                Bpk. Dr. Ahmad Fauzi, M.Kom.
-                            </h4>
+                            <!-- PROFIL MENTOR -->
+                            <div class="mb-4 flex flex-col items-center rounded-2xl border border-gray-100 bg-gray-50/60 p-4 text-center">
+                                @if ($mentor->photo)
+                                    <img
+                                        src="{{ asset('storage/' . $mentor->photo) }}"
+                                        alt="Foto {{ $mentor->name }}"
+                                        class="mb-3 h-16 w-16 rounded-full border-2 border-white object-cover shadow-sm"
+                                    >
+                                @else
+                                    <div class="mb-3 flex h-16 w-16 items-center justify-center rounded-full border-2 border-white bg-amber-100 text-xl font-bold text-amber-800 shadow-sm">
+                                        {{ mb_strtoupper(mb_substr($mentor->name, 0, 1)) }}
+                                    </div>
+                                @endif
 
-                            <span class="mt-0.5 text-xs text-gray-500">
-                                Lead Software Engineer
-                            </span>
+                                <h4 class="text-sm font-bold text-gray-800">
+                                    {{ $mentor->name }}
+                                </h4>
 
-                            <span class="mt-2 rounded-md bg-gray-200 px-2.5 py-0.5 text-[10px] font-semibold text-gray-700">
-                                Pembimbing Industri
-                            </span>
-                        </div>
-
-                        <!-- DETAIL MENTOR -->
-                        <div class="space-y-2 text-xs text-gray-600">
-                            <div class="flex items-center justify-between gap-3 border-b border-gray-100 py-1.5">
-                                <span class="text-gray-400">Email:</span>
-                                <span class="break-all text-right font-medium text-gray-700">
-                                    ahmad.fauzi@darin.id
+                                <span class="mt-0.5 text-xs text-gray-500">
+                                    {{ $mentor->position ?: 'Mentor Pembimbing' }}
                                 </span>
+
+                                @if ($mentor->division)
+                                    <span class="mt-2 rounded-md bg-gray-200 px-2.5 py-0.5 text-[10px] font-semibold text-gray-700">
+                                        {{ $mentor->division->name }}
+                                    </span>
+                                @endif
                             </div>
 
-                            <div class="flex items-center justify-between gap-3 border-b border-gray-100 py-1.5">
-                                <span class="text-gray-400">WhatsApp:</span>
-                                <span class="text-right font-medium text-gray-700">
-                                    +62 812-3456-7890
-                                </span>
+                            <!-- DETAIL MENTOR -->
+                            <div class="space-y-2 text-xs text-gray-600">
+                                <div class="flex items-center justify-between gap-3 border-b border-gray-100 py-1.5">
+                                    <span class="text-gray-400">Email:</span>
+                                    <a
+                                        href="mailto:{{ $mentor->email }}"
+                                        class="break-all text-right font-medium text-gray-700 hover:underline"
+                                    >
+                                        {{ $mentor->email }}
+                                    </a>
+                                </div>
+
+                                <div class="flex items-center justify-between gap-3 border-b border-gray-100 py-1.5">
+                                    <span class="text-gray-400">No. HP:</span>
+                                    <span class="text-right font-medium text-gray-700">
+                                        {{ $mentor->phone ?: 'Belum diisi' }}
+                                    </span>
+                                </div>
+
+                                @if ($mentor->nip)
+                                    <div class="flex items-center justify-between gap-3 py-1.5">
+                                        <span class="text-gray-400">NIP:</span>
+                                        <span class="text-right font-medium text-gray-700">
+                                            {{ $mentor->nip }}
+                                        </span>
+                                    </div>
+                                @endif
                             </div>
 
-                            <div class="flex items-center justify-between gap-3 py-1.5">
-                                <span class="text-gray-400">Jam Konsultasi:</span>
-                                <span class="text-right font-medium text-gray-700">
-                                    13:00 - 15:00 WIB
-                                </span>
+                        @else
+
+                            <!-- MENTOR BELUM DITETAPKAN -->
+                            <div class="rounded-2xl border border-dashed border-gray-200 bg-gray-50/60 p-5 text-center">
+                                <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-xl text-gray-400">
+                                    ?
+                                </div>
+
+                                <p class="text-sm font-bold text-gray-700">
+                                    Mentor belum ditetapkan
+                                </p>
+
+                                <p class="mt-1 text-xs leading-5 text-gray-500">
+                                    Hubungi Admin/HR agar mentor pembimbing ditetapkan
+                                    melalui menu Manajemen Pengguna.
+                                </p>
                             </div>
-                        </div>
+
+                        @endif
                     </div>
 
-                    <!-- TOMBOL WHATSAPP -->
-                    <a
-                        href="https://wa.me/6281234567890"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-50 py-2.5 text-xs font-bold text-emerald-700 shadow-sm transition hover:bg-emerald-600 hover:text-white"
-                    >
-                        💬 Hubungi Mentor via WhatsApp
-                    </a>
+                    <!-- TOMBOL WHATSAPP (hanya jika nomor HP mentor valid) -->
+                    @if ($mentorWhatsapp)
+                        <a
+                            href="https://wa.me/{{ $mentorWhatsapp }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-50 py-2.5 text-xs font-bold text-emerald-700 shadow-sm transition hover:bg-emerald-600 hover:text-white"
+                        >
+                            💬 Hubungi Mentor via WhatsApp
+                        </a>
+                    @elseif ($mentor)
+                        <p class="mt-5 text-center text-[11px] leading-5 text-gray-400">
+                            Nomor WhatsApp mentor belum tersedia.
+                        </p>
+                    @endif
                 </div>
 
             </div>

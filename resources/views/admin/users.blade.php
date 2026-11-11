@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -542,6 +541,23 @@
                                                         <p class="mt-1 text-sm font-bold text-gray-800">
                                                             {{ $user->end_date->format('d M Y') }}
                                                         </p>
+
+                                                        {{-- Status otomatis dari periode magang --}}
+                                                        @php
+                                                            $statusMagang = $user->internshipStatus();
+                                                        @endphp
+                                                        <span class="mt-3 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold
+                                                            {{ match ($statusMagang) {
+                                                                \App\Models\User::INTERNSHIP_ACTIVE => 'bg-emerald-100 text-emerald-700',
+                                                                \App\Models\User::INTERNSHIP_UPCOMING => 'bg-blue-100 text-blue-700',
+                                                                default => 'bg-gray-200 text-gray-600',
+                                                            } }}">
+                                                            {{ match ($statusMagang) {
+                                                                \App\Models\User::INTERNSHIP_ACTIVE => 'Aktif',
+                                                                \App\Models\User::INTERNSHIP_UPCOMING => 'Belum mulai',
+                                                                default => 'Tidak aktif (selesai)',
+                                                            } }}
+                                                        </span>
                                                     </div>
 
                                                 @else

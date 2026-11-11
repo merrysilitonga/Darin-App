@@ -110,27 +110,27 @@ class SystemSettingsController extends Controller
                 ]);
         }
 
-        // Jam pulang Senin-Kamis tidak boleh sebelum batas akhir masuk.
+        // Jam pulang Senin-Kamis harus SETELAH batas akhir masuk; kalau sama, peserta bisa absen masuk lalu langsung pulang.
         if (
-            $validated['clock_out_time'] < $validated['clock_in_end']
+            $validated['clock_out_time'] <= $validated['clock_in_end']
         ) {
             return back()
                 ->withInput()
                 ->withErrors([
                     'clock_out_time' =>
-                        'Jam pulang Senin-Kamis tidak boleh sebelum batas akhir absensi masuk.',
+                        'Jam pulang Senin-Kamis harus setelah batas akhir absensi masuk (tidak boleh sama).',
                 ]);
         }
 
-        // Jam pulang Jumat tidak boleh sebelum batas akhir masuk Jumat.
+        // Jam pulang Jumat harus SETELAH batas akhir masuk Jumat.
         if (
-            $validated['friday_clock_out_time'] < $validated['friday_clock_in_end']
+            $validated['friday_clock_out_time'] <= $validated['friday_clock_in_end']
         ) {
             return back()
                 ->withInput()
                 ->withErrors([
                     'friday_clock_out_time' =>
-                        'Jam pulang hari Jumat tidak boleh sebelum batas akhir absensi masuk.',
+                        'Jam pulang hari Jumat harus setelah batas akhir absensi masuk (tidak boleh sama).',
                 ]);
         }
 
