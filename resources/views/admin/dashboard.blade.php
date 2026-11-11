@@ -145,21 +145,21 @@
                 <section class="grid grid-cols-1 md:grid-cols-3 gap-5">
                     
                     {{-- Monitoring Logbook --}}
-                    <a href="{{ route('admin.logbooks') }}" class="group block bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-[#ffc107] hover:shadow-md transition">
+                    <a href="{{ route('admin.attendance') }}" class="group block bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-[#ffc107] hover:shadow-md transition">
                         <div class="w-10 h-10 bg-slate-50 text-slate-600 rounded-lg flex items-center justify-center text-xl mb-3 group-hover:bg-amber-50 group-hover:text-amber-600 transition">📝</div>
                         <h4 class="text-base font-bold text-gray-800">Monitoring Logbook</h4>
                         <p class="text-xs text-gray-500 mt-1 leading-relaxed">Pantau catatan aktivitas harian peserta magang lintas divisi.</p>
                     </a>
 
                     {{-- Survei Kepuasan --}}
-                    <a href="{{ route('admin.feedbacks') ?? '#' }}" class="group block bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-[#ffc107] hover:shadow-md transition">
+                    <a href="{{ Route::has('admin.feedbacks') ? route('admin.feedbacks') : '#' }}" class="group block bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-[#ffc107] hover:shadow-md transition">
                         <div class="w-10 h-10 bg-slate-50 text-slate-600 rounded-lg flex items-center justify-center text-xl mb-3 group-hover:bg-blue-50 group-hover:text-blue-600 transition">📊</div>
                         <h4 class="text-base font-bold text-gray-800">Survei Kepuasan</h4>
                         <p class="text-xs text-gray-500 mt-1 leading-relaxed">Lihat masukan dan penilaian peserta terhadap aplikasi.</p>
                     </a>
 
                     {{-- Danger Zone --}}
-                    <a href="{{ route('admin.reset-data.view') }}" class="group block bg-red-50 p-6 rounded-2xl border border-red-200 shadow-sm hover:bg-red-600 transition">
+                    <a href="{{ Route::has('admin.reset-data.view') ? route('admin.reset-data.view') : '#' }}" class="group block bg-red-50 p-6 rounded-2xl border border-red-200 shadow-sm hover:bg-red-600 transition">
                         <div class="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center text-xl mb-3 group-hover:bg-white transition">🚨</div>
                         <h4 class="text-base font-bold text-red-700 group-hover:text-white transition">Danger Zone (Reset)</h4>
                         <p class="text-xs text-red-600/80 mt-1 leading-relaxed group-hover:text-white/90">Area pembersihan data saat pergantian periode magang.</p>

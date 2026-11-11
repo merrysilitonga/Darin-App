@@ -487,7 +487,8 @@
 
                 </tbody>
 
-                @if ($attendanceSummaries->isNotEmpty())
+                {{-- $attendanceSummaries berupa array (bukan Collection), jadi pakai count(). --}}
+                @if (count($attendanceSummaries) > 0)
                     <tfoot class="border-t border-gray-200 bg-gray-50">
                         <tr>
                             <td colspan="2" class="px-4 py-4 text-xs font-bold text-slate-700">

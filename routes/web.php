@@ -569,6 +569,16 @@ Route::middleware([
         [HolidayController::class, 'store']
     )->name('admin.holidays.store');
 
+    Route::post(
+        '/holidays/import',
+        [HolidayController::class, 'import']
+    )->name('admin.holidays.import');
+
+    Route::get(
+        '/holidays/template',
+        [HolidayController::class, 'template']
+    )->name('admin.holidays.template');
+
     Route::put(
         '/holidays/{id}',
         [HolidayController::class, 'update']

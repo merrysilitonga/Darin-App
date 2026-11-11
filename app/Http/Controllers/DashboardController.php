@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Models\Holiday;
 use App\Models\Logbook;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -31,6 +32,10 @@ class DashboardController extends Controller
 
         // Jumlah logbook milik mahasiswa yang sedang login.
         $jumlahLaporan = Logbook::where('user_id', $user->id)->count();
+
+        // Informasi kalender hari libur untuk peserta.
+        $todayHoliday = Holiday::activeOn($hariIni->toDateString());
+        $upcomingHolidays = Holiday::upcoming($hariIni, 30, 3);
 
         /*
         |--------------------------------------------------------------------------
@@ -145,7 +150,9 @@ class DashboardController extends Controller
             'periodeAktif',
             'jumlahLaporan',
             'mentor',
-            'mentorWhatsapp'
+            'mentorWhatsapp',
+            'todayHoliday',
+            'upcomingHolidays'
         ));
     }
 

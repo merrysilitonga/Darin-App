@@ -40,13 +40,19 @@ class AttendanceController extends Controller
         $canClockInLocation = $location !== null && (bool) $location->is_active;
         $isFriday = $now->dayOfWeekIso === 5;
 
+        // Informasi kalender hari libur untuk peserta.
+        $todayHoliday = Holiday::activeOn($now->toDateString());
+        $upcomingHolidays = Holiday::upcoming($now->copy()->startOfDay(), 30, 3);
+
         return view('attendance.index', compact(
             'user',
             'attendance',
             'location',
             'canClockInLocation',
             'isFriday',
-            'now'
+            'now',
+            'todayHoliday',
+            'upcomingHolidays'
         ));
     }
 
@@ -82,10 +88,7 @@ class AttendanceController extends Controller
         /*
          * VALIDASI KALENDER HARI LIBUR
          */
-        $holiday = Holiday::query()
-            ->where('is_active', true)
-            ->whereDate('date', $today)
-            ->first();
+        $holiday = Holiday::activeOn($today);
 
         if ($holiday) {
             return back()->with(
