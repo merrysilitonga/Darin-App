@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\Holiday;
+use App\Models\LeaveRequest;
 use App\Models\Location;
 use App\Models\SystemSetting;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
@@ -38,13 +40,19 @@ class AttendanceController extends Controller
         $canClockInLocation = $location !== null && (bool) $location->is_active;
         $isFriday = $now->dayOfWeekIso === 5;
 
+        // Informasi kalender hari libur untuk peserta.
+        $todayHoliday = Holiday::activeOn($now->toDateString());
+        $upcomingHolidays = Holiday::upcoming($now->copy()->startOfDay(), 30, 3);
+
         return view('attendance.index', compact(
             'user',
             'attendance',
             'location',
             'canClockInLocation',
             'isFriday',
-            'now'
+            'now',
+            'todayHoliday',
+            'upcomingHolidays'
         ));
     }
 
@@ -80,10 +88,7 @@ class AttendanceController extends Controller
         /*
          * VALIDASI KALENDER HARI LIBUR
          */
-        $holiday = Holiday::query()
-            ->where('is_active', true)
-            ->whereDate('date', $today)
-            ->first();
+        $holiday = Holiday::activeOn($today);
 
         if ($holiday) {
             return back()->with(
@@ -92,17 +97,22 @@ class AttendanceController extends Controller
             );
         }
 
-        if (!$user->start_date || !$user->end_date) {
-            return back()->with('error', 'Periode magang belum ditentukan oleh HR/Admin.');
+        $periodError = $this->internshipPeriodError($user, $today);
+
+        if ($periodError !== null) {
+            return back()->with('error', $periodError);
         }
 
-        $mulai = Carbon::parse($user->start_date)->toDateString();
-        $selesai = Carbon::parse($user->end_date)->toDateString();
+        /*
+         * Cegah konflik data: hari yang sudah disetujui sebagai Izin/Sakit
+         * tidak boleh sekaligus tercatat Hadir.
+         */
+        $approvedLeave = $this->approvedLeaveOn((int) $user->id, $today);
 
-        if ($selesai < $mulai || $today < $mulai || $today > $selesai) {
+        if ($approvedLeave !== null) {
             return back()->with(
                 'error',
-                "Tanggal absensi {$today} berada di luar periode magang ({$mulai} sampai {$selesai})."
+                "Hari ini tercatat sebagai {$approvedLeave->request_type} yang sudah disetujui. Absensi masuk tidak diperlukan."
             );
         }
 
@@ -256,18 +266,10 @@ class AttendanceController extends Controller
             return back()->with('error', 'Absensi pulang tidak tersedia pada akhir pekan.');
         }
 
-        if (!$user->start_date || !$user->end_date) {
-            return back()->with('error', 'Periode magang belum ditentukan oleh HR/Admin.');
-        }
+        $periodError = $this->internshipPeriodError($user, $today);
 
-        $mulai = Carbon::parse($user->start_date)->toDateString();
-        $selesai = Carbon::parse($user->end_date)->toDateString();
-
-        if ($selesai < $mulai || $today < $mulai || $today > $selesai) {
-            return back()->with(
-                'error',
-                "Tanggal absensi {$today} berada di luar periode magang ({$mulai} sampai {$selesai})."
-            );
+        if ($periodError !== null) {
+            return back()->with('error', $periodError);
         }
 
         $attendance = Attendance::where('user_id', $user->id)
@@ -385,6 +387,39 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Memvalidasi tanggal absensi terhadap periode magang.
+     * Mengembalikan pesan error, atau null jika valid.
+     */
+    private function internshipPeriodError(User $user, string $today): ?string
+    {
+        if (!$user->start_date || !$user->end_date) {
+            return 'Periode magang belum ditentukan oleh HR/Admin.';
+        }
+
+        $mulai = Carbon::parse($user->start_date)->toDateString();
+        $selesai = Carbon::parse($user->end_date)->toDateString();
+
+        if ($selesai < $mulai || $today < $mulai || $today > $selesai) {
+            return "Tanggal absensi {$today} berada di luar periode magang ({$mulai} sampai {$selesai}).";
+        }
+
+        return null;
+    }
+
+    /**
+     * Mengambil pengajuan Izin/Sakit berstatus Disetujui yang mencakup tanggal tertentu.
+     */
+    private function approvedLeaveOn(int $userId, string $date): ?LeaveRequest
+    {
+        return LeaveRequest::query()
+            ->where('user_id', $userId)
+            ->where('status', 'Disetujui')
+            ->whereDate('start_date', '<=', $date)
+            ->whereDate('end_date', '>=', $date)
+            ->first();
+    }
+
+    /**
      * Menghitung jarak dalam meter menggunakan formula Haversine.
      */
     private function distanceInMeters(
@@ -414,7 +449,8 @@ class AttendanceController extends Controller
      */
     public function history(Request $request)
     {
-        [$user, $attendances, $periode] = $this->riwayatBulanIni($request);
+        // Halaman riwayat menampilkan data terbaru lebih dulu.
+        [$user, $attendances, $periode] = $this->riwayatBulanIni($request, 'desc');
 
         return view(
             'attendance.history',
@@ -425,8 +461,10 @@ class AttendanceController extends Controller
     /**
      * Mengambil riwayat absensi berdasarkan bulan.
      */
-    private function riwayatBulanIni(Request $request)
+    private function riwayatBulanIni(Request $request, string $direction = 'asc'): array
     {
+        $direction = $direction === 'desc' ? 'desc' : 'asc';
+
         $user = $request->user();
 
         if (!$user) {
@@ -455,8 +493,8 @@ class AttendanceController extends Controller
                 $awal->toDateString(),
                 $akhir->toDateString(),
             ])
-            ->orderBy('date')
-            ->orderBy('clock_in')
+            ->orderBy('date', $direction)
+            ->orderBy('clock_in', $direction)
             ->get();
 
         return [$user, $attendances, $awal];
@@ -526,6 +564,7 @@ class AttendanceController extends Controller
                 fputcsv($file, [
                     $attendance->date
                         ? Carbon::parse($attendance->date)
+                            ->locale('id')
                             ->translatedFormat('l, d F Y')
                         : '-',
                     $attendance->clock_in ?? '-',

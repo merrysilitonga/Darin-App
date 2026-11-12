@@ -6,13 +6,16 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Http\Request;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 
 use App\Models\User;
-use App\Models\Attendance;
 
 use App\Http\Controllers\AdminLocationController;
 use App\Http\Controllers\HolidayController;
+use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\AdminFeedbackController;
+use App\Http\Controllers\InternRecapController;
+use App\Http\Controllers\AdminLogbookController;
+use App\Http\Controllers\ResetDataController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\SystemSettingsController;
@@ -26,6 +29,7 @@ use App\Http\Controllers\MentorLeaveRequestController;
 use App\Http\Controllers\MentorDashboardController;
 use App\Http\Controllers\MentorAttendanceController;
 
+use App\Http\Middleware\EnsureInternshipActive;
 use App\Http\Middleware\RoleMiddleware;
 
 
@@ -207,6 +211,8 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware([
     'auth',
     RoleMiddleware::class . ':magang',
+    // Setelah periode magang berakhir, akun otomatis menjadi baca-saja.
+    EnsureInternshipActive::class,
 ])->group(function () {
 
     Route::get(
@@ -231,6 +237,32 @@ Route::middleware([
         '/absen-pulang',
         [AttendanceController::class, 'storeClockOut']
     )->name('absen.checkout');
+
+
+    // Rekap magang milik sendiri.
+
+    Route::get(
+        '/rekap-saya',
+        [InternRecapController::class, 'mine']
+    )->name('rekap.saya');
+
+    Route::get(
+        '/rekap-saya/pdf',
+        [InternRecapController::class, 'minePdf']
+    )->name('rekap.saya.pdf');
+
+
+    // Saran & masukan.
+
+    Route::get(
+        '/saran',
+        [FeedbackController::class, 'index']
+    )->name('saran');
+
+    Route::post(
+        '/saran',
+        [FeedbackController::class, 'store']
+    )->name('saran.store');
 
 
     // Logbook.
@@ -263,39 +295,11 @@ Route::middleware([
 
     // Riwayat absensi.
 
-    Route::get('/riwayat-absen', function (Request $request) {
-
-        $user = $request->user();
-        $bulan = $request->query('bulan');
-
-        if (
-            !is_string($bulan) ||
-            !preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $bulan)
-        ) {
-            $bulan = Carbon::now('Asia/Jakarta')->format('Y-m');
-        }
-
-        $periode = Carbon::createFromFormat(
-            '!Y-m',
-            $bulan,
-            'Asia/Jakarta'
-        );
-
-        $attendances = Attendance::where('user_id', $user->id)
-            ->whereBetween('date', [
-                $periode->copy()->startOfMonth()->toDateString(),
-                $periode->copy()->endOfMonth()->toDateString(),
-            ])
-            ->orderByDesc('date')
-            ->orderByDesc('clock_in')
-            ->get();
-
-        return view(
-            'attendance.history',
-            compact('user', 'attendances', 'periode')
-        );
-
-    })->name('riwayat.absen');
+    // Logika riwayat dipusatkan di AttendanceController (dipakai juga oleh ekspor).
+    Route::get(
+        '/riwayat-absen',
+        [AttendanceController::class, 'history']
+    )->name('riwayat.absen');
 
     Route::get(
         '/riwayat-absen/export-pdf',
@@ -414,6 +418,18 @@ Route::middleware([
         ));
 
     })->name('mentor.interns');
+
+    // Rekap kehadiran per mahasiswa bimbingan.
+
+    Route::get(
+        '/interns/{user}/rekap',
+        [InternRecapController::class, 'mentorShow']
+    )->whereNumber('user')->name('mentor.interns.recap');
+
+    Route::get(
+        '/interns/{user}/rekap/pdf',
+        [InternRecapController::class, 'mentorPdf']
+    )->whereNumber('user')->name('mentor.interns.recap-pdf');
 
 
     // Logbook.
@@ -554,6 +570,17 @@ Route::middleware([
         [AdminController::class, 'attendance']
     )->name('admin.attendance');
 
+    // Ekspor memakai seluruh data sesuai filter aktif (bukan hanya halaman yang tampil).
+    Route::get(
+        '/attendance/export-csv',
+        [AdminController::class, 'exportAttendanceCsv']
+    )->name('admin.attendance.export-csv');
+
+    Route::get(
+        '/attendance/export-pdf',
+        [AdminController::class, 'exportAttendancePdf']
+    )->name('admin.attendance.export-pdf');
+
     Route::get(
         '/attendance/{attendance}/photo',
         [AdminController::class, 'attendancePhoto']
@@ -573,6 +600,66 @@ Route::middleware([
     )->name('admin.settings.update');
 
 
+    // Rekap kehadiran per peserta.
+
+    Route::get(
+        '/interns/{user}/rekap',
+        [InternRecapController::class, 'adminShow']
+    )->whereNumber('user')->name('admin.interns.recap');
+
+    Route::get(
+        '/interns/{user}/rekap/pdf',
+        [InternRecapController::class, 'adminPdf']
+    )->whereNumber('user')->name('admin.interns.recap-pdf');
+
+
+    // Monitoring logbook lintas divisi.
+
+    Route::get(
+        '/logbooks',
+        [AdminLogbookController::class, 'index']
+    )->name('admin.logbooks');
+
+
+    // Reset Data (Danger Zone) — khusus role admin, bukan HR.
+
+    Route::middleware(RoleMiddleware::class . ':admin')->group(function () {
+
+        Route::get(
+            '/reset-data',
+            [ResetDataController::class, 'index']
+        )->name('admin.reset-data.view');
+
+        Route::delete(
+            '/reset-data/attendance',
+            [ResetDataController::class, 'attendance']
+        )->name('admin.reset-data.attendance');
+
+        Route::delete(
+            '/reset-data/logbooks',
+            [ResetDataController::class, 'logbooks']
+        )->name('admin.reset-data.logbooks');
+
+        Route::delete(
+            '/reset-data/users',
+            [ResetDataController::class, 'users']
+        )->name('admin.reset-data.users');
+    });
+
+
+    // Saran & masukan peserta.
+
+    Route::get(
+        '/feedbacks',
+        [AdminFeedbackController::class, 'index']
+    )->name('admin.feedbacks');
+
+    Route::put(
+        '/feedbacks/{feedback}',
+        [AdminFeedbackController::class, 'update']
+    )->whereNumber('feedback')->name('admin.feedbacks.update');
+
+
     // Manajemen Kalender Hari Libur.
 
     Route::get(
@@ -584,6 +671,16 @@ Route::middleware([
         '/holidays',
         [HolidayController::class, 'store']
     )->name('admin.holidays.store');
+
+    Route::post(
+        '/holidays/import',
+        [HolidayController::class, 'import']
+    )->name('admin.holidays.import');
+
+    Route::get(
+        '/holidays/template',
+        [HolidayController::class, 'template']
+    )->name('admin.holidays.template');
 
     Route::put(
         '/holidays/{id}',

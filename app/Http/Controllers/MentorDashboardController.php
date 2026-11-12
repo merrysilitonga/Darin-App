@@ -7,6 +7,7 @@ use App\Models\Division;
 use App\Models\LeaveRequest;
 use App\Models\Logbook;
 use App\Models\User;
+use App\Services\MentorPendingService;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
@@ -132,7 +133,14 @@ class MentorDashboardController extends Controller
                                 ),
                                 120
                             ),
-                        'created_at' => $logbook->created_at,
+                        'created_at' => $logbook->submitted_at
+                            ? Carbon::parse($logbook->submitted_at)
+                            : $logbook->created_at,
+                        'waiting_days' => MentorPendingService::waitingDays(
+                            $logbook->submitted_at
+                                ? Carbon::parse($logbook->submitted_at)
+                                : $logbook->created_at
+                        ),
                         'url' => route('mentor.logbook'),
                         'icon' => '📝',
                         'badge_class' => 'bg-amber-50 text-amber-700',
@@ -160,6 +168,7 @@ class MentorDashboardController extends Controller
                             120
                         ),
                         'created_at' => $leave->created_at,
+                        'waiting_days' => MentorPendingService::waitingDays($leave->created_at),
                         'url' => route('mentor.leave-requests'),
                         'icon' => '📋',
                         'badge_class' => 'bg-blue-50 text-blue-700',
@@ -175,7 +184,8 @@ class MentorDashboardController extends Controller
 
         $notifications = $pendingLogbooks
             ->concat($pendingLeaves)
-            ->sortByDesc(function ($item) {
+            // Yang paling lama menunggu tampil paling atas agar tidak terlewat.
+            ->sortBy(function ($item) {
                 return $item['created_at']?->timestamp ?? 0;
             })
             ->take(8)

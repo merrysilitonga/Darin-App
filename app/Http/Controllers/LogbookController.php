@@ -64,8 +64,7 @@ class LogbookController extends Controller
 
         // Satu entri yang masih menunggu berarti bulan masih terkunci.
         $monthLocked = $logbooks->contains(function ($item) {
-            return $item->status === 'Menunggu'
-                && $item->submitted_at !== null;
+            return in_array($item->status, ['Menunggu', 'Disetujui'], true);
         });
 
         $totalCatatan = $logbooks->count();
@@ -79,15 +78,12 @@ class LogbookController extends Controller
             ->count();
 
         $canSubmit = !$monthLocked
-            && $logbooks->contains(function ($item) {
-                return in_array(
-                    $item->status,
-                    ['Draft', 'Ditolak'],
-                    true
-                );
+            && $totalCatatan > 0 
+            && $logbooks->every(function ($item) {
+                return in_array($item->status, ['Draft', 'Ditolak'], true);
             });
 
-        if ($monthLocked) {
+        if ($monthLocked && $menungguPersetujuan > 0) {
             $monthStatus = 'Menunggu Approval';
         } elseif (
             $totalCatatan > 0 &&
@@ -184,10 +180,11 @@ class LogbookController extends Controller
             'description' => ['required', 'string', 'max:5000'],
         ]);
 
-        if (!in_array($logbook->status, ['Draft', 'Ditolak'], true)) {
+        // PRD 6.5: Kunci jika sudah diajukan (Menunggu) atau Disetujui
+        if (in_array($logbook->status, ['Menunggu', 'Disetujui'], true)) {
             return back()->with(
                 'error',
-                'Entri yang sudah dikirim atau disetujui tidak bisa diedit.'
+                'Akses ditolak: Entri logbook yang sudah diajukan atau disetujui terkunci dan tidak dapat diedit.'
             );
         }
 
@@ -238,10 +235,11 @@ class LogbookController extends Controller
             $bulan = $logbook->date->format('Y-m');
         }
 
-        if (!in_array($logbook->status, ['Draft', 'Ditolak'], true)) {
+        // PRD 6.5: Kunci jika sudah diajukan (Menunggu) atau Disetujui
+        if (in_array($logbook->status, ['Menunggu', 'Disetujui'], true)) {
             return redirect()
                 ->route('logbook', ['bulan' => $bulan])
-                ->with('error', 'Entri yang sudah dikirim tidak bisa dihapus.');
+                ->with('error', 'Akses ditolak: Entri logbook yang sudah diajukan atau disetujui tidak dapat dihapus.');
         }
 
         $this->ensureMonthIsOpen(
@@ -294,7 +292,7 @@ class LogbookController extends Controller
         if ($this->monthIsLocked($user->id, $awal)) {
             return back()->with(
                 'error',
-                'Bulan ini masih menunggu pemeriksaan Mentor.'
+                'Bulan ini masih terkunci karena sedang dalam status Menunggu atau sudah Disetujui.'
             );
         }
 
@@ -323,7 +321,7 @@ class LogbookController extends Controller
             ->route('logbook', ['bulan' => $bulan])
             ->with(
                 'success',
-                'Logbook bulan ini berhasil dikirim untuk approval. Entri akan terkunci sampai pemeriksaan selesai.'
+                'Logbook bulan ini berhasil diajukan. Seluruh entri kini terkunci (read-only) untuk diperiksa.'
             );
     }
 
@@ -342,7 +340,7 @@ class LogbookController extends Controller
     }
 
     /**
-     * Validasi periode magang dan bukti absensi.
+     * Validasi periode magang dan bukti absensi (PRD 6.5).
      */
     private function validateLogbookDate($user, string $date): void
     {
@@ -362,10 +360,11 @@ class LogbookController extends Controller
             $tanggal > $selesai
         ) {
             throw ValidationException::withMessages([
-                'date' => 'Tanggal logbook harus berada dalam periode magang Anda.',
+                'date' => 'Tanggal logbook harus berada dalam batas periode magang Anda.',
             ]);
         }
 
+        // PRD 6.5: Peserta harus sudah absen masuk sebelum bisa mengisi logbook
         $hasAttendance = Attendance::where('user_id', $user->id)
             ->whereDate('date', $tanggal)
             ->whereNotNull('clock_in')
@@ -373,7 +372,7 @@ class LogbookController extends Controller
 
         if (!$hasAttendance) {
             throw ValidationException::withMessages([
-                'date' => 'Anda harus memiliki catatan absen masuk pada tanggal tersebut sebelum mengisi logbook.',
+                'date' => 'Anda belum melakukan absen masuk pada tanggal ini. Logbook hanya dapat diisi jika kehadiran tercatat.',
             ]);
         }
     }
@@ -395,7 +394,7 @@ class LogbookController extends Controller
 
         if ($query->exists()) {
             throw ValidationException::withMessages([
-                'date' => 'Anda sudah memiliki entri logbook pada tanggal tersebut.',
+                'date' => 'Hanya diperbolehkan 1 (satu) entri logbook per hari kerja.',
             ]);
         }
     }
@@ -424,11 +423,14 @@ class LogbookController extends Controller
     ): void {
         if ($this->monthIsLocked($userId, $date)) {
             throw ValidationException::withMessages([
-                'date' => 'Entri bulan ini terkunci karena sedang menunggu pemeriksaan Mentor.',
+                'date' => 'Entri bulan ini terkunci karena sudah diajukan untuk pemeriksaan.',
             ]);
         }
     }
 
+    /**
+     * Cek status penguncian bulan berdasarkan tanggal
+     */
     private function monthIsLocked(
         int $userId,
         string $date
@@ -439,13 +441,13 @@ class LogbookController extends Controller
             'Asia/Jakarta'
         );
 
+        // Jika ada status Menunggu atau Disetujui, bulan dikunci untuk edit/delete
         return Logbook::where('user_id', $userId)
             ->whereBetween('date', [
                 $periode->copy()->startOfMonth()->toDateString(),
                 $periode->copy()->endOfMonth()->toDateString(),
             ])
-            ->where('status', 'Menunggu')
-            ->whereNotNull('submitted_at')
+            ->whereIn('status', ['Menunggu', 'Disetujui'])
             ->exists();
     }
 }

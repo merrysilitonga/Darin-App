@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\LeaveRequest;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -60,6 +61,33 @@ class LeaveRequestController extends Controller
                 'Surat harus berformat PDF, JPG, JPEG, atau PNG.',
             'document.max' => 'Ukuran surat maksimal 2 MB.',
         ]);
+
+        /*
+         * Tanggal pengajuan harus berada di dalam periode magang,
+         * agar tidak ada izin/sakit di luar masa kewajiban hadir.
+         */
+        $user = $request->user();
+
+        if (!$user->start_date || !$user->end_date) {
+            return back()
+                ->withInput()
+                ->with('error', 'Periode magang belum ditentukan oleh HR/Admin.');
+        }
+
+        $periodStart = $user->start_date->toDateString();
+        $periodEnd = $user->end_date->toDateString();
+
+        // Normalisasi ke Y-m-d agar perbandingan string akurat.
+        $requestStart = Carbon::parse($validated['start_date'])->toDateString();
+        $requestEnd = Carbon::parse($validated['end_date'])->toDateString();
+
+        if ($requestStart < $periodStart || $requestEnd > $periodEnd) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'start_date' => "Tanggal pengajuan harus di dalam periode magang ({$periodStart} sampai {$periodEnd}).",
+                ]);
+        }
 
         $path = $request->file('document')
             ->store('surat-izin', 'local');

@@ -13,6 +13,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
           rel="stylesheet">
 
+    <!-- Tambahan Script Alpine.js untuk mengatur Modal (Pop-up) -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -143,10 +146,10 @@
 <body class="min-h-screen antialiased">
 
 @php
-    $mentor = auth()->user();
+    $mentorUser = auth()->user();
 
-    $mentorName = $mentor?->name ?? 'Mentor';
-    $mentorPosition = $mentor?->position ?? 'Mentor / Pembimbing';
+    $mentorName = $mentorUser?->name ?? 'Mentor';
+    $mentorPosition = $mentorUser?->position ?? 'Mentor / Pembimbing';
 
     $mentorInitials = collect(explode(' ', trim($mentorName)))
         ->filter()
@@ -246,7 +249,7 @@
     </aside>
 
     {{-- KONTEN UTAMA --}}
-    <div class="flex min-w-0 flex-1 flex-col">
+    <div class="flex min-w-0 flex-1 flex-col" x-data="{ showModal: false, activeStudentId: null, activeStudentName: '', formKedisiplinan: 0, formKinerja: 0, formSikap: 0, formLaporan: 0 }">
 
         {{-- HEADER --}}
         <header class="page-header flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-7 py-4">
@@ -282,6 +285,20 @@
 
         {{-- ISI HALAMAN --}}
         <main class="page-content flex-1 space-y-5 p-7">
+            
+            {{-- ALERT SUCCESS --}}
+            @if(session('success'))
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700">
+                    ✅ {{ session('success') }}
+                </div>
+            @endif
+
+            {{-- ALERT ERROR --}}
+            @if($errors->any())
+                <div class="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-700">
+                    ❌ Terdapat kesalahan pengisian nilai. Pastikan angka antara 0-100.
+                </div>
+            @endif
 
             {{-- INFORMASI PENILAIAN --}}
             <section class="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
@@ -297,7 +314,7 @@
 
                     <p class="mt-1 text-xs font-normal leading-6 text-[#8b7440]">
                         Nilai akhir magang dihitung berdasarkan aspek Kedisiplinan,
-                        Kinerja Teknis, Sikap dan Etika, serta Kualitas Laporan Akhir.
+                        Kinerja Teknis, Sikap dan Etika, serta Kualitas Laporan Akhir. Skala 0-100.
                     </p>
                 </div>
 
@@ -314,12 +331,12 @@
                         </h3>
 
                         <p class="muted-text mt-1">
-                            Contoh rekap penilaian periode September 2026
+                            Daftar rekap penilaian periode {{ \Carbon\Carbon::now()->translatedFormat('F Y') }}
                         </p>
                     </div>
 
                     <span class="inline-flex w-fit items-center rounded-full bg-amber-50 px-3 py-1.5 text-[11px] font-medium text-amber-700">
-                        2 Data Contoh
+                        {{ isset($students) ? $students->count() : 0 }} Mahasiswa Bimbingan
                     </span>
 
                 </div>
@@ -341,83 +358,98 @@
                         </thead>
 
                         <tbody>
+                            @if(isset($students) && $students->count() > 0)
+                                @foreach($students as $student)
+                                    @php
+                                        $nilai = isset($assessments) ? $assessments->get($student->id) : null;
+                                        
+                                        $kedisiplinan = $nilai->kedisiplinan ?? 0;
+                                        $kinerja = $nilai->kinerja_teknis ?? 0;
+                                        $sikap = $nilai->sikap_etika ?? 0;
+                                        $laporan = $nilai->laporan ?? 0;
 
-                            {{-- DATA CONTOH MAHASISWA 1 --}}
-                            <tr>
-                                <td>
-                                    <p class="student-name">
-                                        Merry Silitonga
-                                    </p>
+                                        $nilaiAkhir = ($kedisiplinan * 0.25) + ($kinerja * 0.35) + ($sikap * 0.20) + ($laporan * 0.20);
 
-                                    <p class="muted-text mt-1">
-                                        Universitas Bina Sarana Informatika (UBSI)
-                                    </p>
-                                </td>
+                                        if ($nilaiAkhir >= 85) { 
+                                            $grade = 'A'; $badgeColor = 'bg-amber-50 text-amber-800'; 
+                                        } elseif ($nilaiAkhir >= 75) { 
+                                            $grade = 'B'; $badgeColor = 'bg-slate-100 text-slate-700'; 
+                                        } elseif ($nilaiAkhir >= 60) { 
+                                            $grade = 'C'; $badgeColor = 'bg-emerald-50 text-emerald-700'; 
+                                        } elseif ($nilaiAkhir > 0) { 
+                                            $grade = 'D'; $badgeColor = 'bg-red-50 text-red-700'; 
+                                        } else {
+                                            $grade = '-'; $badgeColor = 'bg-gray-100 text-gray-500';
+                                        }
+                                    @endphp
 
-                                <td class="text-center">90</td>
-                                <td class="text-center">95</td>
-                                <td class="text-center">88</td>
-                                <td class="text-center">92</td>
+                                    <tr class="transition hover:bg-slate-50/70">
+                                        <td>
+                                            <p class="student-name">
+                                                {{ $student->name }}
+                                            </p>
 
-                                <td class="text-center">
-                                    <span class="inline-flex rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-800">
-                                        91.8 (A)
-                                    </span>
-                                </td>
+                                            <p class="muted-text mt-1">
+                                                {{ $student->universitas ?? 'Universitas Asal Belum Diisi' }}
+                                            </p>
+                                        </td>
 
-                                <td class="text-center">
-                                    <div class="flex items-center justify-center gap-2">
-                                        <button type="button"
-                                                class="action-button bg-slate-800 text-white hover:bg-slate-700">
-                                            Edit Nilai
-                                        </button>
+                                        <td class="text-center">{{ $nilai ? $kedisiplinan : '-' }}</td>
+                                        <td class="text-center">{{ $nilai ? $kinerja : '-' }}</td>
+                                        <td class="text-center">{{ $nilai ? $sikap : '-' }}</td>
+                                        <td class="text-center">{{ $nilai ? $laporan : '-' }}</td>
 
-                                        <button type="button"
-                                                class="action-button bg-red-50 text-red-600 hover:bg-red-100">
-                                            PDF
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+                                        <td class="text-center">
+                                            @if($nilai)
+                                                <span class="inline-flex rounded-lg px-2.5 py-1.5 text-xs font-semibold {{ $badgeColor }}">
+                                                    {{ number_format($nilaiAkhir, 1) }} ({{ $grade }})
+                                                </span>
+                                            @else
+                                                <span class="inline-flex rounded-lg bg-gray-50 px-2.5 py-1.5 text-xs font-semibold text-gray-500">
+                                                    Belum Dinilai
+                                                </span>
+                                            @endif
+                                        </td>
 
-                            {{-- DATA CONTOH MAHASISWA 2 --}}
-                            <tr>
-                                <td>
-                                    <p class="student-name">
-                                        Ahmad Fauzi
-                                    </p>
+                                        <td class="text-center">
+                                            <div class="flex items-center justify-center gap-2">
+                                                {{-- Tombol Pemicu Modal (Alpine.js) --}}
+                                                <button type="button"
+                                                        @click="
+                                                            showModal = true; 
+                                                            activeStudentId = {{ $student->id }};
+                                                            activeStudentName = '{{ $student->name }}';
+                                                            formKedisiplinan = {{ $kedisiplinan }};
+                                                            formKinerja = {{ $kinerja }};
+                                                            formSikap = {{ $sikap }};
+                                                            formLaporan = {{ $laporan }};
+                                                            // Mengatur action form dinamis berdasarkan ID
+                                                            $refs.assessmentForm.action = '{{ url('mentor/assessment') }}/' + activeStudentId;
+                                                        "
+                                                        class="action-button bg-slate-800 text-white hover:bg-slate-700">
+                                                    {{ $nilai ? 'Edit Nilai' : 'Beri Nilai' }}
+                                                </button>
 
-                                    <p class="muted-text mt-1">
-                                        Universitas Bina Sarana Informatika (UBSI)
-                                    </p>
-                                </td>
-
-                                <td class="text-center">85</td>
-                                <td class="text-center">80</td>
-                                <td class="text-center">85</td>
-                                <td class="text-center">88</td>
-
-                                <td class="text-center">
-                                    <span class="inline-flex rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-700">
-                                        84.2 (B)
-                                    </span>
-                                </td>
-
-                                <td class="text-center">
-                                    <div class="flex items-center justify-center gap-2">
-                                        <button type="button"
-                                                class="action-button bg-slate-800 text-white hover:bg-slate-700">
-                                            Edit Nilai
-                                        </button>
-
-                                        <button type="button"
-                                                class="action-button bg-red-50 text-red-600 hover:bg-red-100">
-                                            PDF
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-
+                                                @if($nilai)
+                                                    <a href="#" class="action-button bg-red-50 text-red-600 hover:bg-red-100">
+                                                        PDF
+                                                    </a>
+                                                @else
+                                                    <button type="button" disabled class="action-button bg-gray-50 text-gray-300 cursor-not-allowed">
+                                                        PDF
+                                                    </button>
+                                                @endif
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            @else
+                                <tr>
+                                    <td colspan="7" class="py-10 text-center text-gray-400">
+                                        Saat ini tidak ada data mahasiswa bimbingan yang ditugaskan kepada Anda.
+                                    </td>
+                                </tr>
+                            @endif
                         </tbody>
 
                     </table>
@@ -426,13 +458,80 @@
 
                 <div class="border-t border-gray-100 px-5 py-4">
                     <p class="muted-text">
-                        Data pada tabel ini masih berupa contoh tampilan dan belum menjadi sumber nilai resmi dari database.
+                        Data pada tabel ini sudah terhubung dan membaca data nilai resmi dari database DARIN.
                     </p>
                 </div>
 
             </section>
-
         </main>
+
+        {{-- MODAL PENGISIAN NILAI (Alpine.js) --}}
+        <div x-show="showModal" style="display: none;" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <!-- Background Overlay -->
+            <div x-show="showModal" x-transition.opacity class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity"></div>
+
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                    <!-- Modal Panel -->
+                    <div x-show="showModal" 
+                         @click.away="showModal = false"
+                         x-transition:enter="ease-out duration-300" 
+                         x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" 
+                         x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" 
+                         x-transition:leave="ease-in duration-200" 
+                         x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" 
+                         x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                         class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                        
+                        <form x-ref="assessmentForm" method="POST" action="">
+                            @csrf
+                            <div class="bg-white px-6 pb-6 pt-7 sm:p-8 sm:pb-6">
+                                <div class="mb-5">
+                                    <h3 class="text-lg font-semibold leading-6 text-gray-900" id="modal-title">
+                                        Input Nilai Magang
+                                    </h3>
+                                    <p class="mt-1 text-sm text-gray-500">
+                                        Isi form penilaian (skala 0-100) untuk <span class="font-bold text-gray-700" x-text="activeStudentName"></span>.
+                                    </p>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">Kedisiplinan (25%)</label>
+                                        <input type="number" name="kedisiplinan" x-model="formKedisiplinan" min="0" max="100" required
+                                            class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:border-amber-500 focus:ring-amber-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">Kinerja Teknis (35%)</label>
+                                        <input type="number" name="kinerja_teknis" x-model="formKinerja" min="0" max="100" required
+                                            class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:border-amber-500 focus:ring-amber-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">Sikap & Etika (20%)</label>
+                                        <input type="number" name="sikap_etika" x-model="formSikap" min="0" max="100" required
+                                            class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:border-amber-500 focus:ring-amber-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-700 mb-1">Kualitas Laporan Akhir (20%)</label>
+                                        <input type="number" name="laporan" x-model="formLaporan" min="0" max="100" required
+                                            class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:border-amber-500 focus:ring-amber-500">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-gray-50 px-6 py-4 sm:flex sm:flex-row-reverse sm:px-8">
+                                <button type="submit" class="inline-flex w-full justify-center rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600 sm:ml-3 sm:w-auto transition">
+                                    Simpan Nilai
+                                </button>
+                                <button type="button" @click="showModal = false" class="mt-3 inline-flex w-full justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto transition">
+                                    Batal
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         {{-- FOOTER --}}
         <footer class="px-6 pb-5 text-center">

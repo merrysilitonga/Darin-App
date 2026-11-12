@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Models\Holiday;
 use App\Models\Logbook;
+use App\Services\InternTodayService;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -12,6 +14,11 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
+
+        // Mentor pembimbing yang ditetapkan Admin/HR (beserta divisinya).
+        $user->loadMissing('mentor.division');
+        $mentor = $user->mentor;
+        $mentorWhatsapp = $this->whatsappNumber($mentor?->phone);
 
         // Gunakan tanggal hari ini berdasarkan zona waktu Indonesia.
         $hariIni = Carbon::today('Asia/Jakarta');
@@ -26,6 +33,13 @@ class DashboardController extends Controller
 
         // Jumlah logbook milik mahasiswa yang sedang login.
         $jumlahLaporan = Logbook::where('user_id', $user->id)->count();
+
+        // Informasi kalender hari libur untuk peserta.
+        $todayHoliday = Holiday::activeOn($hariIni->toDateString());
+        $upcomingHolidays = Holiday::upcoming($hariIni, 30, 3);
+
+        // Pengingat "Tugas Hari Ini" (absen masuk/pulang, logbook, izin).
+        $todayTasks = app(InternTodayService::class)->tasks($user);
 
         /*
         |--------------------------------------------------------------------------
@@ -138,7 +152,38 @@ class DashboardController extends Controller
             'progresPersen',
             'sisaDurasi',
             'periodeAktif',
-            'jumlahLaporan'
+            'jumlahLaporan',
+            'mentor',
+            'mentorWhatsapp',
+            'todayHoliday',
+            'upcomingHolidays',
+            'todayTasks'
         ));
+    }
+
+    /**
+     * Mengubah nomor HP Indonesia ke format wa.me (contoh: 0812-3456 → 628123456).
+     * Mengembalikan null jika nomor kosong atau tidak valid.
+     */
+    private function whatsappNumber(?string $phone): ?string
+    {
+        if ($phone === null) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+
+        if (str_starts_with($digits, '0')) {
+            $digits = '62' . substr($digits, 1);
+        } elseif (str_starts_with($digits, '8')) {
+            $digits = '62' . $digits;
+        }
+
+        // Nomor Indonesia valid: diawali 62 dan panjang wajar.
+        if (!str_starts_with($digits, '62') || strlen($digits) < 10 || strlen($digits) > 15) {
+            return null;
+        }
+
+        return $digits;
     }
 }
