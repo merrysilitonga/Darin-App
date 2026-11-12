@@ -14,6 +14,8 @@ use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\AdminFeedbackController;
 use App\Http\Controllers\InternRecapController;
+use App\Http\Controllers\AdminLogbookController;
+use App\Http\Controllers\ResetDataController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\SystemSettingsController;
@@ -609,6 +611,40 @@ Route::middleware([
         '/interns/{user}/rekap/pdf',
         [InternRecapController::class, 'adminPdf']
     )->whereNumber('user')->name('admin.interns.recap-pdf');
+
+
+    // Monitoring logbook lintas divisi.
+
+    Route::get(
+        '/logbooks',
+        [AdminLogbookController::class, 'index']
+    )->name('admin.logbooks');
+
+
+    // Reset Data (Danger Zone) — khusus role admin, bukan HR.
+
+    Route::middleware(RoleMiddleware::class . ':admin')->group(function () {
+
+        Route::get(
+            '/reset-data',
+            [ResetDataController::class, 'index']
+        )->name('admin.reset-data.view');
+
+        Route::delete(
+            '/reset-data/attendance',
+            [ResetDataController::class, 'attendance']
+        )->name('admin.reset-data.attendance');
+
+        Route::delete(
+            '/reset-data/logbooks',
+            [ResetDataController::class, 'logbooks']
+        )->name('admin.reset-data.logbooks');
+
+        Route::delete(
+            '/reset-data/users',
+            [ResetDataController::class, 'users']
+        )->name('admin.reset-data.users');
+    });
 
 
     // Saran & masukan peserta.

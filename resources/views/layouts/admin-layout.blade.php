@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DARIN - Portal Admin</title>
+    <title>@yield('title', 'Portal Admin') - DARIN</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
@@ -49,6 +49,13 @@
                         <span>Rekap Absensi & Logbook</span>
                     </a>
 
+                    {{-- MONITORING LOGBOOK --}}
+                    <a href="{{ route('admin.logbooks') }}"
+                       class="flex items-center gap-3 rounded-xl px-4 py-3 transition
+                       {{ request()->is('admin/logbooks*') ? 'bg-[#ffc107] text-black' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                        <span>Monitoring Logbook</span>
+                    </a>
+
                     {{-- SARAN & MASUKAN PESERTA --}}
                     @php
                         $jumlahSaranBaru = \App\Models\Feedback::where('status', \App\Models\Feedback::STATUS_NEW)->count();
@@ -68,6 +75,15 @@
                        {{ request()->is('admin/holidays*') ? 'bg-[#ffc107] text-black' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
                         <span>Kalender Hari Libur</span>
                     </a>
+
+                    {{-- RESET DATA (khusus admin) --}}
+                    @if (strtolower((string) auth()->user()?->role) === 'admin')
+                        <a href="{{ route('admin.reset-data.view') }}"
+                           class="flex items-center gap-3 rounded-xl px-4 py-3 transition
+                           {{ request()->is('admin/reset-data*') ? 'bg-[#ffc107] text-black' : 'text-red-300 hover:bg-red-500/10 hover:text-red-200' }}">
+                            <span>Reset Data</span>
+                        </a>
+                    @endif
 
                     <a href="/admin/settings"
                        class="flex items-center gap-3 rounded-xl px-4 py-3 transition
@@ -96,6 +112,16 @@
 
         {{-- KONTEN UTAMA --}}
         <main class="flex-1 overflow-y-auto p-4 md:p-8">
+            {{-- Judul halaman (opsional) untuk view yang mengisi section page_title --}}
+            @hasSection('page_title')
+                <header class="mx-auto mb-6 max-w-7xl">
+                    <h1 class="text-2xl font-extrabold text-gray-900">@yield('page_title')</h1>
+                    @hasSection('page_subtitle')
+                        <p class="mt-1 text-sm text-gray-500">@yield('page_subtitle')</p>
+                    @endif
+                </header>
+            @endif
+
             @yield('content')
         </main>
 
