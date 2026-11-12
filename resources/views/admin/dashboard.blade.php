@@ -166,7 +166,10 @@
                     </a>
 
                 </section>
-            </main>
+            {{-- GRAFIK KEHADIRAN --}}
+@include('partials.admin-charts')
+
+</main>
         </div>
     </div>
 </body>

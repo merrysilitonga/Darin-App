@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\AdminChartService;
 use App\Services\MentorPendingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -46,6 +47,13 @@ class AppServiceProvider extends ServiceProvider
                 'mentorPending',
                 $this->app->make(MentorPendingService::class)->summary($user)
             );
+        });
+
+        /*
+         * Grafik dashboard admin (tren kehadiran & persentase per divisi).
+         */
+        View::composer('partials.admin-charts', function ($view) {
+            $view->with('adminCharts', $this->app->make(AdminChartService::class)->build());
         });
     }
 }
