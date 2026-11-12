@@ -119,6 +119,22 @@
                     Logbook Harian
                 </a>
 
+                {{-- REKAP MAGANG SAYA --}}
+                <a
+                    href="{{ route('rekap.saya') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('rekap.saya*') ? $activeClass : $inactiveClass }}"
+                >
+                    Rekap Magang Saya
+                </a>
+
+                {{-- SARAN & MASUKAN --}}
+                <a
+                    href="{{ route('saran') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('saran', 'saran.*') ? $activeClass : $inactiveClass }}"
+                >
+                    Saran &amp; Masukan
+                </a>
+
             </nav>
 
         {{-- MENU MENTOR --}}
@@ -216,6 +232,14 @@
                     class="{{ $menuItemClass }} {{ request()->routeIs('admin.attendance*') ? $activeClass : $inactiveClass }}"
                 >
                     Rekap Absensi
+                </a>
+
+                {{-- SARAN & MASUKAN PESERTA --}}
+                <a
+                    href="{{ route('admin.feedbacks') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.feedbacks*') ? $activeClass : $inactiveClass }}"
+                >
+                    Saran &amp; Masukan
                 </a>
 
                 {{-- KALENDER HARI LIBUR --}}

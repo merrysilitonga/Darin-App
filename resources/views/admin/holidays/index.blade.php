@@ -313,13 +313,13 @@
 
         <div class="overflow-x-auto">
             <div class="min-w-[640px]">
-                <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold uppercase tracking-wider text-gray-500">
+                <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold uppercase tracking-wider text-gray-500" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px">
                     @foreach (['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'] as $namaHari)
                         <div class="py-2 {{ $loop->index >= 5 ? 'text-red-400' : '' }}">{{ $namaHari }}</div>
                     @endforeach
                 </div>
 
-                <div class="grid grid-cols-7 gap-1">
+                <div class="grid grid-cols-7 gap-1" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px">
                     @foreach ($calendar['weeks'] as $week)
                         @foreach ($week as $cell)
                             @php
@@ -341,7 +341,7 @@
                             @endphp
 
                             <div
-                                class="min-h-[76px] rounded-lg border border-gray-100 p-2 text-left text-xs {{ $cellClass }} {{ $cell['is_today'] ? 'ring-2 ring-amber-400' : '' }}"
+                                style="min-height:76px" class="min-h-[76px] rounded-lg border border-gray-100 p-2 text-left text-xs {{ $cellClass }} {{ $cell['is_today'] ? 'ring-2 ring-amber-400' : '' }}"
                                 @if ($libur && $cell['in_month'])
                                     title="{{ $libur->name }} ({{ $libur->type }}{{ $libur->is_active ? '' : ', nonaktif' }}){{ $libur->description ? ' — ' . $libur->description : '' }}"
                                 @endif

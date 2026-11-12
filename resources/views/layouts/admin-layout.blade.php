@@ -49,6 +49,19 @@
                         <span>Rekap Absensi & Logbook</span>
                     </a>
 
+                    {{-- SARAN & MASUKAN PESERTA --}}
+                    @php
+                        $jumlahSaranBaru = \App\Models\Feedback::where('status', \App\Models\Feedback::STATUS_NEW)->count();
+                    @endphp
+                    <a href="{{ route('admin.feedbacks') }}"
+                       class="flex items-center justify-between gap-3 rounded-xl px-4 py-3 transition
+                       {{ request()->is('admin/feedbacks*') ? 'bg-[#ffc107] text-black' : 'text-gray-300 hover:bg-white/5 hover:text-white' }}">
+                        <span>Saran &amp; Masukan</span>
+                        @if ($jumlahSaranBaru > 0)
+                            <span class="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">{{ $jumlahSaranBaru }}</span>
+                        @endif
+                    </a>
+
                     {{-- KALENDER HARI LIBUR --}}
                     <a href="{{ route('admin.holidays') }}"
                        class="flex items-center gap-3 rounded-xl px-4 py-3 transition

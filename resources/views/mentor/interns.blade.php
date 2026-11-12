@@ -229,6 +229,13 @@
                         {{-- AKSI --}}
                         <div class="flex items-center gap-2 border-t border-gray-100 pt-4">
 
+                            <a
+                                href="{{ route('mentor.interns.recap', $student->id) }}"
+                                class="inline-flex flex-1 items-center justify-center rounded-lg bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
+                            >
+                                Rekap
+                            </a>
+
                             @if ($whatsappNumber !== '')
                                 <a
                                     href="https://wa.me/{{ $whatsappNumber }}"

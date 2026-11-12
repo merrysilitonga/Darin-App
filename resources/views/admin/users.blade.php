@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -294,6 +295,13 @@
                                                 <p class="mt-2 text-xs text-gray-500">
                                                     NIM: {{ $user->nim }}
                                                 </p>
+                                            @endif
+
+                                            @if($mahasiswaMagang)
+                                                <a href="{{ route('admin.interns.recap', $user->id) }}"
+                                                   class="mt-2 inline-block rounded-lg border border-amber-200 px-2.5 py-1 text-xs font-bold text-amber-700 hover:bg-amber-50">
+                                                    Lihat Rekap
+                                                </a>
                                             @endif
                                         </td>
 

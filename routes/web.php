@@ -11,6 +11,9 @@ use App\Models\User;
 
 use App\Http\Controllers\AdminLocationController;
 use App\Http\Controllers\HolidayController;
+use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\AdminFeedbackController;
+use App\Http\Controllers\InternRecapController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\SystemSettingsController;
@@ -234,6 +237,32 @@ Route::middleware([
     )->name('absen.checkout');
 
 
+    // Rekap magang milik sendiri.
+
+    Route::get(
+        '/rekap-saya',
+        [InternRecapController::class, 'mine']
+    )->name('rekap.saya');
+
+    Route::get(
+        '/rekap-saya/pdf',
+        [InternRecapController::class, 'minePdf']
+    )->name('rekap.saya.pdf');
+
+
+    // Saran & masukan.
+
+    Route::get(
+        '/saran',
+        [FeedbackController::class, 'index']
+    )->name('saran');
+
+    Route::post(
+        '/saran',
+        [FeedbackController::class, 'store']
+    )->name('saran.store');
+
+
     // Logbook.
 
     Route::get(
@@ -387,6 +416,18 @@ Route::middleware([
         ));
 
     })->name('mentor.interns');
+
+    // Rekap kehadiran per mahasiswa bimbingan.
+
+    Route::get(
+        '/interns/{user}/rekap',
+        [InternRecapController::class, 'mentorShow']
+    )->whereNumber('user')->name('mentor.interns.recap');
+
+    Route::get(
+        '/interns/{user}/rekap/pdf',
+        [InternRecapController::class, 'mentorPdf']
+    )->whereNumber('user')->name('mentor.interns.recap-pdf');
 
 
     // Logbook.
@@ -555,6 +596,32 @@ Route::middleware([
         '/settings',
         [SystemSettingsController::class, 'update']
     )->name('admin.settings.update');
+
+
+    // Rekap kehadiran per peserta.
+
+    Route::get(
+        '/interns/{user}/rekap',
+        [InternRecapController::class, 'adminShow']
+    )->whereNumber('user')->name('admin.interns.recap');
+
+    Route::get(
+        '/interns/{user}/rekap/pdf',
+        [InternRecapController::class, 'adminPdf']
+    )->whereNumber('user')->name('admin.interns.recap-pdf');
+
+
+    // Saran & masukan peserta.
+
+    Route::get(
+        '/feedbacks',
+        [AdminFeedbackController::class, 'index']
+    )->name('admin.feedbacks');
+
+    Route::put(
+        '/feedbacks/{feedback}',
+        [AdminFeedbackController::class, 'update']
+    )->whereNumber('feedback')->name('admin.feedbacks.update');
 
 
     // Manajemen Kalender Hari Libur.
