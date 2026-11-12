@@ -87,6 +87,9 @@
             {{-- INFO HARI LIBUR --}}
             @include('partials.holiday-info')
 
+            {{-- TUGAS HARI INI --}}
+            @include('partials.today-tasks')
+
             <!-- GRID DASHBOARD -->
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 

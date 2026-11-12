@@ -11,6 +11,10 @@
     $menuItemClass = 'flex items-center rounded-xl px-4 py-3 transition';
     $activeClass = 'bg-[#ffc107] font-bold text-black';
     $inactiveClass = 'text-gray-300 hover:bg-white/5 hover:text-white';
+
+    // Badge mentor (diisi View Composer di AppServiceProvider).
+    $mentorPending = $mentorPending ?? ['logbook' => 0, 'leave' => 0, 'total' => 0, 'overdue' => 0];
+    $badgeClass = 'ml-auto rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold leading-4 text-white';
 @endphp
 
 <aside class="flex w-72 shrink-0 flex-col justify-between bg-[#191712] p-6 text-white shadow-xl">
@@ -165,6 +169,9 @@
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.logbook*') ? $activeClass : $inactiveClass }}"
                 >
                     Validasi Logbook
+                    @if ($mentorPending['logbook'] > 0)
+                        <span class="{{ $badgeClass }}" title="Logbook menunggu validasi">{{ $mentorPending['logbook'] }}</span>
+                    @endif
                 </a>
 
                 <a
@@ -172,6 +179,9 @@
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.leave-requests*') ? $activeClass : $inactiveClass }}"
                 >
                     Pengajuan Izin / Sakit
+                    @if ($mentorPending['leave'] > 0)
+                        <span class="{{ $badgeClass }}" title="Pengajuan menunggu persetujuan">{{ $mentorPending['leave'] }}</span>
+                    @endif
                 </a>
 
                 <a

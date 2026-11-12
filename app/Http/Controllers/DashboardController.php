@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Attendance;
 use App\Models\Holiday;
 use App\Models\Logbook;
+use App\Services\InternTodayService;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -36,6 +37,9 @@ class DashboardController extends Controller
         // Informasi kalender hari libur untuk peserta.
         $todayHoliday = Holiday::activeOn($hariIni->toDateString());
         $upcomingHolidays = Holiday::upcoming($hariIni, 30, 3);
+
+        // Pengingat "Tugas Hari Ini" (absen masuk/pulang, logbook, izin).
+        $todayTasks = app(InternTodayService::class)->tasks($user);
 
         /*
         |--------------------------------------------------------------------------
@@ -152,7 +156,8 @@ class DashboardController extends Controller
             'mentor',
             'mentorWhatsapp',
             'todayHoliday',
-            'upcomingHolidays'
+            'upcomingHolidays',
+            'todayTasks'
         ));
     }
 
