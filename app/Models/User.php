@@ -46,6 +46,46 @@ class User extends Authenticatable
         ];
     }
 
+    /*
+     * Status periode magang, diturunkan dari start_date & end_date
+     * (tanpa kolom status terpisah, jadi selalu konsisten dengan periode).
+     */
+    public const INTERNSHIP_NOT_SET = 'belum_diatur';
+    public const INTERNSHIP_UPCOMING = 'belum_mulai';
+    public const INTERNSHIP_ACTIVE = 'aktif';
+    public const INTERNSHIP_ENDED = 'selesai';
+
+    /**
+     * Status periode magang pada tanggal tertentu (default: hari ini WIB).
+     */
+    public function internshipStatus(?string $date = null): string
+    {
+        if (!$this->start_date || !$this->end_date) {
+            return self::INTERNSHIP_NOT_SET;
+        }
+
+        $date ??= now('Asia/Jakarta')->toDateString();
+
+        if ($date < $this->start_date->toDateString()) {
+            return self::INTERNSHIP_UPCOMING;
+        }
+
+        if ($date > $this->end_date->toDateString()) {
+            return self::INTERNSHIP_ENDED;
+        }
+
+        return self::INTERNSHIP_ACTIVE;
+    }
+
+    /**
+     * True jika user adalah mahasiswa magang yang periodenya sudah berakhir.
+     */
+    public function isInternshipEnded(): bool
+    {
+        return $this->role === 'magang'
+            && $this->internshipStatus() === self::INTERNSHIP_ENDED;
+    }
+
     /**
      * Relasi user dengan divisi.
      */

@@ -118,6 +118,14 @@
 
         <div class="space-y-6 p-5 md:p-8">
 
+            {{-- IMPOR PENGGUNA --}}
+            <div class="flex justify-end">
+                <a href="{{ route('admin.users.import') }}"
+                   class="inline-flex items-center gap-2 rounded-xl bg-[#ffc107] px-5 py-2.5 text-sm font-bold text-[#191712] shadow-sm transition hover:bg-amber-400">
+                    ⬆ Impor Pengguna (CSV)
+                </a>
+            </div>
+
             {{-- NOTIFIKASI BERHASIL --}}
             @if(session('success'))
                 <div role="status" class="rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm font-medium text-green-800">
@@ -295,6 +303,13 @@
                                                 <p class="mt-2 text-xs text-gray-500">
                                                     NIM: {{ $user->nim }}
                                                 </p>
+                                            @endif
+
+                                            @if($mahasiswaMagang)
+                                                <a href="{{ route('admin.interns.recap', $user->id) }}"
+                                                   class="mt-2 inline-block rounded-lg border border-amber-200 px-2.5 py-1 text-xs font-bold text-amber-700 hover:bg-amber-50">
+                                                    Lihat Rekap
+                                                </a>
                                             @endif
                                         </td>
 
@@ -542,6 +557,23 @@
                                                         <p class="mt-1 text-sm font-bold text-gray-800">
                                                             {{ $user->end_date->format('d M Y') }}
                                                         </p>
+
+                                                        {{-- Status otomatis dari periode magang --}}
+                                                        @php
+                                                            $statusMagang = $user->internshipStatus();
+                                                        @endphp
+                                                        <span class="mt-3 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold
+                                                            {{ match ($statusMagang) {
+                                                                \App\Models\User::INTERNSHIP_ACTIVE => 'bg-emerald-100 text-emerald-700',
+                                                                \App\Models\User::INTERNSHIP_UPCOMING => 'bg-blue-100 text-blue-700',
+                                                                default => 'bg-gray-200 text-gray-600',
+                                                            } }}">
+                                                            {{ match ($statusMagang) {
+                                                                \App\Models\User::INTERNSHIP_ACTIVE => 'Aktif',
+                                                                \App\Models\User::INTERNSHIP_UPCOMING => 'Belum mulai',
+                                                                default => 'Tidak aktif (selesai)',
+                                                            } }}
+                                                        </span>
                                                     </div>
 
                                                 @else

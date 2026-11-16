@@ -17,10 +17,16 @@
             </p>
         </div>
 
-        <a href="#form-tambah"
-           class="inline-flex items-center justify-center rounded-xl bg-[#ffc107] px-5 py-3 text-sm font-bold text-[#191712] shadow-sm transition hover:bg-amber-400">
-            + Tambah Hari Libur
-        </a>
+        <div class="flex flex-col gap-2 sm:flex-row">
+            <a href="#form-impor"
+               class="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                ⬆ Impor CSV
+            </a>
+            <a href="#form-tambah"
+               class="inline-flex items-center justify-center rounded-xl bg-[#ffc107] px-5 py-3 text-sm font-bold text-[#191712] shadow-sm transition hover:bg-amber-400">
+                + Tambah Hari Libur
+            </a>
+        </div>
     </div>
 
     {{-- NOTIFIKASI --}}
@@ -90,7 +96,8 @@
         <div class="mb-5">
             <h2 class="text-lg font-extrabold text-gray-900">Tambah Hari Libur</h2>
             <p class="mt-1 text-sm text-gray-500">
-                Masukkan tanggal dan informasi hari libur yang akan dicatat.
+                Isi satu tanggal, atau isi juga tanggal selesai untuk mencatat rentang
+                (mis. cuti bersama). Tanggal yang sudah terdaftar otomatis dilewati.
             </p>
         </div>
 
@@ -101,7 +108,7 @@
 
                 <div>
                     <label for="date" class="mb-2 block text-sm font-semibold text-gray-700">
-                        Tanggal <span class="text-red-500">*</span>
+                        Tanggal Mulai <span class="text-red-500">*</span>
                     </label>
                     <input
                         type="date"
@@ -111,6 +118,30 @@
                         required
                         class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                     >
+                </div>
+
+                <div>
+                    <label for="end_date" class="mb-2 block text-sm font-semibold text-gray-700">
+                        Tanggal Selesai <span class="font-normal text-gray-400">(opsional, maks. 31 hari)</span>
+                    </label>
+                    <input
+                        type="date"
+                        id="end_date"
+                        name="end_date"
+                        value="{{ old('end_date') }}"
+                        class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                    >
+                    <label class="mt-2 flex items-center gap-2 text-xs text-gray-600">
+                        <input type="hidden" name="skip_weekend" value="0">
+                        <input
+                            type="checkbox"
+                            name="skip_weekend"
+                            value="1"
+                            {{ old('skip_weekend', '1') == '1' ? 'checked' : '' }}
+                            class="h-4 w-4 rounded border-gray-300 text-amber-500 focus:ring-amber-400"
+                        >
+                        Lewati Sabtu &amp; Minggu pada rentang tanggal
+                    </label>
                 </div>
 
                 <div>
@@ -194,6 +225,170 @@
                 </button>
             </div>
         </form>
+    </div>
+
+    {{-- IMPOR CSV --}}
+    <div id="form-impor" class="scroll-mt-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div class="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+            <div>
+                <h2 class="text-lg font-extrabold text-gray-900">Impor Hari Libur dari CSV</h2>
+                <p class="mt-1 text-sm text-gray-500">
+                    Kolom: <code class="rounded bg-gray-100 px-1">tanggal;nama;jenis;keterangan;aktif</code>.
+                    Tanggal format <code class="rounded bg-gray-100 px-1">YYYY-MM-DD</code> atau
+                    <code class="rounded bg-gray-100 px-1">DD/MM/YYYY</code>, jenis <b>Nasional</b> atau <b>Khusus ESDM</b>,
+                    aktif <b>1</b>/<b>0</b> (kosong = aktif). Pemisah <b>;</b> atau <b>,</b>.
+                </p>
+                <p class="mt-1 text-xs text-gray-400">
+                    Jika ada baris yang salah, tidak ada data yang disimpan. Tanggal yang sudah terdaftar otomatis dilewati.
+                </p>
+            </div>
+
+            <a href="{{ route('admin.holidays.template') }}"
+               class="inline-flex shrink-0 items-center justify-center rounded-xl border border-amber-200 px-4 py-2.5 text-sm font-bold text-amber-700 transition hover:bg-amber-50">
+                ⬇ Unduh Template
+            </a>
+        </div>
+
+        @if ($errors->import->any())
+            <div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                <p class="mb-2 font-bold">Impor dibatalkan. Perbaiki baris berikut lalu unggah ulang:</p>
+                <ul class="list-inside list-disc space-y-1">
+                    @foreach ($errors->import->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <form action="{{ route('admin.holidays.import') }}" method="POST" enctype="multipart/form-data"
+              class="flex flex-col gap-3 sm:flex-row sm:items-center">
+            @csrf
+
+            <input
+                type="file"
+                name="file"
+                accept=".csv,text/csv"
+                required
+                class="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-sm file:font-semibold"
+            >
+
+            <button
+                type="submit"
+                class="shrink-0 rounded-xl bg-[#191712] px-6 py-3 text-sm font-bold text-white transition hover:bg-gray-800"
+            >
+                Impor Data
+            </button>
+        </form>
+    </div>
+
+    {{-- KALENDER BULANAN --}}
+    <div id="kalender" class="scroll-mt-6 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div class="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <div>
+                <h2 class="text-lg font-extrabold text-gray-900">Kalender {{ $calendar['label'] }}</h2>
+                <p class="mt-1 text-sm text-gray-500">
+                    Tampilan bulanan hari libur. Arahkan kursor ke tanggal untuk melihat keterangan.
+                </p>
+            </div>
+
+            <div class="flex items-center gap-2">
+                @if ($calendar['prev'])
+                    <a href="{{ route('admin.holidays', $calendar['prev']) }}#kalender"
+                       class="rounded-lg border border-gray-200 px-3 py-2 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
+                       aria-label="Bulan sebelumnya">‹</a>
+                @endif
+
+                <a href="{{ route('admin.holidays') }}#kalender"
+                   class="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-600 transition hover:bg-gray-50">
+                    Bulan ini
+                </a>
+
+                @if ($calendar['next'])
+                    <a href="{{ route('admin.holidays', $calendar['next']) }}#kalender"
+                       class="rounded-lg border border-gray-200 px-3 py-2 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
+                       aria-label="Bulan berikutnya">›</a>
+                @endif
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <div class="min-w-[640px]">
+                <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold uppercase tracking-wider text-gray-500" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px">
+                    @foreach (['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'] as $namaHari)
+                        <div class="py-2 {{ $loop->index >= 5 ? 'text-red-400' : '' }}">{{ $namaHari }}</div>
+                    @endforeach
+                </div>
+
+                <div class="grid grid-cols-7 gap-1" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px">
+                    @foreach ($calendar['weeks'] as $week)
+                        @foreach ($week as $cell)
+                            @php
+                                $libur = $cell['holiday'];
+
+                                if (!$cell['in_month']) {
+                                    $cellClass = 'bg-gray-50/50 text-gray-300';
+                                } elseif ($libur && $libur->is_active) {
+                                    $cellClass = $libur->type === 'Nasional'
+                                        ? 'border-blue-200 bg-blue-50 text-blue-800'
+                                        : 'border-purple-200 bg-purple-50 text-purple-800';
+                                } elseif ($libur) {
+                                    $cellClass = 'border-dashed border-gray-300 bg-gray-50 text-gray-500';
+                                } elseif ($cell['is_weekend']) {
+                                    $cellClass = 'bg-red-50/40 text-red-400';
+                                } else {
+                                    $cellClass = 'bg-white text-gray-700';
+                                }
+                            @endphp
+
+                            <div
+                                style="min-height:76px" class="min-h-[76px] rounded-lg border border-gray-100 p-2 text-left text-xs {{ $cellClass }} {{ $cell['is_today'] ? 'ring-2 ring-amber-400' : '' }}"
+                                @if ($libur && $cell['in_month'])
+                                    title="{{ $libur->name }} ({{ $libur->type }}{{ $libur->is_active ? '' : ', nonaktif' }}){{ $libur->description ? ' — ' . $libur->description : '' }}"
+                                @endif
+                            >
+                                <span class="font-bold">{{ $cell['date']->day }}</span>
+
+                                @if ($libur && $cell['in_month'])
+                                    <p class="mt-1 line-clamp-2 font-semibold leading-tight">
+                                        {{ $libur->name }}
+                                    </p>
+                                    @unless ($libur->is_active)
+                                        <p class="mt-0.5 text-[10px] uppercase">Nonaktif</p>
+                                    @endunless
+                                @endif
+                            </div>
+                        @endforeach
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 flex flex-wrap gap-4 text-xs text-gray-500">
+            <span class="flex items-center gap-1.5"><span class="h-3 w-3 rounded border border-blue-200 bg-blue-50"></span> Nasional</span>
+            <span class="flex items-center gap-1.5"><span class="h-3 w-3 rounded border border-purple-200 bg-purple-50"></span> Khusus ESDM</span>
+            <span class="flex items-center gap-1.5"><span class="h-3 w-3 rounded border border-dashed border-gray-300 bg-gray-50"></span> Nonaktif</span>
+            <span class="flex items-center gap-1.5"><span class="h-3 w-3 rounded bg-red-50"></span> Sabtu/Minggu</span>
+            <span class="flex items-center gap-1.5"><span class="h-3 w-3 rounded ring-2 ring-amber-400"></span> Hari ini</span>
+        </div>
+
+        @if ($calendar['holidays']->isNotEmpty())
+            <ul class="mt-4 divide-y divide-gray-100 border-t border-gray-100 text-sm">
+                @foreach ($calendar['holidays'] as $libur)
+                    <li class="flex flex-wrap items-center justify-between gap-2 py-2">
+                        <span class="font-semibold {{ $libur->is_active ? 'text-gray-800' : 'text-gray-400 line-through' }}">
+                            {{ $libur->name }}
+                        </span>
+                        <span class="text-gray-500">
+                            {{ $libur->date->locale('id')->translatedFormat('l, d F Y') }}
+                        </span>
+                    </li>
+                @endforeach
+            </ul>
+        @else
+            <p class="mt-4 border-t border-gray-100 pt-4 text-sm text-gray-400">
+                Tidak ada hari libur tercatat pada bulan ini.
+            </p>
+        @endif
     </div>
 
     {{-- FILTER DAN DAFTAR --}}

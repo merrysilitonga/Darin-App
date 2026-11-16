@@ -93,6 +93,9 @@
             </div>
         @endif
 
+        {{-- INFO HARI LIBUR --}}
+        @include('partials.holiday-info')
+
         {{-- SECTION ABSENSI --}}
         <div class="grid grid-cols-1 gap-8 lg:grid-cols-2" id="section-absen">
 
@@ -573,6 +576,18 @@
 
                         </div>
 
+                        {{-- JARAK GPS SAAT INI (dihitung di browser, divalidasi ulang di server) --}}
+                        @if((!$attendance && $canClockInLocation) || ($attendance && !$attendance->clock_out))
+                            <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
+                                <span class="text-gray-400">
+                                    Jarak Saat Ini
+                                </span>
+                                <span id="jarakGPS" class="text-right text-xs font-semibold text-gray-500">
+                                    Menunggu GPS...
+                                </span>
+                            </div>
+                        @endif
+
                     </div>
 
                 </div>
@@ -654,17 +669,99 @@
         const panelPesanFoto = document.getElementById('panelPesanFoto');
         const pesanFoto = document.getElementById('pesanFoto');
 
+        @php
+            // Absen pulang memakai lokasi yang tercatat saat absen masuk.
+            $geoLocation = $attendance?->location ?? $location;
+        @endphp
+
+        // Titik lokasi & radius untuk pengecekan awal di browser.
+        // Server tetap melakukan validasi ulang (sumber kebenaran).
+        const geofence = @js($geoLocation ? [
+            'lat' => (float) $geoLocation->latitude,
+            'lng' => (float) $geoLocation->longitude,
+            'radius' => (int) $geoLocation->radius_meters,
+            'name' => $geoLocation->name,
+        ] : null);
+
+        // Absen pulang hari Jumat dengan WFA tidak dibatasi radius.
+        const clockOutWfa = @js((bool) ($attendance && $isFriday && $attendance->work_location === 'WFA'));
+
+        const jarakGPS = document.getElementById('jarakGPS');
+        const workLocationSelect = document.getElementById('work_location');
+
         let cameraStream = null;
         let cameraReady = false;
         let gpsReady = false;
         let photoApproved = false;
         let previewUrl = null;
         let submitting = false;
+        let lastDistance = null;
 
-        // Memperbarui tombol berdasarkan kondisi kamera, GPS, dan foto.
+        // Jarak great-circle (meter) dengan formula Haversine — sama dengan perhitungan server.
+        function distanceInMeters(lat1, lng1, lat2, lng2) {
+            const toRad = deg => deg * Math.PI / 180;
+            const dLat = toRad(lat2 - lat1);
+            const dLng = toRad(lng2 - lng1);
+            const a = Math.sin(dLat / 2) ** 2
+                + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+            const clamped = Math.min(1, Math.max(0, a));
+
+            return Math.round(6371000 * 2 * Math.atan2(Math.sqrt(clamped), Math.sqrt(1 - clamped)));
+        }
+
+        function isWfaSelected() {
+            return clockOutWfa || (workLocationSelect !== null && workLocationSelect.value === 'WFA');
+        }
+
+        // True jika posisi boleh dipakai absen (dalam radius, WFA, atau lokasi tidak diketahui → serahkan ke server).
+        function isPositionAllowed() {
+            if (!geofence || lastDistance === null || isWfaSelected()) {
+                return true;
+            }
+
+            return lastDistance <= geofence.radius;
+        }
+
+        function updateDistance(latitude, longitude) {
+            if (!geofence) {
+                return;
+            }
+
+            lastDistance = distanceInMeters(latitude, longitude, geofence.lat, geofence.lng);
+
+            if (!jarakGPS) {
+                return;
+            }
+
+            if (isWfaSelected()) {
+                jarakGPS.textContent = lastDistance + ' m (WFA, tanpa batas radius)';
+                jarakGPS.className = 'text-right text-xs font-semibold text-blue-600';
+            } else if (lastDistance <= geofence.radius) {
+                jarakGPS.textContent = lastDistance + ' m — dalam radius ' + geofence.radius + ' m';
+                jarakGPS.className = 'text-right text-xs font-semibold text-emerald-600';
+            } else {
+                jarakGPS.textContent = lastDistance + ' m — di luar radius ' + geofence.radius + ' m';
+                jarakGPS.className = 'text-right text-xs font-semibold text-red-600';
+            }
+        }
+
+        // Memperbarui tombol berdasarkan kondisi kamera, GPS, foto, dan radius.
         function updateButtons() {
             btnAmbil.disabled = !(cameraReady && gpsReady);
-            btnKirim.disabled = !(photoApproved && gpsReady);
+            btnKirim.disabled = !(photoApproved && gpsReady && isPositionAllowed());
+        }
+
+        if (workLocationSelect) {
+            workLocationSelect.addEventListener('change', function () {
+                const lat = parseFloat(document.getElementById('inpLat').value);
+                const lng = parseFloat(document.getElementById('inpLng').value);
+
+                if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                    updateDistance(lat, lng);
+                }
+
+                updateButtons();
+            });
         }
 
         // Menampilkan kesalahan kamera.
@@ -813,6 +910,7 @@
                     document.getElementById('inpLng').value = longitude;
 
                     tampilkanKoordinat(latitude, longitude);
+                    updateDistance(latitude, longitude);
 
                     gpsText.textContent = 'GPS Terdeteksi';
 
@@ -1140,6 +1238,7 @@
                     document.getElementById('inpLng').value = longitude;
 
                     tampilkanKoordinat(latitude, longitude);
+                    updateDistance(latitude, longitude);
 
                     gpsReady = true;
 
@@ -1147,6 +1246,19 @@
 
                     gpsDot.className =
                         'h-2 w-2 rounded-full bg-emerald-500';
+
+                    // Tolak lebih awal jika posisi terbaru di luar radius (server tetap memvalidasi ulang).
+                    if (!isPositionAllowed()) {
+                        btnKirim.textContent = originalButtonText;
+                        updateButtons();
+
+                        alert(
+                            'Posisi Anda ' + lastDistance + ' meter dari ' + geofence.name +
+                            ', di luar radius ' + geofence.radius + ' meter. Mendekatlah ke lokasi lalu coba lagi.'
+                        );
+
+                        return;
+                    }
 
                     // Validasi ulang seluruh field form.
                     if (!formAbsen.reportValidity()) {
@@ -1207,12 +1319,60 @@
             );
         });
 
+        // Pantau posisi terus-menerus agar jarak & tombol Kirim ikut berubah saat pengguna bergerak.
+        let gpsWatchId = null;
+
+        function startGpsWatch() {
+            if (!navigator.geolocation || gpsWatchId !== null) {
+                return;
+            }
+
+            gpsWatchId = navigator.geolocation.watchPosition(
+                position => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+
+                    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+                        return;
+                    }
+
+                    document.getElementById('inpLat').value = latitude;
+                    document.getElementById('inpLng').value = longitude;
+
+                    tampilkanKoordinat(latitude, longitude);
+                    updateDistance(latitude, longitude);
+
+                    gpsReady = true;
+                    updateButtons();
+                },
+                () => {
+                    // Kegagalan watch tidak fatal; status awal tetap dari getGPS().
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 20000,
+                    maximumAge: 5000
+                }
+            );
+        }
+
+        function stopGpsWatch() {
+            if (gpsWatchId !== null) {
+                navigator.geolocation.clearWatch(gpsWatchId);
+                gpsWatchId = null;
+            }
+        }
+
         // AKTIFKAN KAMERA DAN GPS.
         startCamera();
         getGPS();
+        startGpsWatch();
 
-        // Hentikan kamera jika halaman ditinggalkan.
-        window.addEventListener('pagehide', stopCamera);
+        // Hentikan kamera & GPS jika halaman ditinggalkan.
+        window.addEventListener('pagehide', function () {
+            stopCamera();
+            stopGpsWatch();
+        });
 
     @endif
 </script>

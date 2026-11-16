@@ -119,7 +119,7 @@
     </section>
 
     {{-- NOTIFIKASI LOGBOOK DAN IZIN --}}
-    <section class="overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+    <section id="tindakan-menunggu" class="scroll-mt-6 overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
 
         {{-- HEADER NOTIFIKASI --}}
         <div class="flex flex-col justify-between gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">
@@ -203,6 +203,14 @@
                             {{-- KETERANGAN --}}
                             <td class="min-w-64 px-3 py-3 text-xs font-normal leading-5 text-slate-500">
                                 {{ $item['description'] ?? '-' }}
+
+                                @php
+                                    $lamaMenunggu = (int) ($item['waiting_days'] ?? 0);
+                                @endphp
+                                <span class="mt-1 block text-[11px] font-medium
+                                    {{ $lamaMenunggu >= \App\Services\MentorPendingService::OVERDUE_DAYS ? 'text-red-600' : 'text-slate-400' }}">
+                                    {{ $lamaMenunggu === 0 ? 'Masuk hari ini' : 'Menunggu ' . $lamaMenunggu . ' hari' }}
+                                </span>
                             </td>
 
                             {{-- TINDAKAN --}}
@@ -243,7 +251,7 @@
 
         @if ($mentorNotifications->isNotEmpty())
             <p class="mt-3 text-[11px] text-slate-400">
-                Menampilkan maksimal 8 pemberitahuan terbaru.
+                Menampilkan maksimal 8 pemberitahuan, yang paling lama menunggu di urutan teratas.
             </p>
         @endif
 

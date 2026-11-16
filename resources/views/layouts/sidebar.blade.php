@@ -11,6 +11,10 @@
     $menuItemClass = 'flex items-center rounded-xl px-4 py-3 transition';
     $activeClass = 'bg-[#ffc107] font-bold text-black';
     $inactiveClass = 'text-gray-300 hover:bg-white/5 hover:text-white';
+
+    // Badge mentor (diisi View Composer di AppServiceProvider).
+    $mentorPending = $mentorPending ?? ['logbook' => 0, 'leave' => 0, 'total' => 0, 'overdue' => 0];
+    $badgeClass = 'ml-auto rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold leading-4 text-white';
 @endphp
 
 <aside class="flex w-72 shrink-0 flex-col justify-between bg-[#191712] p-6 text-white shadow-xl">
@@ -91,9 +95,9 @@
 
                 <a
                     href="{{ route('riwayat.absen') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('riwayat.absen', 'riwayat.export-*') ? $activeClass : $inactiveClass }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('riwayat.absen', 'riwayat.export-*', 'izin.history', 'izin.download') ? $activeClass : $inactiveClass }}"
                 >
-                    Riwayat Absensi
+                    Riwayat Absensi &amp; Izin
                 </a>
 
                 {{-- PENGAJUAN IZIN / SAKIT --}}
@@ -104,19 +108,27 @@
                     Pengajuan Izin / Sakit
                 </a>
 
-                {{-- RIWAYAT IZIN / SAKIT --}}
-                <a
-                    href="{{ route('izin.history') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('izin.history', 'izin.download') ? $activeClass : $inactiveClass }}"
-                >
-                    Riwayat Izin / Sakit
-                </a>
-
                 <a
                     href="{{ route('logbook') }}"
                     class="{{ $menuItemClass }} {{ request()->routeIs('logbook', 'logbook.*') ? $activeClass : $inactiveClass }}"
                 >
                     Logbook Harian
+                </a>
+
+                {{-- REKAP MAGANG SAYA --}}
+                <a
+                    href="{{ route('rekap.saya') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('rekap.saya*') ? $activeClass : $inactiveClass }}"
+                >
+                    Rekap Magang Saya
+                </a>
+
+                {{-- SARAN & MASUKAN --}}
+                <a
+                    href="{{ route('saran') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('saran', 'saran.*') ? $activeClass : $inactiveClass }}"
+                >
+                    Saran &amp; Masukan
                 </a>
 
             </nav>
@@ -149,6 +161,9 @@
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.logbook*') ? $activeClass : $inactiveClass }}"
                 >
                     Validasi Logbook
+                    @if ($mentorPending['logbook'] > 0)
+                        <span class="{{ $badgeClass }}" title="Logbook menunggu validasi">{{ $mentorPending['logbook'] }}</span>
+                    @endif
                 </a>
 
                 <a
@@ -156,6 +171,9 @@
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.leave-requests*') ? $activeClass : $inactiveClass }}"
                 >
                     Pengajuan Izin / Sakit
+                    @if ($mentorPending['leave'] > 0)
+                        <span class="{{ $badgeClass }}" title="Pengajuan menunggu persetujuan">{{ $mentorPending['leave'] }}</span>
+                    @endif
                 </a>
 
                 <a
@@ -216,6 +234,14 @@
                     class="{{ $menuItemClass }} {{ request()->routeIs('admin.attendance*') ? $activeClass : $inactiveClass }}"
                 >
                     Rekap Absensi
+                </a>
+
+                {{-- SARAN & MASUKAN PESERTA --}}
+                <a
+                    href="{{ route('admin.feedbacks') }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.feedbacks*') ? $activeClass : $inactiveClass }}"
+                >
+                    Saran &amp; Masukan
                 </a>
 
                 {{-- KALENDER HARI LIBUR --}}
