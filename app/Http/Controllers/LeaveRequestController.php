@@ -114,8 +114,11 @@ class LeaveRequestController extends Controller
             throw $e;
         }
 
+        // Riwayat izin kini digabung dengan riwayat absensi (bulan tanggal mulai izin).
         return redirect()
-            ->route('izin.history')
+            ->to(route('riwayat.absen', [
+                'bulan' => Carbon::parse($validated['start_date'])->format('Y-m'),
+            ]) . '#riwayat-izin')
             ->with(
                 'success',
                 'Pengajuan berhasil dikirim dan menunggu persetujuan Mentor.'
@@ -127,14 +130,15 @@ class LeaveRequestController extends Controller
      */
     public function index(Request $request)
     {
-        $requests = LeaveRequest::with([
-            'reviewer:id,name',
-        ])
-            ->where('user_id', $request->user()->id)
-            ->latest()
-            ->get();
+        // Halaman riwayat izin digabung ke Riwayat Absensi & Izin.
+        // Route lama tetap ada agar tautan/bookmark lama tidak rusak.
+        $parameter = [];
 
-        return view('izin.history', compact('requests'));
+        if (preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string) $request->query('bulan'))) {
+            $parameter['bulan'] = $request->query('bulan');
+        }
+
+        return redirect()->to(route('riwayat.absen', $parameter) . '#riwayat-izin');
     }
 
     /**

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Riwayat Absensi - DARIN</title>
+    <title>Riwayat Absensi &amp; Izin - DARIN</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -31,17 +31,24 @@
         <header class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-8">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight">
-                    Riwayat Absensi Kehadiran
+                    Riwayat Absensi &amp; Izin
                 </h1>
 
                 <p class="text-sm text-gray-500 mt-1">
-                    Daftar catatan masuk, pulang, metode kerja, dan validasi lokasi.
+                    Catatan masuk, pulang, metode kerja, lokasi, serta pengajuan izin/sakit dalam satu halaman.
                 </p>
 
                 <div class="w-16 h-1 bg-[#ffc107] mt-2 rounded-full"></div>
             </div>
 
             <div class="flex flex-wrap gap-3">
+                <a
+                    href="{{ route('izin.create') }}"
+                    class="px-4 py-2.5 bg-[#191712] text-white text-xs font-bold rounded-xl shadow-sm hover:bg-gray-800 transition"
+                >
+                    + Ajukan Izin / Sakit
+                </a>
+
                 <a
                     href="{{ route('riwayat.export-pdf', ['bulan' => request('bulan', now('Asia/Jakarta')->format('Y-m'))]) }}"
                     class="px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-xl shadow-sm hover:bg-gray-50 transition"
@@ -140,15 +147,41 @@
             </form>
         </section>
 
+        {{-- RINGKASAN BULAN INI --}}
+        @php
+            $ringkasan = $ringkasan ?? ['hadir' => 0, 'terlambat' => 0, 'izin' => 0, 'sakit' => 0, 'menunggu' => 0];
+            $riwayat = $riwayat ?? [];
+            $leaveRequests = $leaveRequests ?? collect();
+        @endphp
+
+        @php
+            $kartuRingkasan = [
+                'hadir' => ['Tepat Waktu', 'text-emerald-700'],
+                'terlambat' => ['Terlambat', 'text-amber-700'],
+                'izin' => ['Izin (disetujui)', 'text-blue-700'],
+                'sakit' => ['Sakit (disetujui)', 'text-violet-700'],
+                'menunggu' => ['Izin Menunggu', 'text-gray-700'],
+            ];
+        @endphp
+
+        <section class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+            @foreach ($kartuRingkasan as $kunci => $kartu)
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                    <p class="text-[11px] font-bold uppercase text-gray-400">{{ $kartu[0] }}</p>
+                    <p class="mt-1 text-2xl font-extrabold {{ $kartu[1] }}">{{ $ringkasan[$kunci] }}</p>
+                </div>
+            @endforeach
+        </section>
+
         {{-- TABEL RIWAYAT --}}
         <section class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <h3 class="font-bold text-gray-800">
-                    Daftar Riwayat Absensi
+                    Daftar Riwayat Harian
                 </h3>
 
                 <span class="text-xs text-gray-500">
-                    Total data: {{ ($attendances ?? collect())->count() }} absensi
+                    {{ ($attendances ?? collect())->count() }} absensi · {{ collect($riwayat)->where('jenis', 'izin')->count() }} hari izin/sakit
                 </span>
             </div>
 
@@ -167,7 +200,43 @@
                     </thead>
 
                     <tbody class="divide-y divide-gray-100 text-sm">
-                        @forelse($attendances ?? [] as $attendance)
+                        @forelse($riwayat as $baris)
+                            @if ($baris['jenis'] === 'izin')
+                                @php
+                                    $izin = $baris['leave'];
+                                    $warnaIzin = match ($izin->status) {
+                                        'Disetujui' => $izin->request_type === 'Sakit' ? 'bg-violet-50 text-violet-700' : 'bg-blue-50 text-blue-700',
+                                        'Ditolak' => 'bg-red-50 text-red-700',
+                                        default => 'bg-amber-50 text-amber-700',
+                                    };
+                                @endphp
+
+                                {{-- BARIS IZIN / SAKIT --}}
+                                <tr class="bg-blue-50/30 hover:bg-blue-50/60 transition">
+                                    <td class="py-4 px-5 font-semibold text-gray-800 whitespace-nowrap">
+                                        {{ \Carbon\Carbon::parse($baris['tanggal'])->translatedFormat('D, d M Y') }}
+                                    </td>
+                                    <td colspan="4" class="py-4 px-5 text-gray-600">
+                                        <span class="font-semibold">{{ $izin->request_type }}</span>
+                                        <span class="text-gray-400">·</span>
+                                        <span class="text-xs">{{ \Illuminate\Support\Str::limit($izin->reason, 70) }}</span>
+                                    </td>
+                                    <td class="py-4 px-5 whitespace-nowrap">
+                                        <span class="inline-flex px-3 py-1 rounded-full text-xs font-bold {{ $warnaIzin }}">
+                                            {{ $izin->request_type }} · {{ $izin->status }}
+                                        </span>
+                                    </td>
+                                    <td class="py-4 px-5 whitespace-nowrap">
+                                        <a href="#izin-{{ $izin->id }}" class="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                                            Lihat detail
+                                        </a>
+                                    </td>
+                                </tr>
+                                @continue
+                            @endif
+
+                            @php $attendance = $baris['attendance']; @endphp
+
                             <tr class="hover:bg-gray-50 transition">
 
                                 {{-- TANGGAL --}}
@@ -276,11 +345,11 @@
                                     <div class="text-4xl mb-3">📋</div>
 
                                     <p class="font-semibold text-gray-700">
-                                        Belum ada riwayat absensi
+                                        Belum ada riwayat absensi atau izin
                                     </p>
 
                                     <p class="text-xs text-gray-400 mt-1">
-                                        Data pada periode ini akan tampil setelah Anda melakukan absensi.
+                                        Data pada periode ini akan tampil setelah Anda melakukan absensi atau mengajukan izin.
                                     </p>
                                 </td>
                             </tr>
@@ -293,6 +362,88 @@
         <p class="text-xs text-gray-400 mt-4">
             Durasi di atas dihitung dari jam masuk hingga jam pulang, bukan pengurangan waktu istirahat.
         </p>
+
+        {{-- PENGAJUAN IZIN / SAKIT --}}
+        <section id="riwayat-izin" class="mt-8 scroll-mt-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                <div>
+                    <h3 class="font-bold text-gray-800">Pengajuan Izin / Sakit</h3>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Pengajuan pada periode {{ isset($periode) ? $periode->translatedFormat('F Y') : '' }} beserta keputusan Mentor.
+                    </p>
+                </div>
+
+                <span class="text-xs text-gray-500">Total: {{ $leaveRequests->count() }} pengajuan</span>
+            </div>
+
+            <div class="space-y-4">
+                @forelse ($leaveRequests as $item)
+                    @php
+                        $statusIzin = $item->status ?? 'Menunggu';
+                        $kelasStatus = match ($statusIzin) {
+                            'Disetujui' => 'bg-green-100 text-green-700',
+                            'Ditolak' => 'bg-red-100 text-red-700',
+                            default => 'bg-amber-100 text-amber-700',
+                        };
+                    @endphp
+
+                    <article id="izin-{{ $item->id }}" class="scroll-mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <h4 class="font-bold text-gray-800">
+                                    {{ $item->request_type }}:
+                                    {{ $item->start_date?->translatedFormat('d M Y') ?? '-' }}
+                                    @if ($item->start_date && $item->end_date && !$item->start_date->equalTo($item->end_date))
+                                        – {{ $item->end_date->translatedFormat('d M Y') }}
+                                    @endif
+                                </h4>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Dikirim {{ $item->created_at ? $item->created_at->timezone('Asia/Jakarta')->format('d M Y, H:i') . ' WIB' : '-' }}
+                                </p>
+                            </div>
+
+                            <span class="rounded-full px-3 py-1 text-xs font-bold {{ $kelasStatus }}">{{ $statusIzin }}</span>
+                        </div>
+
+                        <p class="mt-3 whitespace-pre-line text-sm text-gray-600">{{ $item->reason }}</p>
+
+                        @if ($statusIzin === 'Menunggu')
+                            <p class="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+                                Menunggu pemeriksaan Mentor.
+                            </p>
+                        @elseif ($statusIzin === 'Ditolak')
+                            <div class="mt-3 rounded-lg bg-red-50 p-3 text-sm">
+                                <p class="font-bold text-red-800">Catatan Penolakan</p>
+                                <p class="mt-1 whitespace-pre-line text-red-700">{{ $item->review_notes ?: 'Tidak ada catatan penolakan.' }}</p>
+                            </div>
+                        @endif
+
+                        <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3 text-xs text-gray-500">
+                            <span>
+                                @if (in_array($statusIzin, ['Disetujui', 'Ditolak'], true))
+                                    Diproses oleh <span class="font-semibold text-gray-700">{{ $item->reviewer->name ?? 'Mentor' }}</span>
+                                    @if ($item->reviewed_at)
+                                        · {{ $item->reviewed_at->timezone('Asia/Jakarta')->format('d M Y, H:i') }} WIB
+                                    @endif
+                                @endif
+                            </span>
+
+                            <a href="{{ route('izin.download', $item->id) }}" class="font-semibold text-blue-600 hover:text-blue-800">
+                                📄 Unduh Surat Pendukung
+                            </a>
+                        </div>
+                    </article>
+                @empty
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-10 text-center">
+                        <p class="text-3xl">📄</p>
+                        <p class="mt-2 font-semibold text-gray-700">Tidak ada pengajuan izin/sakit pada periode ini</p>
+                        <a href="{{ route('izin.create') }}" class="mt-4 inline-flex rounded-xl bg-[#191712] px-5 py-2.5 text-xs font-bold text-white hover:bg-gray-800">
+                            + Ajukan Izin / Sakit
+                        </a>
+                    </div>
+                @endforelse
+            </div>
+        </section>
 
     </main>
 

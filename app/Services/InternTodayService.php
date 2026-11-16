@@ -72,8 +72,8 @@ class InternTodayService
                 'leave-pending',
                 'info',
                 "{$izinMenunggu} pengajuan izin/sakit menunggu persetujuan",
-                'Pantau statusnya di Riwayat Izin / Sakit.',
-                route('izin.history'),
+                'Pantau statusnya di Riwayat Absensi & Izin.',
+                route('riwayat.absen') . '#riwayat-izin',
                 'Lihat Status'
             );
         }

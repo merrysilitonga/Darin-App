@@ -29,12 +29,15 @@
 </head>
 <body>
     @php
-        $logoPath = public_path('images/logo-esdm.png');
+        // Utamakan JPG (tidak butuh extension GD), PNG hanya jika GD aktif.
+        $logoPath = is_file(public_path('images/logo-esdm.jpg'))
+            ? public_path('images/logo-esdm.jpg')
+            : public_path('images/logo-esdm.png');
         $jam = fn ($nilai) => $nilai ? substr((string) $nilai, 0, 5) : '-';
     @endphp
 
     <div class="header">
-        @if (is_file($logoPath) && extension_loaded('gd'))
+        @if (is_file($logoPath) && (str_ends_with($logoPath, '.jpg') || extension_loaded('gd')))
             <img src="{{ $logoPath }}" alt="Logo">
         @endif
         <h1>Rekap Kehadiran Magang - DARIN</h1>

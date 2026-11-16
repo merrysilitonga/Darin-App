@@ -16,6 +16,7 @@ use App\Http\Controllers\AdminFeedbackController;
 use App\Http\Controllers\InternRecapController;
 use App\Http\Controllers\AdminLogbookController;
 use App\Http\Controllers\ResetDataController;
+use App\Http\Controllers\UserImportController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\SystemSettingsController;
@@ -518,6 +519,23 @@ Route::middleware([
         '/users',
         [AdminController::class, 'users']
     )->name('admin.users');
+
+    // Impor pengguna dari CSV.
+
+    Route::get(
+        '/users/import',
+        [UserImportController::class, 'create']
+    )->name('admin.users.import');
+
+    Route::post(
+        '/users/import',
+        [UserImportController::class, 'store']
+    )->name('admin.users.import.store');
+
+    Route::get(
+        '/users/import/template',
+        [UserImportController::class, 'template']
+    )->name('admin.users.import.template');
 
     Route::put(
         '/users/{user}/mentor',

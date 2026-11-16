@@ -118,6 +118,14 @@
 
         <div class="space-y-6 p-5 md:p-8">
 
+            {{-- IMPOR PENGGUNA --}}
+            <div class="flex justify-end">
+                <a href="{{ route('admin.users.import') }}"
+                   class="inline-flex items-center gap-2 rounded-xl bg-[#ffc107] px-5 py-2.5 text-sm font-bold text-[#191712] shadow-sm transition hover:bg-amber-400">
+                    ⬆ Impor Pengguna (CSV)
+                </a>
+            </div>
+
             {{-- NOTIFIKASI BERHASIL --}}
             @if(session('success'))
                 <div role="status" class="rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm font-medium text-green-800">

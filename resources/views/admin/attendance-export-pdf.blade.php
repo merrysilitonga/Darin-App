@@ -21,12 +21,15 @@
 </head>
 <body>
     @php
-        // Logo opsional: laporan tetap terbuat walau file logo / extension GD tidak ada.
-        $logoPath = public_path('images/logo-esdm.png');
+        // Logo opsional: laporan tetap terbuat walau file logo tidak ada (fail-safe).
+        // Utamakan JPG (tidak butuh extension GD), PNG hanya jika GD aktif.
+        $logoPath = is_file(public_path('images/logo-esdm.jpg'))
+            ? public_path('images/logo-esdm.jpg')
+            : public_path('images/logo-esdm.png');
     @endphp
 
     <div class="header">
-        @if (is_file($logoPath) && extension_loaded('gd'))
+        @if (is_file($logoPath) && (str_ends_with($logoPath, '.jpg') || extension_loaded('gd')))
             <img src="{{ $logoPath }}" alt="Logo">
         @endif
         <h1>Rekap Absensi Peserta Magang - DARIN</h1>

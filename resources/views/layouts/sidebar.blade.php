@@ -95,9 +95,9 @@
 
                 <a
                     href="{{ route('riwayat.absen') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('riwayat.absen', 'riwayat.export-*') ? $activeClass : $inactiveClass }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('riwayat.absen', 'riwayat.export-*', 'izin.history', 'izin.download') ? $activeClass : $inactiveClass }}"
                 >
-                    Riwayat Absensi
+                    Riwayat Absensi &amp; Izin
                 </a>
 
                 {{-- PENGAJUAN IZIN / SAKIT --}}
@@ -106,14 +106,6 @@
                     class="{{ $menuItemClass }} {{ request()->routeIs('izin.create', 'izin.store') ? $activeClass : $inactiveClass }}"
                 >
                     Pengajuan Izin / Sakit
-                </a>
-
-                {{-- RIWAYAT IZIN / SAKIT --}}
-                <a
-                    href="{{ route('izin.history') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('izin.history', 'izin.download') ? $activeClass : $inactiveClass }}"
-                >
-                    Riwayat Izin / Sakit
                 </a>
 
                 <a

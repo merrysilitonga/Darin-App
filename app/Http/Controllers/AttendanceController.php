@@ -450,12 +450,108 @@ class AttendanceController extends Controller
     public function history(Request $request)
     {
         // Halaman riwayat menampilkan data terbaru lebih dulu.
-        [$user, $attendances, $periode] = $this->riwayatBulanIni($request, 'desc');
+        [$user, $attendances, $periode, $leaveRequests, $riwayat, $ringkasan] =
+            $this->riwayatLengkap($request, 'desc');
 
         return view(
             'attendance.history',
-            compact('user', 'attendances', 'periode')
+            compact('user', 'attendances', 'periode', 'leaveRequests', 'riwayat', 'ringkasan')
         );
+    }
+
+    /**
+     * Riwayat absensi + izin/sakit satu bulan (dipakai halaman riwayat & ekspor).
+     */
+    private function riwayatLengkap(Request $request, string $direction = 'asc'): array
+    {
+        [$user, $attendances, $periode] = $this->riwayatBulanIni($request, $direction);
+
+        $awal = $periode->copy()->startOfMonth();
+        $akhir = $periode->copy()->endOfMonth();
+
+        /*
+         * Pengajuan izin/sakit yang tanggalnya beririsan dengan bulan terpilih,
+         * atau yang dikirim pada bulan tersebut.
+         */
+        $leaveRequests = LeaveRequest::with('reviewer:id,name')
+            ->where('user_id', $user->id)
+            ->where(function ($query) use ($awal, $akhir) {
+                $query->where(function ($rentang) use ($awal, $akhir) {
+                    $rentang->whereDate('start_date', '<=', $akhir->toDateString())
+                        ->whereDate('end_date', '>=', $awal->toDateString());
+                })->orWhereBetween('created_at', [
+                    $awal->copy()->startOfDay(),
+                    $akhir->copy()->endOfDay(),
+                ]);
+            })
+            ->orderByDesc('start_date')
+            ->orderByDesc('id')
+            ->get();
+
+        $riwayat = $this->gabungRiwayat($attendances, $leaveRequests, $awal, $akhir, $direction);
+        $hariIzin = collect($riwayat)->where('jenis', 'izin')->where('leave.status', 'Disetujui');
+
+        $ringkasan = [
+            'hadir' => $attendances->where('status', 'Hadir')->count(),
+            'terlambat' => $attendances->where('status', 'Terlambat')->count(),
+            'izin' => $hariIzin->where('leave.request_type', 'Izin')->count(),
+            'sakit' => $hariIzin->where('leave.request_type', 'Sakit')->count(),
+            'menunggu' => $leaveRequests->where('status', 'Menunggu')->count(),
+        ];
+
+        return [$user, $attendances, $periode, $leaveRequests, $riwayat, $ringkasan];
+    }
+
+    /**
+     * Gabungkan absensi dan hari izin/sakit menjadi satu daftar per tanggal.
+     * Hari izin hanya ditampilkan untuk Senin–Jumat yang tidak ada absensinya.
+     */
+    private function gabungRiwayat($attendances, $leaveRequests, Carbon $awal, Carbon $akhir, string $direction = 'desc'): array
+    {
+        $baris = [];
+        $tanggalAbsen = [];
+
+        foreach ($attendances as $attendance) {
+            $tanggal = Carbon::parse($attendance->date)->toDateString();
+            $tanggalAbsen[$tanggal] = true;
+
+            $baris[] = [
+                'jenis' => 'absen',
+                'tanggal' => $tanggal,
+                'attendance' => $attendance,
+                'leave' => null,
+            ];
+        }
+
+        foreach ($leaveRequests as $leave) {
+            if (!$leave->start_date || !$leave->end_date) {
+                continue;
+            }
+
+            $mulai = Carbon::parse($leave->start_date->toDateString(), 'Asia/Jakarta')->max($awal);
+            $selesai = Carbon::parse($leave->end_date->toDateString(), 'Asia/Jakarta')->min($akhir);
+
+            for ($hari = $mulai->copy(); $hari->lte($selesai); $hari->addDay()) {
+                $tanggal = $hari->toDateString();
+
+                if ($hari->isWeekend() || isset($tanggalAbsen[$tanggal])) {
+                    continue;
+                }
+
+                $baris[] = [
+                    'jenis' => 'izin',
+                    'tanggal' => $tanggal,
+                    'attendance' => null,
+                    'leave' => $leave,
+                ];
+            }
+        }
+
+        usort($baris, fn ($a, $b) => $direction === 'asc'
+            ? strcmp($a['tanggal'], $b['tanggal'])
+            : strcmp($b['tanggal'], $a['tanggal']));
+
+        return $baris;
     }
 
     /**
@@ -488,11 +584,10 @@ class AttendanceController extends Controller
 
         $akhir = $awal->copy()->endOfMonth();
 
+        // whereDate agar tanggal terakhir bulan tetap ikut di semua database.
         $attendances = Attendance::where('user_id', $user->id)
-            ->whereBetween('date', [
-                $awal->toDateString(),
-                $akhir->toDateString(),
-            ])
+            ->whereDate('date', '>=', $awal->toDateString())
+            ->whereDate('date', '<=', $akhir->toDateString())
             ->orderBy('date', $direction)
             ->orderBy('clock_in', $direction)
             ->get();
@@ -505,13 +600,15 @@ class AttendanceController extends Controller
      */
     public function exportPdf(Request $request)
     {
-        [$user, $attendances, $periode] =
-            $this->riwayatBulanIni($request);
+        [$user, $attendances, $periode, $leaveRequests, $riwayat, $ringkasan] =
+            $this->riwayatLengkap($request);
+
+        $user->loadMissing(['division', 'location', 'mentor']);
 
         $pdf = Pdf::loadView(
             'attendance.export-pdf',
-            compact('user', 'attendances', 'periode')
-        );
+            compact('user', 'attendances', 'periode', 'leaveRequests', 'riwayat', 'ringkasan')
+        )->setPaper('a4', 'portrait');
 
         $namaFile = 'riwayat-absensi-'
             . Str::slug($user->name)
@@ -527,8 +624,8 @@ class AttendanceController extends Controller
      */
     public function exportCsv(Request $request): StreamedResponse
     {
-        [$user, $attendances, $periode] =
-            $this->riwayatBulanIni($request);
+        [$user, $attendances, $periode, $leaveRequests, $riwayat] =
+            $this->riwayatLengkap($request);
 
         $namaFile = 'riwayat-absensi-'
             . Str::slug($user->name)
@@ -542,7 +639,7 @@ class AttendanceController extends Controller
                 'attachment; filename="' . $namaFile . '"',
         ];
 
-        $callback = function () use ($attendances) {
+        $callback = function () use ($riwayat) {
             $file = fopen('php://output', 'w');
 
             // BOM agar UTF-8 terbaca dengan benar di Excel.
@@ -560,7 +657,28 @@ class AttendanceController extends Controller
                 'Catatan',
             ], ';', '"', '\\');
 
-            foreach ($attendances as $attendance) {
+            foreach ($riwayat as $baris) {
+                // Hari izin/sakit ikut tercatat agar laporan lengkap.
+                if ($baris['jenis'] === 'izin') {
+                    $izin = $baris['leave'];
+
+                    fputcsv($file, [
+                        Carbon::parse($baris['tanggal'])->locale('id')->translatedFormat('l, d F Y'),
+                        '-',
+                        '-',
+                        '-',
+                        $izin->request_type . ' (' . $izin->status . ')',
+                        '-',
+                        '-',
+                        '-',
+                        $izin->reason ?? '-',
+                    ], ';', '"', '\\');
+
+                    continue;
+                }
+
+                $attendance = $baris['attendance'];
+
                 fputcsv($file, [
                     $attendance->date
                         ? Carbon::parse($attendance->date)
