@@ -453,9 +453,11 @@ class AttendanceController extends Controller
         [$user, $attendances, $periode, $leaveRequests, $riwayat, $ringkasan] =
             $this->riwayatLengkap($request, 'desc');
 
+        [$bulanPertama, $bulanTerakhir] = $this->rentangBulanMagang($user);
+
         return view(
             'attendance.history',
-            compact('user', 'attendances', 'periode', 'leaveRequests', 'riwayat', 'ringkasan')
+            compact('user', 'attendances', 'periode', 'leaveRequests', 'riwayat', 'ringkasan', 'bulanPertama', 'bulanTerakhir')
         );
     }
 
@@ -488,7 +490,7 @@ class AttendanceController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        $riwayat = $this->gabungRiwayat($attendances, $leaveRequests, $awal, $akhir, $direction);
+        $riwayat = $this->gabungRiwayat($attendances, $leaveRequests, $awal, $akhir, $direction, $user);
         $hariIzin = collect($riwayat)->where('jenis', 'izin')->where('leave.status', 'Disetujui');
 
         $ringkasan = [
@@ -497,6 +499,13 @@ class AttendanceController extends Controller
             'izin' => $hariIzin->where('leave.request_type', 'Izin')->count(),
             'sakit' => $hariIzin->where('leave.request_type', 'Sakit')->count(),
             'menunggu' => $leaveRequests->where('status', 'Menunggu')->count(),
+            // Alfa: hari kerja tanpa absen & tanpa izin, ditambah hari izin yang ditolak.
+            'alfa' => collect($riwayat)->where('jenis', 'alfa')->count()
+                + collect($riwayat)
+                    ->where('jenis', 'izin')
+                    ->where('leave.status', 'Ditolak')
+                    ->filter(fn ($baris) => $baris['tanggal'] < Carbon::today('Asia/Jakarta')->toDateString())
+                    ->count(),
         ];
 
         return [$user, $attendances, $periode, $leaveRequests, $riwayat, $ringkasan];
@@ -506,10 +515,11 @@ class AttendanceController extends Controller
      * Gabungkan absensi dan hari izin/sakit menjadi satu daftar per tanggal.
      * Hari izin hanya ditampilkan untuk Senin–Jumat yang tidak ada absensinya.
      */
-    private function gabungRiwayat($attendances, $leaveRequests, Carbon $awal, Carbon $akhir, string $direction = 'desc'): array
+    private function gabungRiwayat($attendances, $leaveRequests, Carbon $awal, Carbon $akhir, string $direction = 'desc', ?User $user = null): array
     {
         $baris = [];
         $tanggalAbsen = [];
+        $tanggalIzin = [];
 
         foreach ($attendances as $attendance) {
             $tanggal = Carbon::parse($attendance->date)->toDateString();
@@ -538,6 +548,8 @@ class AttendanceController extends Controller
                     continue;
                 }
 
+                $tanggalIzin[$tanggal] = true;
+
                 $baris[] = [
                     'jenis' => 'izin',
                     'tanggal' => $tanggal,
@@ -547,11 +559,85 @@ class AttendanceController extends Controller
             }
         }
 
+        /*
+         * Hari kerja dalam periode magang tanpa absen & tanpa pengajuan izin:
+         * - hari libur aktif → baris "libur"
+         * - hari yang sudah lewat → baris "alfa"
+         * Hari ini belum dihitung alfa karena peserta masih bisa absen.
+         */
+        if ($user && $user->getRawOriginal('start_date') && $user->getRawOriginal('end_date')) {
+            $hariIni = Carbon::today('Asia/Jakarta');
+            $mulaiMagang = Carbon::parse($user->getRawOriginal('start_date'), 'Asia/Jakarta')->startOfDay();
+            $selesaiMagang = Carbon::parse($user->getRawOriginal('end_date'), 'Asia/Jakarta')->startOfDay();
+
+            $dari = $awal->copy()->max($mulaiMagang);
+            $sampai = $akhir->copy()->min($selesaiMagang)->min($hariIni);
+
+            if ($dari->lte($sampai)) {
+                $libur = Holiday::query()
+                    ->active()
+                    ->whereDate('date', '>=', $dari->toDateString())
+                    ->whereDate('date', '<=', $sampai->toDateString())
+                    ->get()
+                    ->keyBy(fn (Holiday $holiday) => $holiday->date->toDateString());
+
+                for ($hari = $dari->copy(); $hari->lte($sampai); $hari->addDay()) {
+                    $tanggal = $hari->toDateString();
+
+                    if ($hari->isWeekend() || isset($tanggalAbsen[$tanggal]) || isset($tanggalIzin[$tanggal])) {
+                        continue;
+                    }
+
+                    if ($libur->has($tanggal)) {
+                        $baris[] = [
+                            'jenis' => 'libur',
+                            'tanggal' => $tanggal,
+                            'attendance' => null,
+                            'leave' => null,
+                            'keterangan' => $libur->get($tanggal)->name,
+                        ];
+
+                        continue;
+                    }
+
+                    if ($tanggal === $hariIni->toDateString()) {
+                        continue;
+                    }
+
+                    $baris[] = [
+                        'jenis' => 'alfa',
+                        'tanggal' => $tanggal,
+                        'attendance' => null,
+                        'leave' => null,
+                        'keterangan' => 'Tidak ada absensi maupun pengajuan izin',
+                    ];
+                }
+            }
+        }
+
         usort($baris, fn ($a, $b) => $direction === 'asc'
             ? strcmp($a['tanggal'], $b['tanggal'])
             : strcmp($b['tanggal'], $a['tanggal']));
 
         return $baris;
+    }
+
+    /**
+     * Bulan pertama & terakhir periode magang (awal bulan), atau null jika belum diatur.
+     */
+    private function rentangBulanMagang(User $user): array
+    {
+        $mulai = $user->getRawOriginal('start_date');
+        $selesai = $user->getRawOriginal('end_date');
+
+        if (!$mulai || !$selesai) {
+            return [null, null];
+        }
+
+        return [
+            Carbon::parse($mulai, 'Asia/Jakarta')->startOfMonth(),
+            Carbon::parse($selesai, 'Asia/Jakarta')->startOfMonth(),
+        ];
     }
 
     /**
@@ -581,6 +667,17 @@ class AttendanceController extends Controller
             $bulan,
             'Asia/Jakarta'
         );
+
+        // Bulan dibatasi ke periode magang peserta (jika periode sudah diatur).
+        [$bulanPertama, $bulanTerakhir] = $this->rentangBulanMagang($user);
+
+        if ($bulanPertama && $awal->lt($bulanPertama)) {
+            $awal = $bulanPertama->copy();
+        }
+
+        if ($bulanTerakhir && $awal->gt($bulanTerakhir)) {
+            $awal = $bulanTerakhir->copy();
+        }
 
         $akhir = $awal->copy()->endOfMonth();
 
@@ -672,6 +769,22 @@ class AttendanceController extends Controller
                         '-',
                         '-',
                         $izin->reason ?? '-',
+                    ], ';', '"', '\\');
+
+                    continue;
+                }
+
+                if (in_array($baris['jenis'], ['alfa', 'libur'], true)) {
+                    fputcsv($file, [
+                        Carbon::parse($baris['tanggal'])->locale('id')->translatedFormat('l, d F Y'),
+                        '-',
+                        '-',
+                        '-',
+                        $baris['jenis'] === 'alfa' ? 'Alfa' : 'Libur',
+                        '-',
+                        '-',
+                        '-',
+                        $baris['keterangan'] ?? '-',
                     ], ';', '"', '\\');
 
                     continue;

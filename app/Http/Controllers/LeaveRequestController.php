@@ -14,7 +14,8 @@ class LeaveRequestController extends Controller
      */
     public function create()
     {
-        return view('izin.create');
+        // Form pengajuan kini menyatu di halaman Riwayat Absensi & Izin.
+        return redirect()->to(route('riwayat.absen', ['ajukan' => 1]) . '#form-izin');
     }
 
     /**

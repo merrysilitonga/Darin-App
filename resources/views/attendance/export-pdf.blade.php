@@ -22,6 +22,8 @@
         table.data th, table.data td { border: 1px solid #d1d5db; padding: 5px 6px; text-align: left; vertical-align: top; }
         table.data th { background: #eef2f7; font-weight: bold; }
         tr.baris-izin td { background: #f5f8ff; }
+        tr.baris-alfa td { background: #fff5f5; }
+        tr.baris-libur td { background: #f9fafb; color: #6b7280; }
 
         .hadir { color: #059669; font-weight: bold; }
         .terlambat { color: #d97706; font-weight: bold; }
@@ -96,7 +98,17 @@
             @forelse ($riwayat as $baris)
                 @php $tanggal = \Carbon\Carbon::parse($baris['tanggal'])->locale('id'); @endphp
 
-                @if ($baris['jenis'] === 'izin')
+                @if (in_array($baris['jenis'], ['alfa', 'libur'], true))
+                    <tr class="{{ $baris['jenis'] === 'alfa' ? 'baris-alfa' : 'baris-libur' }}">
+                        <td>{{ $tanggal->format('d/m/Y') }}</td>
+                        <td>{{ $tanggal->translatedFormat('l') }}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td class="{{ $baris['jenis'] === 'alfa' ? 'ditolak' : 'menunggu' }}">{{ $baris['jenis'] === 'alfa' ? 'Alfa' : 'Libur' }}</td>
+                        <td>{{ $baris['keterangan'] ?? '' }}</td>
+                    </tr>
+                @elseif ($baris['jenis'] === 'izin')
                     @php
                         $izin = $baris['leave'];
                         $kelas = match ($izin->status) {
@@ -138,7 +150,8 @@
         Ringkasan: Hadir tepat waktu {{ $ringkasan['hadir'] }} hari ·
         Terlambat {{ $ringkasan['terlambat'] }} hari ·
         Izin {{ $ringkasan['izin'] }} hari ·
-        Sakit {{ $ringkasan['sakit'] }} hari
+        Sakit {{ $ringkasan['sakit'] }} hari ·
+        Alfa {{ $ringkasan['alfa'] ?? 0 }} hari
         @if ($ringkasan['menunggu'] > 0)
             · {{ $ringkasan['menunggu'] }} pengajuan izin masih menunggu persetujuan
         @endif

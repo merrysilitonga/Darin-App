@@ -17,7 +17,43 @@
     $badgeClass = 'ml-auto rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold leading-4 text-white';
 @endphp
 
-<aside class="flex w-72 shrink-0 flex-col justify-between bg-[#191712] p-6 text-white shadow-xl">
+{{--
+    Responsif:
+    - Layar besar (>= 1024px): sidebar tampil di kiri seperti biasa.
+    - HP / tablet: sidebar tersembunyi, dibuka lewat tombol ☰ di bar atas.
+--}}
+<style>
+    @media (max-width: 1023.98px) {
+        body { padding-top: 56px; }
+    }
+</style>
+
+<div class="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between bg-[#191712] px-4 text-white shadow-md lg:hidden">
+    <button
+        type="button"
+        data-sidebar-buka
+        aria-controls="darin-sidebar"
+        aria-expanded="false"
+        aria-label="Buka menu"
+        class="flex h-10 w-10 items-center justify-center rounded-xl text-2xl leading-none hover:bg-white/10"
+    >
+        ☰
+    </button>
+
+    <span class="flex items-center gap-2 font-extrabold tracking-wider">
+        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ffc107] text-sm text-[#191712]">D</span>
+        DARIN
+    </span>
+
+    <span class="w-10"></span>
+</div>
+
+<div data-sidebar-latar class="fixed inset-0 z-40 hidden bg-black/50 lg:hidden"></div>
+
+<aside
+    id="darin-sidebar"
+    class="fixed inset-y-0 left-0 z-50 flex w-72 shrink-0 -translate-x-full flex-col justify-between overflow-y-auto bg-[#191712] p-6 text-white shadow-xl transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0"
+>
 
     <div>
         {{-- BRAND --}}
@@ -95,17 +131,9 @@
 
                 <a
                     href="{{ route('riwayat.absen') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('riwayat.absen', 'riwayat.export-*', 'izin.history', 'izin.download') ? $activeClass : $inactiveClass }}"
+                    class="{{ $menuItemClass }} {{ request()->routeIs('riwayat.absen', 'riwayat.export-*', 'izin.*', 'rekap.saya*') ? $activeClass : $inactiveClass }}"
                 >
                     Riwayat Absensi &amp; Izin
-                </a>
-
-                {{-- PENGAJUAN IZIN / SAKIT --}}
-                <a
-                    href="{{ route('izin.create') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('izin.create', 'izin.store') ? $activeClass : $inactiveClass }}"
-                >
-                    Pengajuan Izin / Sakit
                 </a>
 
                 <a
@@ -113,14 +141,6 @@
                     class="{{ $menuItemClass }} {{ request()->routeIs('logbook', 'logbook.*') ? $activeClass : $inactiveClass }}"
                 >
                     Logbook Harian
-                </a>
-
-                {{-- REKAP MAGANG SAYA --}}
-                <a
-                    href="{{ route('rekap.saya') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('rekap.saya*') ? $activeClass : $inactiveClass }}"
-                >
-                    Rekap Magang Saya
                 </a>
 
                 {{-- SARAN & MASUKAN --}}
@@ -199,67 +219,8 @@
                 Menu Administrator
             </p>
 
-            <nav class="space-y-2">
-
-                <a
-                    href="{{ route('admin.dashboard') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.dashboard') ? $activeClass : $inactiveClass }}"
-                >
-                    Dashboard Utama
-                </a>
-
-                <a
-                    href="{{ route('admin.users') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.users*') ? $activeClass : $inactiveClass }}"
-                >
-                    Manajemen Pengguna
-                </a>
-
-                <a
-                    href="{{ route('admin.divisions') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.divisions*') ? $activeClass : $inactiveClass }}"
-                >
-                    Manajemen Divisi
-                </a>
-
-                <a
-                    href="{{ route('admin.locations') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.locations*') ? $activeClass : $inactiveClass }}"
-                >
-                    Manajemen Lokasi
-                </a>
-
-                <a
-                    href="{{ route('admin.attendance') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.attendance*') ? $activeClass : $inactiveClass }}"
-                >
-                    Rekap Absensi
-                </a>
-
-                {{-- SARAN & MASUKAN PESERTA --}}
-                <a
-                    href="{{ route('admin.feedbacks') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.feedbacks*') ? $activeClass : $inactiveClass }}"
-                >
-                    Saran &amp; Masukan
-                </a>
-
-                {{-- KALENDER HARI LIBUR --}}
-                <a
-                    href="{{ route('admin.holidays') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.holidays*') ? $activeClass : $inactiveClass }}"
-                >
-                    Kalender Hari Libur
-                </a>
-
-                <a
-                    href="{{ route('admin.settings') }}"
-                    class="{{ $menuItemClass }} {{ request()->routeIs('admin.settings*') ? $activeClass : $inactiveClass }}"
-                >
-                    Pengaturan Sistem
-                </a>
-
-            </nav>
+            {{-- Satu sumber menu admin (sama dengan layouts.admin-layout) --}}
+            @include('partials.admin-menu')
 
         @else
 
@@ -287,3 +248,40 @@
     </div>
 
 </aside>
+
+<script>
+    (function () {
+        const sidebar = document.getElementById('darin-sidebar');
+        const latar = document.querySelector('[data-sidebar-latar]');
+        const tombol = document.querySelector('[data-sidebar-buka]');
+
+        if (!sidebar || !latar || !tombol) {
+            return;
+        }
+
+        function buka() {
+            sidebar.classList.remove('-translate-x-full');
+            latar.classList.remove('hidden');
+            tombol.setAttribute('aria-expanded', 'true');
+        }
+
+        function tutup() {
+            sidebar.classList.add('-translate-x-full');
+            latar.classList.add('hidden');
+            tombol.setAttribute('aria-expanded', 'false');
+        }
+
+        tombol.addEventListener('click', buka);
+        latar.addEventListener('click', tutup);
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                tutup();
+            }
+        });
+
+        // Tutup otomatis setelah memilih menu (di HP).
+        sidebar.querySelectorAll('a').forEach(function (tautan) {
+            tautan.addEventListener('click', tutup);
+        });
+    })();
+</script>
