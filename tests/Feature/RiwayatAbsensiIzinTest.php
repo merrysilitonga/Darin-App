@@ -73,7 +73,7 @@ class RiwayatAbsensiIzinTest extends TestCase
 
         $this->assertSame(1, $response->viewData('ringkasan')['hadir']);
         $this->assertSame(1, $response->viewData('ringkasan')['sakit']);
-        $this->assertCount(3, $response->viewData('riwayat'));
+        $this->assertCount(3, collect($response->viewData('riwayat'))->whereIn('jenis', ['absen', 'izin']));
     }
 
     public function test_hari_izin_melewati_akhir_pekan_dan_tidak_menggandakan_hari_absen(): void
@@ -88,7 +88,9 @@ class RiwayatAbsensiIzinTest extends TestCase
         // Kamis 12 s.d. Senin 16 Nov: 12, (13 sudah absen), 16 → 2 baris izin.
         $this->izin('2026-11-12', '2026-11-16');
 
-        $riwayat = collect($this->riwayat(['bulan' => '2026-11'])->viewData('riwayat'));
+        $riwayat = collect($this->riwayat(['bulan' => '2026-11'])->viewData('riwayat'))
+            ->whereIn('jenis', ['absen', 'izin'])
+            ->values();
 
         $this->assertSame(
             ['2026-11-16', '2026-11-13', '2026-11-12'],
@@ -176,5 +178,107 @@ class RiwayatAbsensiIzinTest extends TestCase
         $csv = $this->actingAs($this->magang)->get(route('riwayat.export-csv', ['bulan' => '2026-11']));
         $csv->assertOk();
         $this->assertStringContainsString('Sakit (Disetujui)', $csv->streamedContent());
+    }
+
+    public function test_hari_kerja_kosong_tampil_sebagai_alfa_dan_libur(): void
+    {
+        \App\Models\Holiday::create([
+            'date' => '2026-11-06',
+            'name' => 'Libur Uji',
+            'type' => 'Nasional',
+            'is_active' => true,
+        ]);
+
+        Attendance::create([
+            'user_id' => $this->magang->id,
+            'date' => '2026-11-02',
+            'clock_in' => '07:50:00',
+            'status' => 'Hadir',
+        ]);
+
+        $this->izin('2026-11-03', '2026-11-03', 'Sakit');
+        $this->izin('2026-11-04', '2026-11-04', 'Izin', 'Ditolak');
+
+        $response = $this->riwayat(['bulan' => '2026-11']);
+        $riwayat = collect($response->viewData('riwayat'))->keyBy('tanggal');
+
+        // 6 Nov libur, 5 & 9–13 Nov alfa, 16 Nov (hari ini) belum dihitung.
+        $this->assertSame('libur', $riwayat['2026-11-06']['jenis']);
+        $this->assertSame('alfa', $riwayat['2026-11-05']['jenis']);
+        $this->assertSame('alfa', $riwayat['2026-11-13']['jenis']);
+        $this->assertArrayNotHasKey('2026-11-16', $riwayat->all());
+        $this->assertArrayNotHasKey('2026-11-14', $riwayat->all()); // Sabtu
+
+        // Alfa = 6 hari kosong + 1 hari izin ditolak.
+        $this->assertSame(7, $response->viewData('ringkasan')['alfa']);
+        $response->assertSee('Libur Uji');
+    }
+
+    public function test_filter_bulan_dibatasi_ke_periode_magang(): void
+    {
+        // Periode magang 1 Nov – 31 Des 2026.
+        $sebelum = $this->riwayat(['bulan' => '2026-08']);
+        $this->assertSame('2026-11', $sebelum->viewData('periode')->format('Y-m'));
+        $sebelum->assertSee('min="2026-11"', false)->assertSee('max="2026-12"', false);
+
+        $sesudah = $this->riwayat(['bulan' => '2027-03']);
+        $this->assertSame('2026-12', $sesudah->viewData('periode')->format('Y-m'));
+    }
+
+    public function test_laporan_akhir_magang_dari_halaman_riwayat_bukan_sidebar(): void
+    {
+        $this->riwayat()
+            ->assertSee('Laporan Akhir Magang')
+            ->assertSee(route('rekap.saya'), false)
+            ->assertDontSee('Rekap Magang Saya');
+
+        $this->actingAs($this->magang)
+            ->get(route('rekap.saya'))
+            ->assertOk();
+    }
+
+    public function test_form_pengajuan_izin_menyatu_di_halaman_riwayat(): void
+    {
+        // Halaman pengajuan lama diarahkan ke form di halaman riwayat.
+        $this->actingAs($this->magang)
+            ->get(route('izin.create'))
+            ->assertRedirect(route('riwayat.absen', ['ajukan' => 1]) . '#form-izin');
+
+        // Form terbuka otomatis dan tanggal dibatasi ke periode magang.
+        $this->riwayat(['ajukan' => 1])
+            ->assertSee('id="form-izin"', false)
+            ->assertSee('action="' . route('izin.store') . '"', false)
+            ->assertSee('min="2026-11-01"', false)
+            ->assertSee('max="2026-12-31"', false);
+
+        // Menu terpisah di sidebar sudah tidak ada.
+        $this->actingAs($this->magang)
+            ->get(route('dashboard.magang'))
+            ->assertDontSee('Pengajuan Izin / Sakit');
+    }
+
+    public function test_error_validasi_kembali_ke_form_di_halaman_riwayat(): void
+    {
+        $this->actingAs($this->magang)
+            ->from(route('riwayat.absen'))
+            ->post(route('izin.store'), [
+                'request_type' => 'Sakit',
+                'start_date' => '2026-11-20',
+                'end_date' => '2026-11-20',
+                'reason' => '',
+            ])
+            ->assertRedirect(route('riwayat.absen'))
+            ->assertSessionHasErrors(['reason', 'document']);
+    }
+
+    public function test_peserta_yang_magangnya_selesai_tidak_melihat_form(): void
+    {
+        $alumni = $this->buatMagang(null, ['start_date' => '2026-09-01', 'end_date' => '2026-11-15']);
+
+        $this->actingAs($alumni)
+            ->get(route('riwayat.absen', ['ajukan' => 1]))
+            ->assertOk()
+            ->assertSee('tidak dapat mengajukan izin baru')
+            ->assertDontSee('action="' . route('izin.store') . '"', false);
     }
 }
