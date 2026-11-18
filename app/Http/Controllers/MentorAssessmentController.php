@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Assessment;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class MentorAssessmentController extends Controller
 {
@@ -58,5 +60,27 @@ class MentorAssessmentController extends Controller
         );
 
         return back()->with('success', 'Nilai mahasiswa berhasil disimpan!');
+    }
+
+    /**
+     * Unduh rapor nilai akhir magang (PDF) untuk mahasiswa bimbingan.
+     */
+    public function pdf(Request $request, $id)
+    {
+        $mentor = $request->user();
+
+        $student = User::with(['division', 'location'])
+            ->where('id', $id)
+            ->where('role', 'magang')
+            ->where('mentor_id', $mentor->id)
+            ->firstOrFail();
+
+        $assessment = Assessment::where('user_id', $student->id)->firstOrFail();
+
+        $fileName = 'rapor-magang-' . (Str::slug($student->name) ?: 'peserta') . '.pdf';
+
+        return Pdf::loadView('mentor.assessment-pdf', compact('mentor', 'student', 'assessment'))
+            ->setPaper('a4', 'portrait')
+            ->download($fileName);
     }
 }

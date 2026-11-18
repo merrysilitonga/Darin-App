@@ -1,7 +1,7 @@
 @extends('layouts.admin-layout')
 
 @section('content')
-<div class="mx-auto max-w-7xl space-y-6">
+<div class="space-y-6">
 
     {{-- HEADER --}}
     <div>
