@@ -122,7 +122,7 @@
                 {{-- LOGBOOK --}}
                 <section class="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
                     <h2 class="mb-4 text-lg font-bold">Logbook</h2>
-                    <div class="grid grid-cols-5 gap-2 text-center text-sm">
+                    <div class="grid grid-cols-3 gap-2 text-center text-sm sm:grid-cols-5">
                         @php
                             $kartuLogbook = [
                                 ['Total', $logbookStats['total'], 'text-gray-900'],
