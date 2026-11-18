@@ -1,58 +1,18 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+@extends('layouts.mentor-layout')
 
-    <title>Penilaian Magang - DARIN Mentor</title>
+@section('title', 'Penilaian Magang - DARIN')
+@section('page_title', 'Penilaian Akhir Magang')
+@section('page_subtitle', 'Kelola dan tinjau hasil penilaian mahasiswa magang.')
 
-    <script src="https://cdn.tailwindcss.com"></script>
+{{--
+    Halaman penilaian memakai layouts.mentor-layout agar sidebar, header,
+    dan tampilan HP sama dengan halaman mentor lain. Isi halaman tidak diubah.
+--}}
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet">
-
-    <!-- Tambahan Script Alpine.js untuk mengatur Modal (Pop-up) -->
+@push('styles')
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            font-size: 14px;
-            color: #53647a;
-            background-color: #f7f8fa;
-        }
-
-        .mentor-sidebar {
-            background-color: #191712;
-        }
-
-        .mentor-nav {
-            font-size: 12px;
-            font-weight: 500;
-            color: #c5cbd4;
-            transition: background-color 0.2s ease, color 0.2s ease;
-        }
-
-        .mentor-nav:hover {
-            color: #ffffff;
-            background-color: rgba(255, 255, 255, 0.06);
-        }
-
-        .mentor-nav.active {
-            color: #191712;
-            background-color: #ffc107;
-            font-weight: 600;
-        }
-
-        .page-title {
-            color: #263b59;
-            font-size: 19px;
-            font-weight: 600;
-            line-height: 1.5;
-        }
-
         .section-title {
             color: #2e4563;
             font-size: 14px;
@@ -126,165 +86,11 @@
             background-color: #ffffff;
             box-shadow: 0 2px 5px rgba(35, 55, 80, 0.025);
         }
-
-        @media (max-width: 767px) {
-            .mentor-sidebar {
-                display: none;
-            }
-
-            .page-content {
-                padding: 16px !important;
-            }
-
-            .page-header {
-                padding: 16px !important;
-            }
-        }
     </style>
-</head>
+@endpush
 
-<body class="min-h-screen antialiased">
-
-@php
-    $mentorUser = auth()->user();
-
-    $mentorName = $mentorUser?->name ?? 'Mentor';
-    $mentorPosition = $mentorUser?->position ?? 'Mentor / Pembimbing';
-
-    $mentorInitials = collect(explode(' ', trim($mentorName)))
-        ->filter()
-        ->take(2)
-        ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
-        ->implode('');
-@endphp
-
-<div class="flex min-h-screen">
-
-    {{-- SIDEBAR MENTOR --}}
-    <aside class="mentor-sidebar hidden w-64 shrink-0 flex-col justify-between text-white md:flex">
-
-        <div>
-            {{-- BRAND DARIN --}}
-            <a href="{{ url('/mentor/dashboard') }}"
-               class="flex items-center gap-3 border-b border-white/10 px-5 py-5">
-
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#ffc107] text-lg font-bold text-black">
-                    ⚡
-                </div>
-
-                <div>
-                    <h1 class="text-base font-bold tracking-wide text-white">
-                        DARIN
-                    </h1>
-
-                    <p class="mt-0.5 text-[10px] font-medium text-amber-400">
-                        Portal Mentor
-                    </p>
-                </div>
-            </a>
-
-            {{-- PROFIL MENTOR --}}
-            <div class="border-b border-white/10 px-4 py-5">
-
-                <div class="mb-3 text-[10px] font-medium uppercase tracking-wider text-gray-500">
-                    Login sebagai
-                </div>
-
-                <p class="text-xs font-semibold text-white">
-                    {{ $mentorName }}
-                </p>
-
-                <p class="mt-1 text-[11px] font-normal text-gray-400">
-                    {{ $mentorPosition }}
-                </p>
-            </div>
-
-            {{-- NAVIGASI --}}
-            <nav class="space-y-1 px-3 py-5">
-
-                <p class="mb-3 px-3 text-[10px] font-medium uppercase tracking-wider text-gray-500">
-                    Menu Utama
-                </p>
-
-                <a href="{{ url('/mentor/dashboard') }}"
-                   class="mentor-nav {{ request()->is('mentor/dashboard') ? 'active' : '' }} block rounded-xl px-3 py-3">
-                    Dashboard
-                </a>
-
-                <a href="{{ url('/mentor/interns') }}"
-                   class="mentor-nav {{ request()->is('mentor/interns') ? 'active' : '' }} block rounded-xl px-3 py-3">
-                    Daftar Mahasiswa Bimbingan
-                </a>
-
-                <a href="{{ url('/mentor/logbook') }}"
-                   class="mentor-nav {{ request()->is('mentor/logbook') ? 'active' : '' }} block rounded-xl px-3 py-3">
-                    Validasi Logbook
-                </a>
-
-                <a href="{{ url('/mentor/attendance') }}"
-                   class="mentor-nav {{ request()->is('mentor/attendance') ? 'active' : '' }} block rounded-xl px-3 py-3">
-                    Mentoring &amp; Kehadiran
-                </a>
-
-                <a href="{{ url('/mentor/assessment') }}"
-                   class="mentor-nav {{ request()->is('mentor/assessment') ? 'active' : '' }} block rounded-xl px-3 py-3">
-                    Penilaian Magang
-                </a>
-
-            </nav>
-        </div>
-
-        {{-- LOGOUT --}}
-        <div class="border-t border-white/10 p-4">
-            <form action="{{ route('logout') }}" method="POST">
-                @csrf
-
-                <button type="submit"
-                        class="w-full rounded-lg bg-red-500/10 px-4 py-3 text-xs font-medium text-red-300 transition hover:bg-red-500 hover:text-white">
-                    Logout
-                </button>
-            </form>
-        </div>
-
-    </aside>
-
-    {{-- KONTEN UTAMA --}}
-    <div class="flex min-w-0 flex-1 flex-col" x-data="{ showModal: false, activeStudentId: null, activeStudentName: '', formKedisiplinan: 0, formKinerja: 0, formSikap: 0, formLaporan: 0 }">
-
-        {{-- HEADER --}}
-        <header class="page-header flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-7 py-4">
-
-            <div>
-                <h2 class="page-title">
-                    Penilaian Akhir Magang
-                </h2>
-
-                <p class="muted-text mt-1">
-                    Kelola dan tinjau hasil penilaian mahasiswa magang.
-                </p>
-            </div>
-
-            <div class="flex shrink-0 items-center gap-3">
-
-                <div class="hidden text-right sm:block">
-                    <p class="text-xs font-medium text-[#304764]">
-                        {{ $mentorName }}
-                    </p>
-
-                    <p class="mt-1 text-[11px] font-normal text-gray-500">
-                        {{ $mentorPosition }}
-                    </p>
-                </div>
-
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-[#ffc107] text-xs font-semibold text-gray-900">
-                    {{ $mentorInitials ?: 'M' }}
-                </div>
-
-            </div>
-        </header>
-
-        {{-- ISI HALAMAN --}}
-        <main class="page-content flex-1 space-y-5 p-7">
+@section('content')
+<div class="space-y-5" x-data="{ showModal: false, activeStudentId: null, activeStudentName: '', formKedisiplinan: 0, formKinerja: 0, formSikap: 0, formLaporan: 0 }">
             
             {{-- ALERT SUCCESS --}}
             @if(session('success'))
@@ -390,7 +196,7 @@
                                             </p>
 
                                             <p class="muted-text mt-1">
-                                                {{ $student->universitas ?? 'Universitas Asal Belum Diisi' }}
+                                                {{ $student->university ?: 'Universitas Asal Belum Diisi' }}
                                             </p>
                                         </td>
 
@@ -418,20 +224,20 @@
                                                         @click="
                                                             showModal = true; 
                                                             activeStudentId = {{ $student->id }};
-                                                            activeStudentName = '{{ $student->name }}';
+                                                            activeStudentName = {{ \Illuminate\Support\Js::from($student->name) }};
                                                             formKedisiplinan = {{ $kedisiplinan }};
                                                             formKinerja = {{ $kinerja }};
                                                             formSikap = {{ $sikap }};
                                                             formLaporan = {{ $laporan }};
                                                             // Mengatur action form dinamis berdasarkan ID
-                                                            $refs.assessmentForm.action = '{{ url('mentor/assessment') }}/' + activeStudentId;
+                                                            $refs.assessmentForm.action = {{ \Illuminate\Support\Js::from(url('mentor/assessment')) }} + '/' + activeStudentId;
                                                         "
                                                         class="action-button bg-slate-800 text-white hover:bg-slate-700">
                                                     {{ $nilai ? 'Edit Nilai' : 'Beri Nilai' }}
                                                 </button>
 
                                                 @if($nilai)
-                                                    <a href="#" class="action-button bg-red-50 text-red-600 hover:bg-red-100">
+                                                    <a href="{{ route('mentor.assessment.pdf', $student->id) }}" class="action-button bg-red-50 text-red-600 hover:bg-red-100" title="Unduh rapor nilai (PDF)">
                                                         PDF
                                                     </a>
                                                 @else
@@ -463,7 +269,6 @@
                 </div>
 
             </section>
-        </main>
 
         {{-- MODAL PENGISIAN NILAI (Alpine.js) --}}
         <div x-show="showModal" style="display: none;" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -532,17 +337,5 @@
                 </div>
             </div>
         </div>
-
-        {{-- FOOTER --}}
-        <footer class="px-6 pb-5 text-center">
-            <p class="text-[11px] font-normal text-gray-400">
-                © {{ date('Y') }} DARIN — Sistem Presensi Geospasial Terintegrasi ESDM
-            </p>
-        </footer>
-
-    </div>
-
 </div>
-
-</body>
-</html>
+@endsection

@@ -28,6 +28,7 @@ use App\Http\Controllers\LogbookController;
 use App\Http\Controllers\MentorLogbookController;
 use App\Http\Controllers\MentorLeaveRequestController;
 use App\Http\Controllers\MentorDashboardController;
+use App\Http\Controllers\MentorAssessmentController;
 use App\Http\Controllers\MentorAttendanceController;
 
 use App\Http\Middleware\EnsureInternshipActive;
@@ -482,13 +483,22 @@ Route::middleware([
     )->name('mentor.attendance');
 
 
-    // Halaman penilaian mentor.
-    // Sementara tetap menggunakan view lama sampai controller
-    // dan fitur penyimpanan penilaian selesai dibuat.
+    // Halaman penilaian akhir magang.
 
-    Route::get('/assessment', function () {
-        return view('mentor.assessment');
-    })->name('mentor.assessment');
+    Route::get(
+        '/assessment',
+        [MentorAssessmentController::class, 'index']
+    )->name('mentor.assessment');
+
+    Route::post(
+        '/assessment/{id}',
+        [MentorAssessmentController::class, 'storeOrUpdate']
+    )->whereNumber('id')->name('mentor.assessment.store');
+
+    Route::get(
+        '/assessment/{id}/pdf',
+        [MentorAssessmentController::class, 'pdf']
+    )->whereNumber('id')->name('mentor.assessment.pdf');
 
 });
 

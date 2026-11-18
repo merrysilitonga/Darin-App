@@ -10,7 +10,7 @@
     $adaPasswordBaru = collect($kredensial)->whereNotNull('password')->isNotEmpty();
 @endphp
 
-<div class="mx-auto max-w-5xl space-y-6">
+<div class="space-y-6">
 
     <a href="{{ route('admin.users') }}" class="inline-block text-sm font-semibold text-amber-700 hover:underline">
         ← Kembali ke Manajemen Pengguna
