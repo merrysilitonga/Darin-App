@@ -130,7 +130,7 @@ class RiwayatAbsensiIzinTest extends TestCase
             ->assertRedirect(route('riwayat.absen', ['bulan' => '2026-11']) . '#riwayat-izin');
     }
 
-    public function test_setelah_mengajukan_izin_diarahkan_ke_riwayat_gabungan(): void
+    public function test_setelah_mengajukan_izin_kembali_ke_halaman_mulai_absen(): void
     {
         $this->actingAs($this->magang)
             ->post(route('izin.store'), [
@@ -140,7 +140,7 @@ class RiwayatAbsensiIzinTest extends TestCase
                 'reason' => 'Demam tinggi',
                 'document' => UploadedFile::fake()->create('surat.pdf', 50, 'application/pdf'),
             ])
-            ->assertRedirect(route('riwayat.absen', ['bulan' => '2026-12']) . '#riwayat-izin')
+            ->assertRedirect(route('absen'))
             ->assertSessionHas('success');
     }
 
@@ -237,15 +237,22 @@ class RiwayatAbsensiIzinTest extends TestCase
             ->assertOk();
     }
 
-    public function test_form_pengajuan_izin_menyatu_di_halaman_riwayat(): void
+    public function test_form_pengajuan_izin_berada_di_halaman_mulai_absen(): void
     {
-        // Halaman pengajuan lama diarahkan ke form di halaman riwayat.
+        // Halaman pengajuan lama diarahkan ke form di halaman Mulai Absen.
         $this->actingAs($this->magang)
             ->get(route('izin.create'))
-            ->assertRedirect(route('riwayat.absen', ['ajukan' => 1]) . '#form-izin');
+            ->assertRedirect(route('absen', ['ajukan' => 1]) . '#form-izin');
+
+        // Form tidak lagi berada di halaman riwayat.
+        $this->riwayat()
+            ->assertDontSee('id="form-izin"', false)
+            ->assertDontSee('action="' . route('izin.store') . '"', false);
 
         // Form terbuka otomatis dan tanggal dibatasi ke periode magang.
-        $this->riwayat(['ajukan' => 1])
+        $this->actingAs($this->magang)
+            ->get(route('absen', ['ajukan' => 1]))
+            ->assertOk()
             ->assertSee('id="form-izin"', false)
             ->assertSee('action="' . route('izin.store') . '"', false)
             ->assertSee('min="2026-11-01"', false)
@@ -257,18 +264,55 @@ class RiwayatAbsensiIzinTest extends TestCase
             ->assertDontSee('Pengajuan Izin / Sakit');
     }
 
-    public function test_error_validasi_kembali_ke_form_di_halaman_riwayat(): void
+    public function test_error_validasi_kembali_ke_form_di_halaman_mulai_absen(): void
     {
         $this->actingAs($this->magang)
-            ->from(route('riwayat.absen'))
+            ->from(route('absen'))
             ->post(route('izin.store'), [
+                '_form' => 'izin',
                 'request_type' => 'Sakit',
                 'start_date' => '2026-11-20',
                 'end_date' => '2026-11-20',
                 'reason' => '',
             ])
-            ->assertRedirect(route('riwayat.absen'))
+            ->assertRedirect(route('absen'))
             ->assertSessionHasErrors(['reason', 'document']);
+    }
+
+    public function test_error_form_izin_tidak_tercampur_dengan_error_absensi(): void
+    {
+        // Bentuk error di session sama seperti yang disimpan Laravel saat
+        // config session.serialization = 'json' (dibaca ulang lewat marshalErrorBag).
+        $errorBag = fn (string $pesan) => [
+            'default' => [
+                'format' => ':message',
+                'messages' => ['field' => [$pesan]],
+            ],
+        ];
+
+        // Error dari form izin tampil di dalam form izin, bukan di kotak error absensi.
+        $this->actingAs($this->magang)
+            ->withSession([
+                'errors' => $errorBag('Alasan pengajuan wajib diisi.'),
+                '_old_input' => ['_form' => 'izin'],
+            ])
+            ->get(route('absen'))
+            ->assertOk()
+            ->assertSee('Pengajuan belum terkirim')
+            ->assertSee('Alasan pengajuan wajib diisi.')
+            ->assertDontSee('Terjadi kesalahan:');
+
+        // Error absensi biasa tetap tampil di kotak error absensi.
+        $this->actingAs($this->magang)
+            ->withSession([
+                'errors' => $errorBag('Foto selfie wajib diambil.'),
+                '_old_input' => [],
+            ])
+            ->get(route('absen'))
+            ->assertOk()
+            ->assertSee('Terjadi kesalahan:')
+            ->assertSee('Foto selfie wajib diambil.')
+            ->assertDontSee('Pengajuan belum terkirim');
     }
 
     public function test_peserta_yang_magangnya_selesai_tidak_melihat_form(): void
@@ -276,7 +320,7 @@ class RiwayatAbsensiIzinTest extends TestCase
         $alumni = $this->buatMagang(null, ['start_date' => '2026-09-01', 'end_date' => '2026-11-15']);
 
         $this->actingAs($alumni)
-            ->get(route('riwayat.absen', ['ajukan' => 1]))
+            ->get(route('absen', ['ajukan' => 1]))
             ->assertOk()
             ->assertSee('tidak dapat mengajukan izin baru')
             ->assertDontSee('action="' . route('izin.store') . '"', false);

@@ -75,8 +75,8 @@
             </div>
         @endif
 
-        {{-- VALIDASI --}}
-        @if($errors->any())
+        {{-- VALIDASI (error form izin tampil di dalam form izin sendiri) --}}
+        @if($errors->any() && old('_form') !== 'izin')
             <div
                 role="alert"
                 class="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
@@ -638,6 +638,9 @@
             </section>
 
         </div>
+
+        {{-- PENGAJUAN IZIN / SAKIT --}}
+        @include('partials.form-izin')
 
     </main>
 
