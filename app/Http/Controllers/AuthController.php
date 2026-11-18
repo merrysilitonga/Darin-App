@@ -6,11 +6,19 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Throwable;
 
 class AuthController extends Controller
 {
+    /** Maksimal percobaan login gagal sebelum dikunci sementara. */
+    private const LOGIN_MAX_ATTEMPTS = 5;
+
+    /** Lama penguncian login (detik). */
+    private const LOGIN_DECAY_SECONDS = 60;
+
     /**
      * Menampilkan halaman login.
      */
@@ -29,16 +37,33 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        // Batasi percobaan login (per email + IP) untuk mencegah tebak password.
+        $throttleKey = 'login:' . Str::lower((string) $credentials['email']) . '|' . $request->ip();
+
+        if (RateLimiter::tooManyAttempts($throttleKey, self::LOGIN_MAX_ATTEMPTS)) {
+            $detik = RateLimiter::availableIn($throttleKey);
+
+            return back()
+                ->withErrors([
+                    'email' => "Terlalu banyak percobaan login. Coba lagi dalam {$detik} detik.",
+                ])
+                ->onlyInput('email');
+        }
+
         if (!Auth::attempt(
             $credentials,
             $request->boolean('remember')
         )) {
+            RateLimiter::hit($throttleKey, self::LOGIN_DECAY_SECONDS);
+
             return back()
                 ->withErrors([
                     'email' => 'Email atau kata sandi yang Anda masukkan salah.',
                 ])
                 ->onlyInput('email');
         }
+
+        RateLimiter::clear($throttleKey);
 
         $request->session()->regenerate();
 

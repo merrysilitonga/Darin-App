@@ -19,6 +19,7 @@ use App\Http\Controllers\ResetDataController;
 use App\Http\Controllers\UserImportController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminUserPasswordController;
 use App\Http\Controllers\SystemSettingsController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AttendanceController;
@@ -566,6 +567,13 @@ Route::middleware([
         '/users/{user}/location',
         [AdminController::class, 'updateUserLocation']
     )->whereNumber('user')->name('admin.users.location');
+
+    // Reset password pengguna (tampilkan password baru sekali).
+
+    Route::put(
+        '/users/{user}/password',
+        [AdminUserPasswordController::class, 'reset']
+    )->whereNumber('user')->name('admin.users.password-reset');
 
 
     // CRUD Divisi.

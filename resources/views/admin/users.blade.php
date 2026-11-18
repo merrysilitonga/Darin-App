@@ -133,6 +133,21 @@
                 </div>
             @endif
 
+            {{-- PASSWORD BARU HASIL RESET (ditampilkan sekali) --}}
+            @if(session('password_reset'))
+                @php $reset = session('password_reset'); @endphp
+                <div role="status" class="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+                    <p class="font-bold">Password baru untuk {{ $reset['name'] }} ({{ $reset['email'] }}):</p>
+                    <p class="mt-2">
+                        <code class="select-all rounded-lg bg-white px-3 py-1.5 font-mono text-base font-bold tracking-wider text-gray-900">{{ $reset['password'] }}</code>
+                    </p>
+                    <p class="mt-2 text-xs text-amber-800">
+                        Password ini <strong>hanya ditampilkan sekali</strong>. Bagikan langsung ke pengguna secara pribadi,
+                        lalu minta mereka menggantinya di halaman Profil setelah login.
+                    </p>
+                </div>
+            @endif
+
             {{-- NOTIFIKASI ERROR --}}
             @if(session('error'))
                 <div role="alert" class="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-800">
@@ -310,6 +325,18 @@
                                                    class="mt-2 inline-block rounded-lg border border-amber-200 px-2.5 py-1 text-xs font-bold text-amber-700 hover:bg-amber-50">
                                                     Lihat Rekap
                                                 </a>
+                                            @endif
+
+                                            {{-- RESET PASSWORD --}}
+                                            @if(auth()->id() !== $user->id)
+                                                <form action="{{ route('admin.users.password-reset', $user->id) }}" method="POST" class="mt-2"
+                                                      onsubmit="return confirm({{ \Illuminate\Support\Js::from('Reset password ' . $user->name . '? Password lama tidak bisa dipakai lagi.') }});">
+                                                    @csrf
+                                                    @method('PUT')
+                                                    <button type="submit" class="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-bold text-gray-600 hover:bg-gray-50">
+                                                        🔑 Reset Password
+                                                    </button>
+                                                </form>
                                             @endif
                                         </td>
 
