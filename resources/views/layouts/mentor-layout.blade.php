@@ -58,7 +58,7 @@
         <main class="min-w-0 flex-1 px-5 py-6 md:px-8 md:py-8 lg:px-10">
 
             @php
-                $mentorPending = $mentorPending ?? ['logbook' => 0, 'leave' => 0, 'total' => 0, 'overdue' => 0];
+                $mentorPending = $mentorPending ?? ['logbook' => 0, 'leave' => 0, 'koreksi' => 0, 'total' => 0, 'overdue' => 0];
             @endphp
 
             {{-- Header halaman --}}
@@ -101,7 +101,7 @@
                     role="status"
                     class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
                 >
-                    <span class="font-semibold">{{ $mentorPending['overdue'] }} logbook/pengajuan izin</span>
+                    <span class="font-semibold">{{ $mentorPending['overdue'] }} logbook/pengajuan izin/koreksi</span>
                     sudah menunggu {{ \App\Services\MentorPendingService::OVERDUE_DAYS }} hari atau lebih.
                     <a href="{{ route('mentor.dashboard') }}#tindakan-menunggu" class="font-semibold underline">Tinjau sekarang</a>
                 </div>

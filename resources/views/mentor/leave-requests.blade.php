@@ -122,6 +122,88 @@
 
             </section>
 
+            {{-- KOREKSI ABSEN PULANG (peserta lupa absen pulang) --}}
+            @if ($corrections->isNotEmpty())
+                <section class="mb-8 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm md:p-7">
+                    <h2 class="text-lg font-extrabold">Koreksi Absen Pulang</h2>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Peserta yang lupa absen pulang mengajukan jam pulang sebenarnya. Jika disetujui, jam pulang dicatat pada absensinya.
+                    </p>
+
+                    <div class="mt-5 divide-y divide-gray-100">
+                        @foreach ($corrections as $koreksi)
+                            @php
+                                $kelasStatus = match ($koreksi->status) {
+                                    'Disetujui' => 'bg-green-100 text-green-700',
+                                    'Ditolak' => 'bg-red-100 text-red-700',
+                                    default => 'bg-amber-100 text-amber-700',
+                                };
+                                $tanggalAbsen = $koreksi->attendance
+                                    ? \Carbon\Carbon::parse($koreksi->attendance->getRawOriginal('date'))->locale('id')->translatedFormat('l, d M Y')
+                                    : '-';
+                            @endphp
+
+                            <div class="py-4">
+                                <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                    <div>
+                                        <p class="font-bold text-gray-800">{{ $koreksi->user?->name ?? 'Mahasiswa' }}</p>
+                                        <p class="mt-0.5 text-sm text-gray-600">
+                                            {{ $tanggalAbsen }} ·
+                                            masuk <span class="font-semibold">{{ substr((string) $koreksi->attendance?->clock_in, 0, 5) ?: '-' }}</span> ·
+                                            pulang diajukan <span class="font-semibold text-blue-700">{{ $koreksi->jamPulang() }}</span>
+                                        </p>
+                                        <p class="mt-1 whitespace-pre-line text-sm text-gray-500">Alasan: {{ $koreksi->reason }}</p>
+                                        @if ($koreksi->status !== 'Menunggu')
+                                            <p class="mt-1 text-xs text-gray-400">
+                                                Diproses {{ $koreksi->reviewer?->name ?? '-' }},
+                                                {{ $koreksi->reviewed_at?->timezone('Asia/Jakarta')->format('d M Y, H:i') }} WIB
+                                                @if ($koreksi->review_notes) · Catatan: {{ $koreksi->review_notes }} @endif
+                                            </p>
+                                        @endif
+                                    </div>
+                                    <span class="w-fit shrink-0 rounded-full px-3 py-1 text-xs font-bold {{ $kelasStatus }}">{{ $koreksi->status }}</span>
+                                </div>
+
+                                @if ($koreksi->status === 'Menunggu')
+                                    <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <form
+                                            action="{{ route('mentor.corrections.approve', $koreksi->id) }}"
+                                            method="POST"
+                                            onsubmit="return confirm('Setujui koreksi jam pulang ini?')"
+                                        >
+                                            @csrf
+                                            <button type="submit" class="w-full rounded-xl bg-green-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-green-700">
+                                                Setujui Koreksi
+                                            </button>
+                                        </form>
+
+                                        <form
+                                            action="{{ route('mentor.corrections.reject', $koreksi->id) }}"
+                                            method="POST"
+                                            class="flex gap-2"
+                                        >
+                                            @csrf
+                                            <input
+                                                type="text"
+                                                name="review_notes"
+                                                required
+                                                maxlength="2000"
+                                                placeholder="Alasan penolakan"
+                                                aria-label="Alasan penolakan koreksi"
+                                                class="min-w-0 flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                                            >
+                                            <button type="submit" class="shrink-0 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700">
+                                                Tolak
+                                            </button>
+                                        </form>
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
+
             {{-- DAFTAR PENGAJUAN --}}
             <section class="space-y-5">
 

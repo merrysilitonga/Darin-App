@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Attendance extends Model
 {
@@ -67,6 +68,12 @@ class Attendance extends Model
     public function clockOutLocation(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'clock_out_location_id');
+    }
+
+    /** Pengajuan koreksi absen pulang terbaru untuk absensi ini. */
+    public function koreksiPulang(): HasOne
+    {
+        return $this->hasOne(AttendanceCorrection::class)->latestOfMany();
     }
 
     /**

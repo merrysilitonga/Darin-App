@@ -13,7 +13,7 @@
     $inactiveClass = 'text-gray-300 hover:bg-white/5 hover:text-white';
 
     // Badge mentor (diisi View Composer di AppServiceProvider).
-    $mentorPending = $mentorPending ?? ['logbook' => 0, 'leave' => 0, 'total' => 0, 'overdue' => 0];
+    $mentorPending = $mentorPending ?? ['logbook' => 0, 'leave' => 0, 'koreksi' => 0, 'total' => 0, 'overdue' => 0];
     $badgeClass = 'ml-auto rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold leading-4 text-white';
 @endphp
 
@@ -191,8 +191,8 @@
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.leave-requests*') ? $activeClass : $inactiveClass }}"
                 >
                     Pengajuan Izin / Sakit
-                    @if ($mentorPending['leave'] > 0)
-                        <span class="{{ $badgeClass }}" title="Pengajuan menunggu persetujuan">{{ $mentorPending['leave'] }}</span>
+                    @if ($mentorPending['leave'] + ($mentorPending['koreksi'] ?? 0) > 0)
+                        <span class="{{ $badgeClass }}" title="Pengajuan menunggu persetujuan (izin & koreksi absen pulang)">{{ $mentorPending['leave'] + ($mentorPending['koreksi'] ?? 0) }}</span>
                     @endif
                 </a>
 

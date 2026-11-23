@@ -681,7 +681,8 @@ class AttendanceController extends Controller
         $akhir = $awal->copy()->endOfMonth();
 
         // whereDate agar tanggal terakhir bulan tetap ikut di semua database.
-        $attendances = Attendance::where('user_id', $user->id)
+        $attendances = Attendance::with('koreksiPulang')
+            ->where('user_id', $user->id)
             ->whereDate('date', '>=', $awal->toDateString())
             ->whereDate('date', '<=', $akhir->toDateString())
             ->orderBy('date', $direction)

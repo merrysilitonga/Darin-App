@@ -90,6 +90,69 @@
             </div>
         @else
 
+            {{-- NILAI AKHIR MAGANG (dari Penilaian Mentor) --}}
+            <section class="mb-6 rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800">Nilai Akhir Magang</h2>
+                        @if ($assessment)
+                            <p class="mt-1 text-xs text-gray-500">
+                                Dinilai oleh {{ $assessment->mentor?->name ?? 'Mentor' }}
+                                @if ($assessment->tanggal_penilaian)
+                                    pada {{ $assessment->tanggal_penilaian->locale('id')->translatedFormat('d F Y') }}
+                                @endif
+                            </p>
+                        @else
+                            <p class="mt-1 text-sm text-gray-500">Belum dinilai. Nilai akan muncul setelah Mentor mengisi Penilaian Magang.</p>
+                        @endif
+                    </div>
+
+                    @if ($assessment)
+                        <div class="flex items-center gap-4">
+                            <div class="text-right">
+                                <p class="text-xs font-medium text-gray-500">Nilai Akhir</p>
+                                <p class="text-3xl font-extrabold text-gray-900">{{ number_format($assessment->nilaiAkhir(), 2, ',', '.') }}</p>
+                            </div>
+                            <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#ffc107] text-3xl font-extrabold text-[#191712]">
+                                {{ $assessment->grade() }}
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+                @if ($assessment)
+                    @php
+                        $aspekNilai = [
+                            'kedisiplinan' => 'Kedisiplinan',
+                            'kinerja_teknis' => 'Kinerja Teknis',
+                            'sikap_etika' => 'Sikap & Etika',
+                            'laporan' => 'Laporan',
+                        ];
+                    @endphp
+
+                    <div class="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+                        @foreach ($aspekNilai as $kolom => $label)
+                            <div class="rounded-2xl bg-gray-50 p-4">
+                                <p class="text-xs font-medium text-gray-500">
+                                    {{ $label }}
+                                    <span class="text-gray-400">({{ (int) round(\App\Models\Assessment::BOBOT[$kolom] * 100) }}%)</span>
+                                </p>
+                                <p class="mt-1 text-xl font-extrabold text-gray-800">{{ number_format((float) $assessment->{$kolom}, 0, ',', '.') }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    @if ($raporUrl)
+                        <a
+                            href="{{ $raporUrl }}"
+                            class="mt-5 inline-flex rounded-xl bg-[#191712] px-5 py-3 text-sm font-bold text-white transition hover:bg-gray-800"
+                        >
+                            Unduh Rapor Nilai (PDF)
+                        </a>
+                    @endif
+                @endif
+            </section>
+
             {{-- RINGKASAN --}}
             <section class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
                 @php

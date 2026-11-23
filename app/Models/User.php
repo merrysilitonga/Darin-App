@@ -43,6 +43,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'start_date' => 'date',
             'end_date' => 'date',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -80,6 +81,14 @@ class User extends Authenticatable
     /**
      * True jika user adalah mahasiswa magang yang periodenya sudah berakhir.
      */
+    /**
+     * Akun aktif (boleh login). Akun lama tanpa nilai dianggap aktif.
+     */
+    public function isActive(): bool
+    {
+        return $this->is_active !== false;
+    }
+
     public function isInternshipEnded(): bool
     {
         return $this->role === 'magang'
