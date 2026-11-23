@@ -14,8 +14,8 @@ class LeaveRequestController extends Controller
      */
     public function create()
     {
-        // Form pengajuan kini menyatu di halaman Riwayat Absensi & Izin.
-        return redirect()->to(route('riwayat.absen', ['ajukan' => 1]) . '#form-izin');
+        // Form pengajuan berada di halaman Mulai Absen.
+        return redirect()->to(route('absen', ['ajukan' => 1]) . '#form-izin');
     }
 
     /**
@@ -115,14 +115,12 @@ class LeaveRequestController extends Controller
             throw $e;
         }
 
-        // Riwayat izin kini digabung dengan riwayat absensi (bulan tanggal mulai izin).
+        // Kembali ke halaman Mulai Absen; status pengajuan dilihat di Riwayat Absensi & Izin.
         return redirect()
-            ->to(route('riwayat.absen', [
-                'bulan' => Carbon::parse($validated['start_date'])->format('Y-m'),
-            ]) . '#riwayat-izin')
+            ->route('absen')
             ->with(
                 'success',
-                'Pengajuan berhasil dikirim dan menunggu persetujuan Mentor.'
+                'Pengajuan berhasil dikirim dan menunggu persetujuan Mentor. Status dapat dilihat di Riwayat Absensi & Izin.'
             );
     }
 

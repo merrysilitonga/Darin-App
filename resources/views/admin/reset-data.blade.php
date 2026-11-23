@@ -18,7 +18,6 @@
             'deskripsi' => 'Menghapus riwayat presensi (Clock In / Clock Out) beserta file foto selfie dari storage server.',
             'jumlah' => $counts['attendances'] . ' data absensi',
             'tombol' => 'Hapus Absensi',
-            'ikon' => '🗑️',
             'bahaya' => false,
         ],
         [
@@ -28,7 +27,6 @@
             'deskripsi' => 'Menghapus catatan aktivitas harian, termasuk status approval dan umpan balik mentor.',
             'jumlah' => $counts['logbooks'] . ' logbook',
             'tombol' => 'Hapus Logbook',
-            'ikon' => '🗑️',
             'bahaya' => false,
         ],
         [
@@ -38,7 +36,6 @@
             'deskripsi' => 'Menghapus akun peserta beserta seluruh absensi, logbook, pengajuan izin, saran, foto profil, foto selfie, dan dokumen izinnya. Akun Mentor, Admin, dan HR tetap aman.',
             'jumlah' => $counts['interns'] . ' akun peserta',
             'tombol' => 'Hapus Akun',
-            'ikon' => '🚨',
             'bahaya' => true,
         ],
     ];
@@ -49,14 +46,14 @@
     {{-- ALERT SUCCESS --}}
     @if (session('success'))
         <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700 shadow-sm">
-            ✅ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
     {{-- WARNING BANNER --}}
     <div class="rounded-xl border border-red-200 bg-red-50 px-5 py-5 text-sm text-red-700 shadow-sm">
         <div class="flex gap-4">
-            <span class="mt-0.5 text-2xl">⚠️</span>
+            <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm font-extrabold text-white">!</span>
             <div>
                 <strong class="block text-base font-bold">Peringatan Area Kritis (Danger Zone)</strong>
                 <p class="mt-1 leading-relaxed">
@@ -72,6 +69,57 @@
                 </p>
             </div>
         </div>
+    </div>
+
+    {{-- DAFTAR PESERTA YANG AKAN TERHAPUS --}}
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div class="border-b border-gray-100 px-6 py-4">
+            <h3 class="text-base font-bold text-slate-800">Peserta yang Terdampak</h3>
+            <p class="mt-1 text-sm text-slate-500">
+                Hanya data peserta di bawah ini yang akan dihapus. Periksa dulu sebelum menekan tombol hapus.
+            </p>
+        </div>
+
+        @if ($alumni->isEmpty())
+            <p class="px-6 py-6 text-center text-sm text-slate-500">
+                Belum ada peserta yang periode magangnya sudah selesai. Tidak ada data yang dapat dihapus.
+            </p>
+        @else
+            <div class="max-h-80 overflow-auto">
+                <table class="w-full min-w-[640px] text-left text-sm">
+                    <thead class="sticky top-0 bg-gray-50 text-xs uppercase tracking-wide text-slate-500">
+                        <tr>
+                            <th class="px-6 py-3 font-semibold">Peserta</th>
+                            <th class="px-4 py-3 font-semibold">Kampus / Divisi</th>
+                            <th class="px-4 py-3 font-semibold">Periode Magang</th>
+                            <th class="px-4 py-3 text-right font-semibold">Absensi</th>
+                            <th class="px-6 py-3 text-right font-semibold">Logbook</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach ($alumni as $peserta)
+                            <tr>
+                                <td class="px-6 py-3">
+                                    <p class="font-semibold text-slate-800">{{ $peserta->name }}</p>
+                                    <p class="text-xs text-slate-500">{{ $peserta->email }}</p>
+                                </td>
+                                <td class="px-4 py-3 text-xs text-slate-600">
+                                    {{ $peserta->university ?: '-' }}
+                                    <span class="block text-slate-400">{{ $peserta->division?->name ?? 'Tanpa divisi' }}</span>
+                                </td>
+                                <td class="px-4 py-3 text-xs text-slate-600">
+                                    {{ $peserta->start_date?->locale('id')->translatedFormat('d M Y') ?? '-' }}
+                                    &ndash;
+                                    <span class="font-semibold text-red-600">{{ $peserta->end_date?->locale('id')->translatedFormat('d M Y') }}</span>
+                                </td>
+                                <td class="px-4 py-3 text-right text-slate-700">{{ $peserta->attendances_count }}</td>
+                                <td class="px-6 py-3 text-right text-slate-700">{{ $logbookPerPeserta[$peserta->id] ?? 0 }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
     </div>
 
     @foreach ($kartu as $item)
@@ -115,7 +163,7 @@
                         Password akun Anda
                     </label>
                     <input type="password" id="password-{{ $item['target'] }}" name="password" required
-                           autocomplete="current-password"
+                           autocomplete="new-password"
                            class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-red-400">
                 </div>
 
@@ -124,14 +172,15 @@
                         Ketik <span class="font-mono font-bold text-red-600">{{ $confirmWord }}</span>
                     </label>
                     <input type="text" id="confirmation-{{ $item['target'] }}" name="confirmation" required
-                           autocomplete="off" placeholder="{{ $confirmWord }}"
+                           autocomplete="off" autocapitalize="characters" spellcheck="false"
+                           data-lpignore="true" data-1p-ignore placeholder="{{ $confirmWord }}"
                            class="w-full rounded-xl border border-gray-200 px-3 py-2.5 font-mono text-sm outline-none focus:border-red-400">
                 </div>
 
                 <button type="submit" @disabled($kosong)
                         class="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40
                         {{ $item['bahaya'] ? 'bg-red-700 hover:bg-red-800' : 'bg-red-600 hover:bg-red-700' }}">
-                    <span>{{ $item['ikon'] }}</span> {{ $item['tombol'] }}
+                    {{ $item['tombol'] }}
                 </button>
             </form>
         </div>

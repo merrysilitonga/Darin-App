@@ -294,6 +294,8 @@
                         >
                     </div>
 
+                    @include('partials.alat-koordinat', ['latId' => 'latitude', 'lngId' => 'longitude'])
+
                     <div>
                         <label for="radius_meters" class="field-label">
                             Radius Absensi (meter)
@@ -558,6 +560,11 @@
                                             </div>
 
                                         </div>
+
+                                        @include('partials.alat-koordinat', [
+                                            'latId' => 'edit-latitude-' . $location->id,
+                                            'lngId' => 'edit-longitude-' . $location->id,
+                                        ])
 
                                         <div>
                                             <label for="edit-radius-{{ $location->id }}" class="field-label">

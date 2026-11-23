@@ -850,7 +850,7 @@ class AdminController extends Controller
                     $attendance->clock_out ? substr((string) $attendance->clock_out, 0, 5) : '-',
                     $attendance->work_location ?? '-',
                     $attendance->status === 'Hadir' ? 'Tepat Waktu' : ($attendance->status ?? '-'),
-                    $attendance->clock_out ? 'Lengkap' : 'Belum absen pulang',
+                    $attendance->clock_out ? 'Lengkap' : $attendance->keteranganPulangKosong(),
                     $attendance->location_name ?? '-',
                     $attendance->distance_meters ?? '-',
                     $attendance->clock_out_distance_meters ?? '-',

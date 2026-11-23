@@ -285,3 +285,6 @@
         });
     })();
 </script>
+
+{{-- Efek animasi halaman (Motion untuk kartu & hover, GSAP untuk judul), berlaku di semua halaman yang memakai sidebar --}}
+@include('partials.efek-ui')

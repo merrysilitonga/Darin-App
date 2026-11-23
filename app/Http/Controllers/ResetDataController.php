@@ -39,8 +39,23 @@ class ResetDataController extends Controller
             'leave_requests' => LeaveRequest::whereIn('user_id', $alumniIds)->count(),
         ];
 
+        // Daftar peserta yang datanya akan terhapus, agar Admin bisa memeriksa dulu.
+        $logbookPerPeserta = Logbook::whereIn('user_id', $alumniIds)
+            ->selectRaw('user_id, COUNT(*) as jumlah')
+            ->groupBy('user_id')
+            ->pluck('jumlah', 'user_id');
+
+        $alumni = User::whereIn('id', $alumniIds)
+            ->with('division:id,name')
+            ->withCount('attendances')
+            ->orderBy('end_date')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'university', 'division_id', 'start_date', 'end_date']);
+
         return view('admin.reset-data', [
             'counts' => $counts,
+            'alumni' => $alumni,
+            'logbookPerPeserta' => $logbookPerPeserta,
             'confirmWord' => self::CONFIRM_WORD,
             'today' => Carbon::today('Asia/Jakarta'),
         ]);

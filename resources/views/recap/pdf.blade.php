@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <title>Rekap Magang {{ $intern->name }} - DARIN</title>
     <style>
-        body { font-family: sans-serif; font-size: 10px; color: #222; }
+        /* DejaVu Sans bawaan dompdf: huruf biasa & tebal punya ukuran baris yang sama. */
+        body { font-family: 'DejaVu Sans', sans-serif; font-size: 9px; line-height: 1.35; color: #222; }
         .header { border-bottom: 2px solid #191712; padding-bottom: 8px; margin-bottom: 12px; }
         .header img { height: 40px; float: left; margin-right: 10px; }
         h1 { font-size: 16px; margin: 0; }
@@ -12,7 +13,10 @@
         .sub { color: #666; margin: 2px 0 0; }
         .clear { clear: both; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 4px 6px; text-align: left; vertical-align: top; }
+        /* Semua sel rata tengah vertikal dengan tinggi baris tetap agar teks sejajar. */
+        th, td { border: 1px solid #ddd; padding: 5px 6px; text-align: left; vertical-align: middle; line-height: 1.35; }
+        .rincian td { height: 14px; }
+        .rincian .nowrap { white-space: nowrap; }
         th { background: #f3f4f6; font-size: 9px; text-transform: uppercase; }
         .summary td { text-align: center; }
         .summary .num { font-size: 14px; font-weight: bold; }
@@ -117,7 +121,7 @@
         @endif
 
         <h2>Rincian Harian</h2>
-        <table>
+        <table class="rincian">
             <tr>
                 <th style="width: 18%">Tanggal</th>
                 <th style="width: 11%">Status</th>
@@ -128,11 +132,11 @@
             </tr>
             @foreach ($days as $day)
                 <tr>
-                    <td>{{ $day['date']->locale('id')->translatedFormat('D, d M Y') }}</td>
-                    <td class="{{ str_replace(' ', '', $day['status']) }}">{{ $day['status'] }}</td>
-                    <td>{{ $jam($day['clock_in']) }}</td>
-                    <td>{{ $jam($day['clock_out']) }}</td>
-                    <td>{{ $day['work_location'] ?? '-' }}</td>
+                    <td class="nowrap">{{ $day['date']->locale('id')->translatedFormat('D, d M Y') }}</td>
+                    <td class="nowrap {{ str_replace(' ', '', $day['status']) }}">{{ $day['status'] }}</td>
+                    <td class="nowrap">{{ $jam($day['clock_in']) }}</td>
+                    <td class="nowrap">{{ $jam($day['clock_out']) }}</td>
+                    <td class="nowrap">{{ $day['work_location'] ?? '-' }}</td>
                     <td>
                         {{ $day['note'] }}
                         @if ($day['logbook'])
