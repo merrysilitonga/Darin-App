@@ -72,6 +72,17 @@
             </div>
         @endif
 
+        @if($errors->any())
+            <div class="mb-5 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                <p class="font-bold mb-1">Koreksi belum terkirim:</p>
+                <ul class="list-disc list-inside space-y-0.5">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         {{-- INFORMASI USER --}}
         <section class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -293,11 +304,76 @@
                                         : '-' }}
                                 </td>
 
-                                {{-- JAM PULANG --}}
-                                <td class="py-4 px-5 text-blue-700 font-semibold whitespace-nowrap">
-                                    {{ $attendance->clock_out
-                                        ? \Carbon\Carbon::parse($attendance->clock_out)->format('H:i') . ' WIB'
-                                        : $attendance->keteranganPulangKosong() }}
+                                {{-- JAM PULANG (+ koreksi jika lupa absen pulang) --}}
+                                @php
+                                    $koreksi = $attendance->koreksiPulang;
+                                    $tanggalLewat = substr((string) $attendance->getRawOriginal('date'), 0, 10) < now('Asia/Jakarta')->toDateString();
+                                    $bolehKoreksi = !$attendance->clock_out && $attendance->clock_in && $tanggalLewat
+                                        && !$user->isInternshipEnded()
+                                        && (!$koreksi || $koreksi->status === 'Ditolak');
+                                @endphp
+                                <td class="py-4 px-5 text-blue-700 font-semibold whitespace-nowrap align-top">
+                                    @if($attendance->clock_out)
+                                        {{ \Carbon\Carbon::parse($attendance->clock_out)->format('H:i') }} WIB
+                                        @if($koreksi?->status === 'Disetujui')
+                                            <span class="block text-[11px] font-medium text-gray-400">(koreksi disetujui)</span>
+                                        @endif
+                                    @else
+                                        {{ $attendance->keteranganPulangKosong() }}
+
+                                        @if($koreksi?->status === 'Menunggu')
+                                            <span class="block text-[11px] font-medium text-amber-600">
+                                                Koreksi {{ $koreksi->jamPulang() }} menunggu Mentor
+                                            </span>
+                                        @elseif($koreksi?->status === 'Ditolak')
+                                            <span class="block text-[11px] font-medium text-red-600 whitespace-normal max-w-[14rem]">
+                                                Koreksi ditolak: {{ $koreksi->review_notes }}
+                                            </span>
+                                        @endif
+
+                                        @if($bolehKoreksi)
+                                            <details class="mt-1" data-tanpa-animasi>
+                                                <summary class="cursor-pointer list-none text-[11px] font-bold text-blue-600 hover:underline">
+                                                    {{ $koreksi ? 'Ajukan ulang koreksi' : 'Ajukan koreksi jam pulang' }}
+                                                </summary>
+
+                                                <form
+                                                    method="POST"
+                                                    action="{{ route('riwayat.koreksi-pulang', $attendance->id) }}"
+                                                    class="mt-2 w-60 space-y-2 whitespace-normal rounded-xl border border-gray-200 bg-white p-3 text-xs font-normal text-gray-700 shadow-sm"
+                                                >
+                                                    @csrf
+
+                                                    <label class="block">
+                                                        <span class="mb-1 block font-semibold">Jam pulang sebenarnya</span>
+                                                        <input
+                                                            type="time"
+                                                            name="clock_out"
+                                                            required
+                                                            min="{{ substr((string) $attendance->clock_in, 0, 5) }}"
+                                                            class="w-full rounded-lg border border-gray-200 px-2 py-1.5"
+                                                        >
+                                                    </label>
+
+                                                    <label class="block">
+                                                        <span class="mb-1 block font-semibold">Alasan</span>
+                                                        <textarea
+                                                            name="reason"
+                                                            rows="2"
+                                                            required
+                                                            maxlength="1000"
+                                                            placeholder="Contoh: lupa absen pulang karena rapat sampai sore"
+                                                            class="w-full rounded-lg border border-gray-200 px-2 py-1.5"
+                                                        ></textarea>
+                                                    </label>
+
+                                                    <button type="submit" class="w-full rounded-lg bg-[#191712] py-2 font-bold text-white hover:bg-gray-800">
+                                                        Kirim ke Mentor
+                                                    </button>
+                                                </form>
+                                            </details>
+                                        @endif
+                                    @endif
                                 </td>
 
                                 {{-- METODE KERJA --}}

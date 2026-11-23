@@ -2,13 +2,14 @@
 
 namespace App\Services;
 
+use App\Models\AttendanceCorrection;
 use App\Models\LeaveRequest;
 use App\Models\Logbook;
 use App\Models\User;
 use Carbon\Carbon;
 
 /**
- * Ringkasan tindakan mentor yang masih menunggu (logbook & izin berstatus "Menunggu").
+ * Ringkasan tindakan mentor yang masih menunggu (logbook, izin, dan koreksi absen pulang berstatus "Menunggu").
  * Didaftarkan sebagai scoped service: dihitung sekali per request.
  */
 class MentorPendingService
@@ -32,6 +33,7 @@ class MentorPendingService
         $summary = [
             'logbook' => 0,
             'leave' => 0,
+            'koreksi' => 0,
             'total' => 0,
             'overdue' => 0,
         ];
@@ -47,9 +49,14 @@ class MentorPendingService
                 ->whereIn('user_id', $studentIds)
                 ->where('status', 'Menunggu');
 
+            $koreksiQuery = AttendanceCorrection::query()
+                ->whereIn('user_id', $studentIds)
+                ->where('status', 'Menunggu');
+
             $summary['logbook'] = (clone $logbookQuery)->count();
             $summary['leave'] = (clone $leaveQuery)->count();
-            $summary['total'] = $summary['logbook'] + $summary['leave'];
+            $summary['koreksi'] = (clone $koreksiQuery)->count();
+            $summary['total'] = $summary['logbook'] + $summary['leave'] + $summary['koreksi'];
 
             $summary['overdue'] = (clone $logbookQuery)
                 ->where(function ($query) use ($batas) {
@@ -61,6 +68,9 @@ class MentorPendingService
                 })
                 ->count()
                 + (clone $leaveQuery)
+                    ->where('created_at', '<=', $batas)
+                    ->count()
+                + (clone $koreksiQuery)
                     ->where('created_at', '<=', $batas)
                     ->count();
         }

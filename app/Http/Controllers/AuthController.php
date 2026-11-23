@@ -65,6 +65,21 @@ class AuthController extends Controller
 
         RateLimiter::clear($throttleKey);
 
+        // Akun yang dinonaktifkan Admin/HR tidak boleh masuk.
+        if (!Auth::user()?->isActive()) {
+            Auth::logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()
+                ->route('login')
+                ->withErrors([
+                    'email' => 'Akun Anda sedang dinonaktifkan. Hubungi Admin/HR DARIN.',
+                ])
+                ->onlyInput('email');
+        }
+
         $request->session()->regenerate();
 
         $user = Auth::user();

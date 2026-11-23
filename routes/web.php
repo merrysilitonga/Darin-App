@@ -20,10 +20,12 @@ use App\Http\Controllers\UserImportController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminUserPasswordController;
+use App\Http\Controllers\AdminUserAccountController;
 use App\Http\Controllers\SystemSettingsController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\AttendanceCorrectionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\LogbookController;
 use App\Http\Controllers\MentorLogbookController;
@@ -254,6 +256,12 @@ Route::middleware([
         [InternRecapController::class, 'minePdf']
     )->name('rekap.saya.pdf');
 
+    // Rapor nilai akhir (setelah dinilai Mentor).
+    Route::get(
+        '/rekap-saya/rapor',
+        [InternRecapController::class, 'mineRapor']
+    )->name('rekap.saya.rapor');
+
 
     // Saran & masukan.
 
@@ -331,6 +339,12 @@ Route::middleware([
         '/pengajuan-izin/{id}/surat',
         [LeaveRequestController::class, 'download']
     )->whereNumber('id')->name('izin.download');
+
+    // Koreksi absen pulang (lupa absen pulang), diperiksa mentor.
+    Route::post(
+        '/riwayat-absen/{id}/koreksi-pulang',
+        [AttendanceCorrectionController::class, 'store']
+    )->whereNumber('id')->name('riwayat.koreksi-pulang');
 
 });
 
@@ -470,6 +484,18 @@ Route::middleware([
         [MentorLeaveRequestController::class, 'download']
     )->whereNumber('id')->name('mentor.leave-requests.document');
 
+    // Koreksi absen pulang.
+
+    Route::post(
+        '/attendance-corrections/{id}/approve',
+        [AttendanceCorrectionController::class, 'approve']
+    )->whereNumber('id')->name('mentor.corrections.approve');
+
+    Route::post(
+        '/attendance-corrections/{id}/reject',
+        [AttendanceCorrectionController::class, 'reject']
+    )->whereNumber('id')->name('mentor.corrections.reject');
+
 
     // Halaman absensi mentor: mengambil data dari database.
 
@@ -570,6 +596,17 @@ Route::middleware([
         [AdminUserPasswordController::class, 'reset']
     )->whereNumber('user')->name('admin.users.password-reset');
 
+    // Ubah data akun & nonaktif/aktifkan akun.
+    Route::put(
+        '/users/{user}/account',
+        [AdminUserAccountController::class, 'update']
+    )->whereNumber('user')->name('admin.users.account');
+
+    Route::patch(
+        '/users/{user}/status',
+        [AdminUserAccountController::class, 'toggleActive']
+    )->whereNumber('user')->name('admin.users.status');
+
 
     // CRUD Divisi.
 
@@ -642,6 +679,11 @@ Route::middleware([
         '/interns/{user}/rekap/pdf',
         [InternRecapController::class, 'adminPdf']
     )->whereNumber('user')->name('admin.interns.recap-pdf');
+
+    Route::get(
+        '/interns/{user}/rapor',
+        [InternRecapController::class, 'adminRapor']
+    )->whereNumber('user')->name('admin.interns.rapor');
 
 
     // Monitoring logbook lintas divisi.

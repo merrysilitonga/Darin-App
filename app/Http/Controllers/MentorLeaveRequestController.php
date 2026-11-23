@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AttendanceCorrection;
 use App\Models\LeaveRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -27,6 +28,18 @@ class MentorLeaveRequestController extends Controller
 
         $assignmentMissing = $studentIds->isEmpty();
 
+        // Koreksi absen pulang: yang menunggu di atas, lalu 20 keputusan terakhir.
+        $corrections = $assignmentMissing
+            ? collect()
+            : AttendanceCorrection::with(['user', 'attendance', 'reviewer'])
+                ->whereIn('user_id', $studentIds)
+                ->orderByRaw("CASE WHEN status = 'Menunggu' THEN 0 ELSE 1 END")
+                ->orderByDesc('created_at')
+                ->limit(50)
+                ->get()
+                ->filter(fn ($koreksi, $i) => $koreksi->status === 'Menunggu' || $i < 20)
+                ->values();
+
         if ($assignmentMissing) {
             $requests = collect();
         } else {
@@ -47,6 +60,7 @@ class MentorLeaveRequestController extends Controller
             compact(
                 'mentor',
                 'requests',
+                'corrections',
                 'assignmentMissing'
             )
         );

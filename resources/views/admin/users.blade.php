@@ -306,9 +306,15 @@
 
                                         {{-- IDENTITAS PENGGUNA --}}
                                         <td class="min-w-[200px] px-5 py-5">
-                                            <p class="font-bold text-gray-900">
+                                            <p class="font-bold {{ $user->isActive() ? 'text-gray-900' : 'text-gray-400 line-through' }}">
                                                 {{ $user->name }}
                                             </p>
+
+                                            @unless($user->isActive())
+                                                <span class="mt-1 inline-block rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">
+                                                    NONAKTIF · tidak bisa login
+                                                </span>
+                                            @endunless
 
                                             <p class="mt-1 break-all text-xs text-gray-500">
                                                 {{ $user->email }}
@@ -334,9 +340,66 @@
                                                     @csrf
                                                     @method('PUT')
                                                     <button type="submit" class="rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-bold text-gray-600 hover:bg-gray-50">
-                                                        🔑 Reset Password
+                                                        Reset Password
                                                     </button>
                                                 </form>
+
+                                                @php
+                                                    $bolehKelola = !in_array($user->role, ['admin', 'hr'], true) || auth()->user()->role === 'admin';
+                                                @endphp
+
+                                                @if($bolehKelola)
+                                                    {{-- NONAKTIF / AKTIFKAN --}}
+                                                    <form action="{{ route('admin.users.status', $user->id) }}" method="POST" class="mt-2"
+                                                          onsubmit="return confirm({{ \Illuminate\Support\Js::from($user->isActive()
+                                                              ? 'Nonaktifkan akun ' . $user->name . '? Akun tidak bisa login, data tetap tersimpan.'
+                                                              : 'Aktifkan kembali akun ' . $user->name . '?') }});">
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <button type="submit"
+                                                                class="rounded-lg border px-2.5 py-1 text-xs font-bold {{ $user->isActive() ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50' }}">
+                                                            {{ $user->isActive() ? 'Nonaktifkan Akun' : 'Aktifkan Kembali' }}
+                                                        </button>
+                                                    </form>
+
+                                                    {{-- EDIT DATA AKUN --}}
+                                                    <details class="mt-2" data-tanpa-animasi>
+                                                        <summary class="cursor-pointer list-none rounded-lg border border-gray-200 px-2.5 py-1 text-center text-xs font-bold text-gray-600 hover:bg-gray-50">
+                                                            Edit Data Akun
+                                                        </summary>
+
+                                                        <form action="{{ route('admin.users.account', $user->id) }}" method="POST"
+                                                              class="mt-2 w-64 space-y-2 rounded-xl border border-gray-200 bg-white p-3 text-xs shadow-sm">
+                                                            @csrf
+                                                            @method('PUT')
+
+                                                            @php
+                                                                $kolomAkun = [
+                                                                    ['name', 'Nama', 'text', true],
+                                                                    ['email', 'Email', 'email', true],
+                                                                    ['phone', 'Telepon', 'text', false],
+                                                                ];
+
+                                                                $kolomAkun = array_merge($kolomAkun, $user->role === 'magang'
+                                                                    ? [['nim', 'NIM', 'text', false], ['university', 'Universitas', 'text', false], ['study_program', 'Program Studi', 'text', false]]
+                                                                    : [['nip', 'NIP', 'text', false], ['position', 'Jabatan', 'text', false]]);
+                                                            @endphp
+
+                                                            @foreach($kolomAkun as [$kolom, $label, $tipe, $wajib])
+                                                                <label class="block">
+                                                                    <span class="mb-1 block font-semibold text-gray-600">{{ $label }}</span>
+                                                                    <input type="{{ $tipe }}" name="{{ $kolom }}" value="{{ $user->{$kolom} }}"
+                                                                           @if($wajib) required @endif maxlength="255"
+                                                                           class="w-full rounded-lg border border-gray-200 px-2 py-1.5">
+                                                                </label>
+                                                            @endforeach
+
+                                                            <button type="submit" class="w-full rounded-lg bg-[#191712] py-2 font-bold text-white hover:bg-gray-800">
+                                                                Simpan Perubahan
+                                                            </button>
+                                                        </form>
+                                                    </details>
+                                                @endif
                                             @endif
                                         </td>
 
@@ -463,7 +526,7 @@
                                                                 value="{{ $mentor->id }}"
                                                                 @selected((string) $user->mentor_id === (string) $mentor->id)
                                                             >
-                                                                {{ $mentor->name }}{{ $mentor->division ? ' — ' . $mentor->division->name : '' }}
+                                                                {{ $mentor->name }}{{ $mentor->division ? ' — ' . $mentor->division->name : '' }}{{ $mentor->isActive() ? '' : ' (nonaktif)' }}
                                                             </option>
                                                         @endforeach
                                                     </select>

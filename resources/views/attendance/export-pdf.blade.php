@@ -89,8 +89,7 @@
                 <th style="width: 9%;">Hari</th>
                 <th style="width: 10%;">Jam Masuk</th>
                 <th style="width: 10%;">Jam Pulang</th>
-                <th style="width: 9%;">Metode</th>
-                <th style="width: 16%;">Status</th>
+                <th style="width: 18%;">Status</th>
                 <th>Keterangan</th>
             </tr>
         </thead>
@@ -102,7 +101,6 @@
                     <tr class="{{ $baris['jenis'] === 'alfa' ? 'baris-alfa' : 'baris-libur' }}">
                         <td>{{ $tanggal->format('d/m/Y') }}</td>
                         <td>{{ $tanggal->translatedFormat('l') }}</td>
-                        <td>-</td>
                         <td>-</td>
                         <td>-</td>
                         <td class="{{ $baris['jenis'] === 'alfa' ? 'ditolak' : 'menunggu' }}">{{ $baris['jenis'] === 'alfa' ? 'Alfa' : 'Libur' }}</td>
@@ -122,7 +120,6 @@
                         <td>{{ $tanggal->translatedFormat('l') }}</td>
                         <td>-</td>
                         <td>-</td>
-                        <td>-</td>
                         <td class="{{ $kelas }}">{{ $izin->request_type }} ({{ $izin->status }})</td>
                         <td>{{ $izin->reason }}</td>
                     </tr>
@@ -133,14 +130,13 @@
                         <td>{{ $tanggal->translatedFormat('l') }}</td>
                         <td>{{ $jam($a->clock_in) }}</td>
                         <td>{{ $jam($a->clock_out) }}</td>
-                        <td>{{ $a->work_location ?? '-' }}</td>
                         <td class="{{ strtolower((string) $a->status) }}">{{ $a->status === 'Hadir' ? 'Hadir (Tepat Waktu)' : ($a->status ?? '-') }}</td>
-                        <td>{{ $a->location_name ?? '' }}{{ $a->notes ? ($a->location_name ? ' · ' : '') . $a->notes : '' }}</td>
+                        <td>{{ $a->work_location === 'WFA' ? 'WFA (luar kantor) · ' : '' }}{{ $a->location_name ?? '' }}{{ $a->notes ? ($a->location_name ? ' · ' : '') . $a->notes : '' }}</td>
                     </tr>
                 @endif
             @empty
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 16px;">Belum ada data absensi maupun izin pada periode ini.</td>
+                    <td colspan="6" style="text-align: center; padding: 16px;">Belum ada data absensi maupun izin pada periode ini.</td>
                 </tr>
             @endforelse
         </tbody>
