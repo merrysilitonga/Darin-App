@@ -219,4 +219,75 @@ class AksesDanRekapTest extends TestCase
             // Tanda kutip mentah tidak boleh muncul di HTML (harus ter-escape).
             ->assertDontSee($namaJahat, false);
     }
+
+    public function test_filter_bulan_mentor_langsung_dimuat_tanpa_tombol_terapkan(): void
+    {
+        $mentor = User::factory()->create(['role' => 'mentor']);
+
+        // Bulan berjalan (November 2026): tidak ada tombol kembali.
+        $this->actingAs($mentor)
+            ->get(route('mentor.attendance'))
+            ->assertOk()
+            ->assertSee('Tampilkan Bulan')
+            ->assertSee('id="form-filter-bulan-mentor"', false)
+            ->assertDontSee('>Terapkan<', false)
+            ->assertDontSee('Kembali ke Bulan Ini');
+
+        // Bulan lain: muncul tombol kembali ke bulan berjalan.
+        $this->actingAs($mentor)
+            ->get(route('mentor.attendance', ['month' => '2026-10']))
+            ->assertOk()
+            ->assertSee('value="2026-10"', false)
+            ->assertSee('Kembali ke Bulan Ini');
+    }
+
+    public function test_filter_rekap_admin_langsung_dimuat_tanpa_tombol_terapkan(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        // Tanpa filter: tidak ada tombol Terapkan maupun Hapus Filter.
+        $this->actingAs($admin)
+            ->get(route('admin.attendance'))
+            ->assertOk()
+            ->assertSee('id="form-filter-admin"', false)
+            ->assertSee('Kosong = seluruh masa magang.')
+            ->assertDontSee('Terapkan Filter')
+            ->assertDontSee('Hapus Filter');
+
+        // Ada filter aktif: muncul Hapus Filter.
+        $this->actingAs($admin)
+            ->get(route('admin.attendance', ['search' => 'budi']))
+            ->assertOk()
+            ->assertSee('Hapus Filter');
+    }
+
+    public function test_keterangan_pulang_kosong_membedakan_hari_ini_dan_tanggal_lewat(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $magang = $this->buatMagang($this->buatLokasi());
+
+        // Waktu tes: Senin, 16 November 2026.
+        $kemarin = Attendance::create([
+            'user_id' => $magang->id,
+            'date' => '2026-11-13',
+            'clock_in' => '07:50:00',
+            'status' => 'Hadir',
+        ]);
+
+        $hariIni = Attendance::create([
+            'user_id' => $magang->id,
+            'date' => '2026-11-16',
+            'clock_in' => '07:40:00',
+            'status' => 'Hadir',
+        ]);
+
+        $this->assertSame('Tidak absen pulang', $kemarin->fresh()->keteranganPulangKosong());
+        $this->assertSame('Belum absen pulang', $hariIni->fresh()->keteranganPulangKosong());
+
+        $this->actingAs($admin)
+            ->get(route('admin.attendance'))
+            ->assertOk()
+            ->assertSee('Tidak absen pulang')
+            ->assertSee('Belum absen pulang');
+    }
 }

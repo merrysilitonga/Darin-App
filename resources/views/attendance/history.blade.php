@@ -56,13 +56,6 @@
                 >
                     📄 Unduh PDF
                 </a>
-
-                <a
-                    href="{{ route('riwayat.export-csv', ['bulan' => isset($periode) ? $periode->format('Y-m') : now('Asia/Jakarta')->format('Y-m')]) }}"
-                    class="px-4 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-sm hover:bg-emerald-700 transition"
-                >
-                    📊 Unduh CSV / Excel
-                </a>
             </div>
         </header>
 
@@ -108,23 +101,29 @@
             </div>
         </section>
 
-        {{-- FILTER BULAN --}}
+        {{-- FILTER BULAN (langsung dimuat saat bulan dipilih) --}}
+        @php
+            $bulanDipilih = isset($periode) ? $periode->format('Y-m') : now('Asia/Jakarta')->format('Y-m');
+            $bulanSekarang = now('Asia/Jakarta')->format('Y-m');
+        @endphp
+
         <section class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
             <form
+                id="form-filter-bulan"
                 action="{{ route('riwayat.absen') }}"
                 method="GET"
                 class="flex flex-col md:flex-row md:items-end gap-4"
             >
                 <div class="flex-1">
                     <label for="bulan" class="block text-xs font-bold text-gray-600 mb-2">
-                        Filter Periode Laporan
+                        Tampilkan Bulan
                     </label>
 
                     <input
                         type="month"
                         name="bulan"
                         id="bulan"
-                        value="{{ isset($periode) ? $periode->format('Y-m') : now('Asia/Jakarta')->format('Y-m') }}"
+                        value="{{ $bulanDipilih }}"
                         @if (!empty($bulanPertama)) min="{{ $bulanPertama->format('Y-m') }}" @endif
                         @if (!empty($bulanTerakhir)) max="{{ $bulanTerakhir->format('Y-m') }}" @endif
                         required
@@ -133,28 +132,42 @@
 
                     @if (!empty($bulanPertama) && !empty($bulanTerakhir))
                         <p class="mt-2 text-xs text-gray-400">
-                            Periode magang: {{ $bulanPertama->translatedFormat('F Y') }} – {{ $bulanTerakhir->translatedFormat('F Y') }}
+                            Periode magang: {{ $bulanPertama->translatedFormat('F Y') }} – {{ $bulanTerakhir->translatedFormat('F Y') }}.
+                            Tabel, ringkasan, dan unduhan mengikuti bulan yang dipilih.
                         </p>
                     @endif
+
+                    {{-- Cadangan jika JavaScript mati --}}
+                    <noscript>
+                        <button type="submit" class="mt-3 px-5 py-2.5 rounded-xl bg-[#ffc107] text-black text-sm font-bold">
+                            Tampilkan
+                        </button>
+                    </noscript>
                 </div>
 
-                <div class="flex gap-2">
-                    <button
-                        type="submit"
-                        class="px-5 py-3 rounded-xl bg-[#ffc107] text-black text-sm font-bold hover:bg-[#e0a800] transition"
-                    >
-                        Terapkan Filter
-                    </button>
-
+                @if ($bulanDipilih !== $bulanSekarang)
                     <a
                         href="{{ route('riwayat.absen') }}"
-                        class="px-5 py-3 rounded-xl bg-white border border-gray-200 text-gray-600 text-sm font-bold hover:bg-gray-50 transition"
+                        class="px-5 py-3 rounded-xl bg-white border border-gray-200 text-gray-600 text-sm font-bold hover:bg-gray-50 transition text-center"
                     >
-                        Reset
+                        Kembali ke Bulan Ini
                     </a>
-                </div>
+                @endif
             </form>
         </section>
+
+        <script>
+            // Halaman langsung memuat bulan yang dipilih (tanpa tombol Terapkan).
+            (function () {
+                const input = document.getElementById('bulan');
+
+                input.addEventListener('change', function () {
+                    if (/^\d{4}-\d{2}$/.test(input.value) && input.checkValidity()) {
+                        document.getElementById('form-filter-bulan').submit();
+                    }
+                });
+            })();
+        </script>
 
         {{-- RINGKASAN BULAN INI --}}
         @php
@@ -284,7 +297,7 @@
                                 <td class="py-4 px-5 text-blue-700 font-semibold whitespace-nowrap">
                                     {{ $attendance->clock_out
                                         ? \Carbon\Carbon::parse($attendance->clock_out)->format('H:i') . ' WIB'
-                                        : 'Belum absen' }}
+                                        : $attendance->keteranganPulangKosong() }}
                                 </td>
 
                                 {{-- METODE KERJA --}}

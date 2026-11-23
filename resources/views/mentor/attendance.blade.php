@@ -298,7 +298,9 @@
                 </p>
             </div>
 
+            {{-- Rekap langsung dimuat saat bulan dipilih (tanpa tombol Terapkan). --}}
             <form
+                id="form-filter-bulan-mentor"
                 action="{{ route('mentor.attendance') }}"
                 method="GET"
                 class="flex flex-wrap items-end gap-2"
@@ -309,7 +311,7 @@
                         for="attendance_month"
                         class="mb-1 block text-[10px] font-bold uppercase tracking-wide text-slate-500"
                     >
-                        Periode
+                        Tampilkan Bulan
                     </label>
 
                     <input
@@ -317,25 +319,40 @@
                         id="attendance_month"
                         name="month"
                         value="{{ $month }}"
+                        required
                         class="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                     >
+
+                    {{-- Cadangan jika JavaScript mati --}}
+                    <noscript>
+                        <button type="submit" class="mt-2 rounded-xl bg-[#ffc107] px-4 py-2 text-xs font-bold text-black">
+                            Tampilkan
+                        </button>
+                    </noscript>
                 </div>
 
-                <button
-                    type="submit"
-                    class="rounded-xl bg-[#ffc107] px-4 py-2.5 text-xs font-bold text-black transition hover:bg-amber-400"
-                >
-                    Terapkan
-                </button>
-
-                <a
-                    href="{{ route('mentor.attendance') }}"
-                    class="rounded-xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-gray-50"
-                >
-                    Reset
-                </a>
+                @if ($month !== now('Asia/Jakarta')->format('Y-m'))
+                    <a
+                        href="{{ route('mentor.attendance') }}"
+                        class="rounded-xl border border-gray-200 px-4 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-gray-50"
+                    >
+                        Kembali ke Bulan Ini
+                    </a>
+                @endif
 
             </form>
+
+            <script>
+                (function () {
+                    const input = document.getElementById('attendance_month');
+
+                    input.addEventListener('change', function () {
+                        if (/^\d{4}-\d{2}$/.test(input.value)) {
+                            document.getElementById('form-filter-bulan-mentor').submit();
+                        }
+                    });
+                })();
+            </script>
 
         </div>
 

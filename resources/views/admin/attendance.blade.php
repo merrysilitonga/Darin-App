@@ -47,8 +47,13 @@
         </div>
     @endif
 
-    {{-- FILTER --}}
+    {{-- FILTER (langsung dimuat saat pilihan berubah; kolom cari: tekan Enter / pindah kolom) --}}
+    @php
+        $adaFilterAktif = $search !== '' || $month !== '' || filled($divisionId) || filled($mentorId);
+    @endphp
+
     <form
+        id="form-filter-admin"
         method="GET"
         action="{{ route('admin.attendance') }}"
         class="grid grid-cols-1 gap-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-5"
@@ -60,7 +65,7 @@
                 type="text"
                 name="search"
                 value="{{ $search }}"
-                placeholder="Contoh: Budi"
+                placeholder="Ketik nama/email, lalu tekan Enter"
                 class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
             >
         </div>
@@ -74,6 +79,7 @@
                 value="{{ $month }}"
                 class="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
             >
+            <p class="mt-1 text-[11px] text-gray-400">Kosong = seluruh masa magang.</p>
         </div>
 
         <div>
@@ -114,7 +120,6 @@
                 <select
                     id="per_page"
                     name="per_page"
-                    onchange="this.form.submit()"
                     class="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-amber-500"
                 >
                     @foreach ([10, 25, 50, 100] as $option)
@@ -122,20 +127,48 @@
                     @endforeach
                 </select>
             </div>
-            <a
-                href="{{ route('admin.attendance') }}"
-                class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
-            >
-                Reset
-            </a>
-            <button
-                type="submit"
-                class="inline-flex items-center justify-center rounded-xl bg-[#ffc107] px-5 py-2.5 text-sm font-bold text-[#191712] shadow-sm transition hover:bg-amber-400"
-            >
-                Terapkan Filter
-            </button>
+            @if ($adaFilterAktif)
+                <a
+                    href="{{ route('admin.attendance', ['per_page' => $perPage]) }}"
+                    class="inline-flex items-center justify-center rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-bold text-gray-600 transition hover:bg-gray-50"
+                >
+                    Hapus Filter
+                </a>
+            @endif
+
+            {{-- Cadangan jika JavaScript mati --}}
+            <noscript>
+                <button
+                    type="submit"
+                    class="inline-flex items-center justify-center rounded-xl bg-[#ffc107] px-5 py-2.5 text-sm font-bold text-[#191712]"
+                >
+                    Tampilkan
+                </button>
+            </noscript>
         </div>
     </form>
+
+    <script>
+        // Hasil langsung dimuat saat Bulan/Divisi/Mentor/Baris diganti.
+        // Kolom Cari memicu "change" saat Enter ditekan atau pindah kolom, jadi tidak memuat ulang tiap huruf.
+        (function () {
+            const form = document.getElementById('form-filter-admin');
+
+            form.addEventListener('change', function (event) {
+                if (event.target.matches('input, select')) {
+                    form.submit();
+                }
+            });
+
+            // Enter di kolom Cari selalu mengirim pencarian (form ini tidak punya tombol submit yang terlihat).
+            document.getElementById('search').addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    form.submit();
+                }
+            });
+        })();
+    </script>
 
     {{-- RINGKASAN HARI KERJA EFEKTIF --}}
     <section class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -269,7 +302,7 @@
                                     <p class="text-[11px] text-emerald-600">Lengkap</p>
                                 @else
                                     <p class="text-gray-400">-</p>
-                                    <p class="text-[11px] text-amber-600">Belum absen pulang</p>
+                                    <p class="text-[11px] text-amber-600">{{ $attendance->keteranganPulangKosong() }}</p>
                                 @endif
                             </td>
 

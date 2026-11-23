@@ -12,7 +12,7 @@
     $batasSelesaiIzin = $user?->getRawOriginal('end_date') ? \Carbon\Carbon::parse($user->getRawOriginal('end_date'))->toDateString() : null;
 @endphp
 
-<details id="form-izin" class="scroll-mt-6 bg-white rounded-3xl shadow-sm border border-gray-100 mt-8 group" @if ($bukaFormIzin) open @endif>
+<details id="form-izin" class="scroll-mt-6 bg-white rounded-3xl shadow-sm border border-gray-100 mb-6 group" @if ($bukaFormIzin) open @endif>
     <summary class="flex cursor-pointer list-none items-center justify-between gap-3 p-6">
         <div>
             <h3 class="font-bold text-gray-800">Tidak bisa hadir? Ajukan Izin / Sakit</h3>

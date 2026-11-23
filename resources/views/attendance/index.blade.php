@@ -93,6 +93,9 @@
             </div>
         @endif
 
+        {{-- PENGAJUAN IZIN / SAKIT: di atas agar langsung terlihat tanpa scroll --}}
+        @include('partials.form-izin')
+
         {{-- INFO HARI LIBUR --}}
         @include('partials.holiday-info')
 
@@ -102,12 +105,13 @@
             {{-- KAMERA DAN GPS --}}
             <section class="flex flex-col items-center rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
 
-                <h2 class="mb-4 self-start font-bold text-gray-700">
+                <h2 class="mb-4 flex items-center gap-2 self-start font-bold text-gray-800">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-[#ffc107] text-xs font-extrabold text-[#191712]">1</span>
                     {{ $attendanceComplete
                         ? 'Absensi Hari Ini Selesai'
                         : ($attendance
-                            ? 'Selfie & GPS untuk Absen Pulang'
-                            : 'Kamera & Verifikasi Lokasi GPS') }}
+                            ? 'Ambil Selfie untuk Absen Pulang'
+                            : 'Ambil Selfie') }}
                 </h2>
 
                 {{-- ABSENSI SUDAH LENGKAP --}}
@@ -183,18 +187,6 @@
 
                         <canvas id="canvas" class="hidden"></canvas>
 
-                        {{-- STATUS GPS --}}
-                        <div class="absolute bottom-3 left-3 flex items-center gap-2 rounded-lg bg-black/70 px-3 py-2 text-[10px] font-mono text-amber-400 backdrop-blur-md">
-
-                            <span
-                                id="gpsDot"
-                                class="h-2 w-2 animate-pulse rounded-full bg-amber-500"
-                            ></span>
-
-                            <span id="gpsText">
-                                Mencari lokasi...
-                            </span>
-                        </div>
 
                     </div>
 
@@ -365,9 +357,101 @@
 
                 <div>
 
-                    <h2 class="mb-4 font-bold text-gray-700">
-                        Status Kehadiran Hari Ini
+                    <h2 class="mb-4 flex items-center gap-2 font-bold text-gray-800">
+                        <span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-extrabold text-emerald-700">2</span>
+                        Verifikasi Lokasi
                     </h2>
+
+                    @php
+                        // Absen pulang memakai lokasi yang tercatat saat absen masuk.
+                        $lokasiPusat = $attendance?->location ?? $location;
+                        // GPS dipantau selama masih ada absensi yang bisa dilakukan hari ini.
+                        $pantauGps = (!$attendance && $canClockInLocation) || ($attendance && !$attendance->clock_out);
+                    @endphp
+
+                    {{-- KARTU VERIFIKASI LOKASI --}}
+                    <div class="mb-6 rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm">
+
+                        @if($lokasiPusat)
+
+                            {{-- PUSAT MAGANG --}}
+                            <div class="flex flex-col gap-2 border-b border-gray-200 pb-3 sm:flex-row sm:items-center sm:justify-between">
+                                <span class="text-gray-500">Pusat Magang</span>
+                                <span class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-right text-xs text-gray-700 sm:max-w-[70%]">
+                                    <span class="font-semibold">{{ $lokasiPusat->name }}</span>
+                                    <span class="font-mono text-gray-500">({{ $lokasiPusat->latitude }}, {{ $lokasiPusat->longitude }})</span>
+                                </span>
+                            </div>
+
+                            @if($pantauGps)
+                                {{-- STATUS GPS --}}
+                                <div class="flex items-center justify-between gap-4 border-b border-gray-200 py-3">
+                                    <span class="text-gray-500">Status GPS</span>
+                                    <span id="statusRadius" class="rounded-full bg-gray-200 px-3 py-1 text-xs font-bold text-gray-600">
+                                        Menunggu GPS...
+                                    </span>
+                                </div>
+
+                                {{-- JARAK KE PUSAT (dihitung di browser, divalidasi ulang di server) --}}
+                                <div class="flex items-center justify-between gap-4 border-b border-gray-200 py-3">
+                                    <span class="text-gray-500">Jarak ke Pusat</span>
+                                    <span id="jarakGPS" class="text-right font-bold text-gray-800">-</span>
+                                </div>
+                            @endif
+
+                            {{-- BATAS DIIZINKAN --}}
+                            <div class="flex items-center justify-between gap-4 {{ $pantauGps ? 'border-b border-gray-200' : '' }} py-3">
+                                <span class="text-gray-500">Batas Diizinkan</span>
+                                <span class="font-bold text-gray-800">{{ number_format((int) $lokasiPusat->radius_meters, 0, ',', '.') }} meter</span>
+                            </div>
+
+                            @if($pantauGps)
+                                {{-- AKURASI GPS (perkiraan ketelitian lokasi dari browser) --}}
+                                <div class="flex items-center justify-between gap-4 border-b border-gray-200 py-3">
+                                    <span class="text-gray-500">Akurasi GPS</span>
+                                    <span id="akurasiGPS" class="text-right text-xs font-semibold text-gray-500">
+                                        Menunggu GPS...
+                                    </span>
+                                </div>
+
+                                {{-- POSISI ANDA --}}
+                                <div class="pt-3">
+                                    <div class="flex items-center justify-between gap-4">
+                                        <span class="text-gray-500">Posisi Anda</span>
+                                        <span id="koordinatGPS" class="max-w-[65%] break-all text-right font-mono text-xs text-gray-500">
+                                            Mendeteksi lokasi...
+                                        </span>
+                                    </div>
+                                    <a
+                                        id="linkPetaGPS"
+                                        href="#"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="mt-1 hidden text-right text-xs text-blue-600 hover:underline"
+                                    >
+                                        Lihat di Google Maps
+                                    </a>
+                                </div>
+
+                                <div id="peringatanAkurasi" class="mt-3 hidden rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800">
+                                    <p class="font-bold">Lokasi kurang akurat</p>
+                                    <p class="mt-1">
+                                        Perangkat ini memperkirakan lokasi dengan selisih <span data-akurasi-teks class="font-semibold"></span>,
+                                        sehingga jarak ke kantor bisa tidak sesuai. Ini biasa terjadi di laptop/komputer yang tidak memiliki GPS.
+                                        Gunakan HP dengan GPS aktif untuk absensi.
+                                    </p>
+                                </div>
+                            @endif
+
+                        @else
+
+                            <p class="text-xs leading-5 text-gray-500">
+                                Lokasi penempatan belum ditetapkan. Hubungi Admin/HR.
+                            </p>
+
+                        @endif
+
+                    </div>
 
                     {{-- STATUS SUDAH ABSEN --}}
                     @if($attendance)
@@ -401,191 +485,64 @@
 
                     @endif
 
-                    {{-- INFORMASI MAHASISWA --}}
+                    {{-- INFORMASI KEHADIRAN --}}
                     <div class="space-y-3 text-sm text-gray-600">
 
                         {{-- TANGGAL --}}
                         <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
-
-                            <span class="text-gray-400">
-                                Tanggal
-                            </span>
-
-                            <span class="text-right font-semibold text-gray-800">
-                                {{ $now->translatedFormat('l, d F Y') }}
-                            </span>
-
+                            <span class="text-gray-400">Tanggal</span>
+                            <span class="text-right font-semibold text-gray-800">{{ $now->translatedFormat('l, d F Y') }}</span>
                         </div>
 
                         {{-- NAMA --}}
                         <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
-
-                            <span class="text-gray-400">
-                                Nama
-                            </span>
-
-                            <span class="text-right font-semibold text-gray-800">
-                                {{ $user->name ?? 'Pengguna' }}
-                            </span>
-
+                            <span class="text-gray-400">Nama</span>
+                            <span class="text-right font-semibold text-gray-800">{{ $user->name ?? 'Pengguna' }}</span>
                         </div>
 
                         {{-- EMAIL --}}
                         <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
-
-                            <span class="text-gray-400">
-                                Email
-                            </span>
-
-                            <span class="break-all text-right font-semibold text-gray-800">
-                                {{ $user->email ?? '-' }}
-                            </span>
-
+                            <span class="text-gray-400">Email</span>
+                            <span class="break-all text-right font-semibold text-gray-800">{{ $user->email ?? '-' }}</span>
                         </div>
 
                         {{-- JAM MASUK --}}
                         <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
-
-                            <span class="text-gray-400">
-                                Jam Masuk
-                            </span>
-
+                            <span class="text-gray-400">Jam Masuk</span>
                             <span class="font-semibold text-gray-800">
                                 {{ $attendance && $attendance->clock_in
                                     ? \Carbon\Carbon::parse($attendance->clock_in)->format('H:i:s')
                                     : '-' }}
                             </span>
-
                         </div>
 
                         {{-- JAM PULANG --}}
                         <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
-
-                            <span class="text-gray-400">
-                                Jam Pulang
-                            </span>
-
+                            <span class="text-gray-400">Jam Pulang</span>
                             <span class="font-semibold text-gray-800">
                                 {{ $attendance && $attendance->clock_out
                                     ? \Carbon\Carbon::parse($attendance->clock_out)->format('H:i:s')
                                     : 'Belum absen pulang' }}
                             </span>
-
                         </div>
 
-                        {{-- LOKASI KERJA --}}
-                        <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
-
-                            <span class="text-gray-400">
-                                Lokasi Kerja
-                            </span>
-
-                            <span class="max-w-[65%] text-right font-semibold text-gray-800">
-                                {{ $attendance->location_name ?? ($location->name ?? 'Belum ditetapkan') }}
-                            </span>
-
-                        </div>
-
-                        {{-- JARAK ABSENSI MASUK --}}
+                        {{-- JARAK TERCATAT SAAT MASUK / PULANG --}}
                         @if($attendance)
-
                             <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
-
-                                <span class="text-gray-400">
-                                    Jarak Saat Masuk
-                                </span>
-
+                                <span class="text-gray-400">Jarak Saat Masuk</span>
                                 <span class="font-semibold text-gray-800">
-                                    {{ $attendance->distance_meters !== null
-                                        ? $attendance->distance_meters . ' m'
-                                        : '-' }}
+                                    {{ $attendance->distance_meters !== null ? $attendance->distance_meters . ' m' : '-' }}
                                 </span>
-
                             </div>
 
-                            {{-- JARAK ABSENSI PULANG --}}
                             @if($attendance->clock_out)
-
                                 <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
-
-                                    <span class="text-gray-400">
-                                        Jarak Saat Pulang
-                                    </span>
-
+                                    <span class="text-gray-400">Jarak Saat Pulang</span>
                                     <span class="font-semibold text-gray-800">
-                                        {{ $attendance->clock_out_distance_meters !== null
-                                            ? $attendance->clock_out_distance_meters . ' m'
-                                            : '-' }}
+                                        {{ $attendance->clock_out_distance_meters !== null ? $attendance->clock_out_distance_meters . ' m' : '-' }}
                                     </span>
-
                                 </div>
-
                             @endif
-
-                        @elseif($location)
-
-                            <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
-
-                                <span class="text-gray-400">
-                                    Radius Diizinkan
-                                </span>
-
-                                <span class="font-semibold text-gray-800">
-                                    {{ $location->radius_meters }} meter
-                                </span>
-
-                            </div>
-
-                        @endif
-
-                        {{-- KOORDINAT GPS --}}
-                        <div class="border-b border-gray-100 py-2">
-
-                            <div class="flex justify-between gap-4">
-
-                                <span class="text-gray-400">
-                                    Koordinat GPS
-                                </span>
-
-                                <span
-                                    id="koordinatGPS"
-                                    class="max-w-[65%] break-all text-right font-mono text-xs text-gray-500"
-                                >
-                                    @if(
-                                        $attendance &&
-                                        $attendance->latitude !== null &&
-                                        $attendance->longitude !== null
-                                    )
-                                        {{ $attendance->latitude }}, {{ $attendance->longitude }}
-                                    @else
-                                        Mendeteksi lokasi...
-                                    @endif
-                                </span>
-
-                            </div>
-
-                            <a
-                                id="linkPetaGPS"
-                                href="#"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="mt-2 hidden text-right text-xs text-blue-600 hover:underline"
-                            >
-                                Lihat di Google Maps
-                            </a>
-
-                        </div>
-
-                        {{-- JARAK GPS SAAT INI (dihitung di browser, divalidasi ulang di server) --}}
-                        @if((!$attendance && $canClockInLocation) || ($attendance && !$attendance->clock_out))
-                            <div class="flex justify-between gap-4 border-b border-gray-100 py-2">
-                                <span class="text-gray-400">
-                                    Jarak Saat Ini
-                                </span>
-                                <span id="jarakGPS" class="text-right text-xs font-semibold text-gray-500">
-                                    Menunggu GPS...
-                                </span>
-                            </div>
                         @endif
 
                     </div>
@@ -639,9 +596,6 @@
 
         </div>
 
-        {{-- PENGAJUAN IZIN / SAKIT --}}
-        @include('partials.form-izin')
-
     </main>
 
 </div>
@@ -662,8 +616,14 @@
 
         const formAbsen = document.getElementById('formAbsen');
 
-        const gpsText = document.getElementById('gpsText');
-        const gpsDot = document.getElementById('gpsDot');
+        // Status GPS hanya ditampilkan di satu tempat: badge "Status GPS" pada kartu Verifikasi Lokasi.
+        // Kode lama yang mengisi gpsText/gpsDot tetap dipakai; teksnya diteruskan ke badge itu.
+        const gpsText = {
+            set textContent(teks) {
+                tampilkanStatusGps(teks);
+            },
+        };
+        const gpsDot = { className: '' };
 
         const koordinatGPS = document.getElementById('koordinatGPS');
         const linkPetaGPS = document.getElementById('linkPetaGPS');
@@ -690,7 +650,35 @@
         const clockOutWfa = @js((bool) ($attendance && $isFriday && $attendance->work_location === 'WFA'));
 
         const jarakGPS = document.getElementById('jarakGPS');
+        const statusRadius = document.getElementById('statusRadius');
+        const akurasiGPS = document.getElementById('akurasiGPS');
+        const peringatanAkurasi = document.getElementById('peringatanAkurasi');
         const workLocationSelect = document.getElementById('work_location');
+
+        // Di atas angka ini (meter), lokasi dianggap kurang akurat dan peserta diberi peringatan.
+        const BATAS_AKURASI_METER = 100;
+
+        // Posisi GPS terakhir yang berhasil dibaca (dipakai ulang saat Kirim agar tidak timeout).
+        const UMUR_POSISI_SEGAR_MS = 30000;      // ≤ 30 detik: langsung dipakai.
+        const UMUR_POSISI_CADANGAN_MS = 300000;  // ≤ 5 menit: cadangan jika GPS baru timeout.
+        let posisiTerakhir = null;
+
+        function simpanPosisiTerakhir(position) {
+            posisiTerakhir = {
+                coords: {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy,
+                },
+                waktu: Date.now(),
+            };
+        }
+
+        function posisiTerakhirBerumurPaling(batasMs) {
+            return posisiTerakhir !== null && (Date.now() - posisiTerakhir.waktu) <= batasMs
+                ? posisiTerakhir
+                : null;
+        }
 
         let cameraStream = null;
         let cameraReady = false;
@@ -736,15 +724,54 @@
                 return;
             }
 
-            if (isWfaSelected()) {
-                jarakGPS.textContent = lastDistance + ' m (WFA, tanpa batas radius)';
-                jarakGPS.className = 'text-right text-xs font-semibold text-blue-600';
-            } else if (lastDistance <= geofence.radius) {
-                jarakGPS.textContent = lastDistance + ' m — dalam radius ' + geofence.radius + ' m';
-                jarakGPS.className = 'text-right text-xs font-semibold text-emerald-600';
-            } else {
-                jarakGPS.textContent = lastDistance + ' m — di luar radius ' + geofence.radius + ' m';
-                jarakGPS.className = 'text-right text-xs font-semibold text-red-600';
+            // [teks badge, warna badge, warna angka jarak]
+            const tampilan = isWfaSelected()
+                ? ['WFA — tanpa batas radius', 'bg-blue-100 text-blue-700', 'text-blue-700']
+                : (lastDistance <= geofence.radius
+                    ? ['Sesuai Radius', 'bg-emerald-100 text-emerald-700', 'text-gray-800']
+                    : ['Di Luar Radius', 'bg-red-100 text-red-700', 'text-red-600']);
+
+            jarakGPS.textContent = lastDistance.toLocaleString('id-ID') + ' meter';
+            jarakGPS.className = 'text-right font-bold ' + tampilan[2];
+
+            if (statusRadius) {
+                statusRadius.textContent = tampilan[0];
+                statusRadius.className = 'rounded-full px-3 py-1 text-xs font-bold ' + tampilan[1];
+            }
+        }
+
+        // Badge Status GPS: "Mencari lokasi..." / pesan gagal (merah).
+        // Saat GPS berhasil, isi badge diatur updateDistance() (Sesuai / Di Luar Radius / WFA).
+        function tampilkanStatusGps(teks) {
+            if (!statusRadius || /Terdeteksi/.test(teks)) {
+                return;
+            }
+
+            const mencari = teks === 'Mencari lokasi...';
+
+            statusRadius.textContent = teks;
+            statusRadius.className = 'rounded-full px-3 py-1 text-xs font-bold '
+                + (mencari ? 'bg-gray-200 text-gray-600' : 'bg-red-100 text-red-700');
+        }
+
+        // Menampilkan perkiraan ketelitian lokasi (coords.accuracy, dalam meter).
+        function tampilkanAkurasi(accuracy) {
+            if (!akurasiGPS || !Number.isFinite(accuracy)) {
+                return;
+            }
+
+            const meter = Math.round(accuracy);
+            const teks = meter >= 1000
+                ? '±' + (meter / 1000).toFixed(1).replace('.', ',') + ' km'
+                : '±' + meter + ' m';
+            const kurangAkurat = meter > BATAS_AKURASI_METER;
+
+            akurasiGPS.textContent = teks + (kurangAkurat ? ' — kurang akurat' : ' — baik');
+            akurasiGPS.className = 'text-right text-xs font-semibold ' + (kurangAkurat ? 'text-amber-600' : 'text-emerald-600');
+
+            if (peringatanAkurasi) {
+                peringatanAkurasi.querySelector('[data-akurasi-teks]').textContent = teks;
+                peringatanAkurasi.classList.toggle('hidden', !kurangAkurat);
             }
         }
 
@@ -913,7 +940,9 @@
                     document.getElementById('inpLng').value = longitude;
 
                     tampilkanKoordinat(latitude, longitude);
+                    tampilkanAkurasi(position.coords.accuracy);
                     updateDistance(latitude, longitude);
+                    simpanPosisiTerakhir(position);
 
                     gpsText.textContent = 'GPS Terdeteksi';
 
@@ -1214,74 +1243,101 @@
             btnKirim.disabled = true;
             btnKirim.textContent = 'Memperbarui GPS...';
 
-            // Mengambil posisi baru tepat sebelum mengirim ke server.
+            // Memvalidasi posisi lalu mengirim form absensi.
+            function kirimDenganPosisi(position) {
+
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+
+                if (
+                    !Number.isFinite(latitude) ||
+                    !Number.isFinite(longitude)
+                ) {
+                    btnKirim.disabled = false;
+                    btnKirim.textContent = originalButtonText;
+
+                    alert(
+                        'Koordinat GPS tidak valid. Silakan coba kembali.'
+                    );
+
+                    return;
+                }
+
+                // Memperbarui koordinat yang akan dikirim.
+                document.getElementById('inpLat').value = latitude;
+                document.getElementById('inpLng').value = longitude;
+
+                tampilkanKoordinat(latitude, longitude);
+                tampilkanAkurasi(position.coords.accuracy);
+                updateDistance(latitude, longitude);
+
+                // Posisi yang dipakai ulang tidak dihitung sebagai bacaan baru.
+                if (position !== posisiTerakhir) {
+                    simpanPosisiTerakhir(position);
+                }
+
+                gpsReady = true;
+
+                gpsText.textContent = 'GPS Terbaru Terdeteksi';
+
+                gpsDot.className =
+                    'h-2 w-2 rounded-full bg-emerald-500';
+
+                // Tolak lebih awal jika posisi terbaru di luar radius (server tetap memvalidasi ulang).
+                if (!isPositionAllowed()) {
+                    btnKirim.textContent = originalButtonText;
+                    updateButtons();
+
+                    alert(
+                        'Posisi Anda ' + lastDistance + ' meter dari ' + geofence.name +
+                        ', di luar radius ' + geofence.radius + ' meter. Mendekatlah ke lokasi lalu coba lagi.'
+                    );
+
+                    return;
+                }
+
+                // Validasi ulang seluruh field form.
+                if (!formAbsen.reportValidity()) {
+                    btnKirim.disabled = false;
+
+                    updateButtons();
+
+                    return;
+                }
+
+                // Mencegah pengiriman ganda melalui browser.
+                submitting = true;
+
+                btnKirim.disabled = true;
+                btnKirim.textContent = 'Mengirim Absensi...';
+
+                formAbsen.submit();
+            }
+
+            // Posisi dari pemantauan GPS yang masih segar dipakai langsung.
+            const posisiSegar = posisiTerakhirBerumurPaling(UMUR_POSISI_SEGAR_MS);
+
+            if (posisiSegar) {
+                kirimDenganPosisi(posisiSegar);
+
+                return;
+            }
+
+            // Jika tidak ada, ambil posisi baru tepat sebelum mengirim ke server.
             navigator.geolocation.getCurrentPosition(
 
-                function (position) {
-
-                    const latitude = position.coords.latitude;
-                    const longitude = position.coords.longitude;
-
-                    if (
-                        !Number.isFinite(latitude) ||
-                        !Number.isFinite(longitude)
-                    ) {
-                        btnKirim.disabled = false;
-                        btnKirim.textContent = originalButtonText;
-
-                        alert(
-                            'Koordinat GPS tidak valid. Silakan coba kembali.'
-                        );
-
-                        return;
-                    }
-
-                    // Memperbarui koordinat yang akan dikirim.
-                    document.getElementById('inpLat').value = latitude;
-                    document.getElementById('inpLng').value = longitude;
-
-                    tampilkanKoordinat(latitude, longitude);
-                    updateDistance(latitude, longitude);
-
-                    gpsReady = true;
-
-                    gpsText.textContent = 'GPS Terbaru Terdeteksi';
-
-                    gpsDot.className =
-                        'h-2 w-2 rounded-full bg-emerald-500';
-
-                    // Tolak lebih awal jika posisi terbaru di luar radius (server tetap memvalidasi ulang).
-                    if (!isPositionAllowed()) {
-                        btnKirim.textContent = originalButtonText;
-                        updateButtons();
-
-                        alert(
-                            'Posisi Anda ' + lastDistance + ' meter dari ' + geofence.name +
-                            ', di luar radius ' + geofence.radius + ' meter. Mendekatlah ke lokasi lalu coba lagi.'
-                        );
-
-                        return;
-                    }
-
-                    // Validasi ulang seluruh field form.
-                    if (!formAbsen.reportValidity()) {
-                        btnKirim.disabled = false;
-
-                        updateButtons();
-
-                        return;
-                    }
-
-                    // Mencegah pengiriman ganda melalui browser.
-                    submitting = true;
-
-                    btnKirim.disabled = true;
-                    btnKirim.textContent = 'Mengirim Absensi...';
-
-                    formAbsen.submit();
-                },
+                kirimDenganPosisi,
 
                 function (error) {
+
+                    // Timeout tetapi masih ada posisi yang baru terbaca: pakai itu (server tetap memvalidasi jarak).
+                    const posisiCadangan = posisiTerakhirBerumurPaling(UMUR_POSISI_CADANGAN_MS);
+
+                    if (error.code === 3 && posisiCadangan) {
+                        kirimDenganPosisi(posisiCadangan);
+
+                        return;
+                    }
 
                     btnKirim.disabled = false;
                     btnKirim.textContent = originalButtonText;
@@ -1316,7 +1372,7 @@
                 {
                     enableHighAccuracy: true,
                     timeout: 15000,
-                    maximumAge: 0
+                    maximumAge: UMUR_POSISI_SEGAR_MS
                 }
 
             );
@@ -1343,7 +1399,9 @@
                     document.getElementById('inpLng').value = longitude;
 
                     tampilkanKoordinat(latitude, longitude);
+                    tampilkanAkurasi(position.coords.accuracy);
                     updateDistance(latitude, longitude);
+                    simpanPosisiTerakhir(position);
 
                     gpsReady = true;
                     updateButtons();

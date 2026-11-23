@@ -309,11 +309,6 @@ Route::middleware([
         [AttendanceController::class, 'exportPdf']
     )->name('riwayat.export-pdf');
 
-    Route::get(
-        '/riwayat-absen/export-csv',
-        [AttendanceController::class, 'exportCsv']
-    )->name('riwayat.export-csv');
-
 
     // Pengajuan izin/sakit.
 

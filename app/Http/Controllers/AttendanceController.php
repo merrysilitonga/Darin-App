@@ -14,7 +14,6 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttendanceController extends Controller
 {
@@ -714,108 +713,5 @@ class AttendanceController extends Controller
             . '.pdf';
 
         return $pdf->download($namaFile);
-    }
-
-    /**
-     * Ekspor riwayat absensi ke CSV untuk Excel.
-     */
-    public function exportCsv(Request $request): StreamedResponse
-    {
-        [$user, $attendances, $periode, $leaveRequests, $riwayat] =
-            $this->riwayatLengkap($request);
-
-        $namaFile = 'riwayat-absensi-'
-            . Str::slug($user->name)
-            . '-'
-            . $periode->format('Y-m')
-            . '.csv';
-
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' =>
-                'attachment; filename="' . $namaFile . '"',
-        ];
-
-        $callback = function () use ($riwayat) {
-            $file = fopen('php://output', 'w');
-
-            // BOM agar UTF-8 terbaca dengan benar di Excel.
-            fwrite($file, "\xEF\xBB\xBF");
-
-            fputcsv($file, [
-                'Tanggal',
-                'Jam Masuk',
-                'Jam Pulang',
-                'Metode Kerja',
-                'Status',
-                'Lokasi Kantor',
-                'Jarak Masuk (m)',
-                'Jarak Pulang (m)',
-                'Catatan',
-            ], ';', '"', '\\');
-
-            foreach ($riwayat as $baris) {
-                // Hari izin/sakit ikut tercatat agar laporan lengkap.
-                if ($baris['jenis'] === 'izin') {
-                    $izin = $baris['leave'];
-
-                    fputcsv($file, [
-                        Carbon::parse($baris['tanggal'])->locale('id')->translatedFormat('l, d F Y'),
-                        '-',
-                        '-',
-                        '-',
-                        $izin->request_type . ' (' . $izin->status . ')',
-                        '-',
-                        '-',
-                        '-',
-                        $izin->reason ?? '-',
-                    ], ';', '"', '\\');
-
-                    continue;
-                }
-
-                if (in_array($baris['jenis'], ['alfa', 'libur'], true)) {
-                    fputcsv($file, [
-                        Carbon::parse($baris['tanggal'])->locale('id')->translatedFormat('l, d F Y'),
-                        '-',
-                        '-',
-                        '-',
-                        $baris['jenis'] === 'alfa' ? 'Alfa' : 'Libur',
-                        '-',
-                        '-',
-                        '-',
-                        $baris['keterangan'] ?? '-',
-                    ], ';', '"', '\\');
-
-                    continue;
-                }
-
-                $attendance = $baris['attendance'];
-
-                fputcsv($file, [
-                    $attendance->date
-                        ? Carbon::parse($attendance->date)
-                            ->locale('id')
-                            ->translatedFormat('l, d F Y')
-                        : '-',
-                    $attendance->clock_in ?? '-',
-                    $attendance->clock_out ?? '-',
-                    $attendance->work_location ?? '-',
-                    $attendance->status ?? '-',
-                    $attendance->location_name ?? '-',
-                    $attendance->distance_meters ?? '-',
-                    $attendance->clock_out_distance_meters ?? '-',
-                    $attendance->notes ?? '-',
-                ], ';', '"', '\\');
-            }
-
-            fclose($file);
-        };
-
-        return response()->stream(
-            $callback,
-            200,
-            $headers
-        );
     }
 }

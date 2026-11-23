@@ -68,4 +68,17 @@ class Attendance extends Model
     {
         return $this->belongsTo(Location::class, 'clock_out_location_id');
     }
+
+    /**
+     * Keterangan saat absen pulang kosong:
+     * hari ini = masih bisa absen ("Belum"), tanggal lewat = terlewat ("Tidak").
+     */
+    public function keteranganPulangKosong(): string
+    {
+        $tanggal = substr((string) $this->getRawOriginal('date'), 0, 10);
+
+        return $tanggal === now('Asia/Jakarta')->toDateString()
+            ? 'Belum absen pulang'
+            : 'Tidak absen pulang';
+    }
 }

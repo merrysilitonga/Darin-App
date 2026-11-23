@@ -49,6 +49,23 @@ class RiwayatAbsensiIzinTest extends TestCase
         return $this->actingAs($this->magang)->get(route('riwayat.absen', $query));
     }
 
+    public function test_filter_bulan_langsung_dimuat_tanpa_tombol_terapkan(): void
+    {
+        // Bulan berjalan: tidak ada tombol kembali.
+        $this->riwayat()
+            ->assertOk()
+            ->assertSee('Tampilkan Bulan')
+            ->assertSee('id="form-filter-bulan"', false)
+            ->assertDontSee('Terapkan Filter')
+            ->assertDontSee('Kembali ke Bulan Ini');
+
+        // Bulan lain: muncul tombol kembali ke bulan berjalan.
+        $this->riwayat(['bulan' => '2026-12'])
+            ->assertOk()
+            ->assertSee('value="2026-12"', false)
+            ->assertSee('Kembali ke Bulan Ini');
+    }
+
     public function test_absensi_dan_izin_tampil_di_satu_halaman(): void
     {
         Attendance::create([
@@ -174,10 +191,9 @@ class RiwayatAbsensiIzinTest extends TestCase
         $this->assertStringContainsString('Sakit (Disetujui)', $html);
         $this->assertStringContainsString('Disetujui Oleh', $html);
 
-        // CSV juga memuat hari sakit.
-        $csv = $this->actingAs($this->magang)->get(route('riwayat.export-csv', ['bulan' => '2026-11']));
-        $csv->assertOk();
-        $this->assertStringContainsString('Sakit (Disetujui)', $csv->streamedContent());
+        // Unduh CSV untuk mahasiswa sudah dihapus (CSV hanya di halaman Admin).
+        $this->riwayat(['bulan' => '2026-11'])->assertDontSee('Unduh CSV');
+        $this->actingAs($this->magang)->get('/riwayat-absen/export-csv')->assertNotFound();
     }
 
     public function test_hari_kerja_kosong_tampil_sebagai_alfa_dan_libur(): void

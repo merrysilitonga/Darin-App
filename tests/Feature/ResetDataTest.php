@@ -131,6 +131,30 @@ class ResetDataTest extends TestCase
             ->assertSee('1 data absensi');
     }
 
+    public function test_halaman_reset_menampilkan_daftar_peserta_terdampak(): void
+    {
+        $this->actingAs($this->admin)
+            ->get(route('admin.reset-data.view'))
+            ->assertOk()
+            ->assertSee('Peserta yang Terdampak')
+            ->assertSee($this->alumni->name)
+            ->assertSee($this->alumni->email)
+            // Peserta yang masih aktif tidak ikut terdaftar.
+            ->assertDontSee($this->aktif->email);
+    }
+
+    public function test_password_tidak_diisi_otomatis_oleh_browser(): void
+    {
+        $html = $this->actingAs($this->admin)
+            ->get(route('admin.reset-data.view'))
+            ->assertOk()
+            ->getContent();
+
+        // Admin wajib mengetik password sendiri; tidak ada autofill password tersimpan.
+        $this->assertStringNotContainsString('autocomplete="current-password"', $html);
+        $this->assertSame(3, substr_count($html, 'autocomplete="new-password"'));
+    }
+
     public function test_hr_tidak_dapat_membuka_atau_menjalankan_reset(): void
     {
         $hr = User::factory()->create(['role' => 'hr', 'password' => bcrypt('rahasia123')]);
