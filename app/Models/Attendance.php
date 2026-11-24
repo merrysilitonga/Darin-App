@@ -31,6 +31,10 @@ class Attendance extends Model
         'clock_out_latitude',
         'clock_out_longitude',
         'clock_out_distance_meters',
+        'dinas_status',
+        'dinas_reviewed_by',
+        'dinas_reviewed_at',
+        'dinas_review_notes',
     ];
 
     protected function casts(): array
@@ -43,6 +47,7 @@ class Attendance extends Model
             'clock_out_longitude' => 'decimal:7',
             'distance_meters' => 'integer',
             'clock_out_distance_meters' => 'integer',
+            'dinas_reviewed_at' => 'datetime',
         ];
     }
 
@@ -68,6 +73,38 @@ class Attendance extends Model
     public function clockOutLocation(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'clock_out_location_id');
+    }
+
+    /** Tujuan dinas (dari catatan "Dinas Luar: ...") atau null bila bukan Dinas Luar. */
+    public function tujuanDinas(): ?string
+    {
+        if ($this->work_location !== 'Dinas Luar') {
+            return null;
+        }
+
+        $tujuan = trim((string) preg_replace('/^Dinas Luar:\s*/', '', (string) $this->notes));
+
+        return $tujuan !== '' ? $tujuan : null;
+    }
+
+    /** Mentor yang memproses persetujuan Dinas Luar. */
+    public function dinasReviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'dinas_reviewed_by');
+    }
+
+    /** Dinas Luar yang ditolak Mentor tidak dihitung hadir (dianggap Alfa). */
+    public function dinasDitolak(): bool
+    {
+        return $this->work_location === 'Dinas Luar' && $this->dinas_status === 'Ditolak';
+    }
+
+    /** Hanya absensi yang sah: kecualikan Dinas Luar yang ditolak Mentor. */
+    public function scopeSah($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNull('dinas_status')->orWhere('dinas_status', '!=', 'Ditolak');
+        });
     }
 
     /** Pengajuan koreksi absen pulang terbaru untuk absensi ini. */

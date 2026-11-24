@@ -117,4 +117,49 @@ class ImporPenggunaTest extends TestCase
 
         $this->assertDatabaseMissing('users', ['email' => 'x@y.id']);
     }
+
+    public function test_kolom_lokasi_membuat_peserta_langsung_bisa_absen(): void
+    {
+        $lokasi = $this->buatLokasi(['name' => 'Kementerian ESDM']);
+
+        $this->unggah("nama;email;role;lokasi;tanggal_mulai;tanggal_selesai\n"
+            . "Sinta;sinta@kampus.ac.id;magang;kementerian esdm;2026-11-01;2026-12-31\n"
+            . "Budi;budi@esdm.go.id;mentor;Kementerian ESDM;;\n")
+            ->assertSessionHas('success');
+
+        // Nama lokasi tidak membedakan huruf besar/kecil.
+        $this->assertSame($lokasi->id, User::where('email', 'sinta@kampus.ac.id')->value('location_id'));
+        // Kolom lokasi diabaikan untuk mentor.
+        $this->assertNull(User::where('email', 'budi@esdm.go.id')->value('location_id'));
+    }
+
+    public function test_lokasi_tidak_dikenal_atau_nonaktif_ditolak(): void
+    {
+        $this->buatLokasi(['name' => 'Kantor Lama', 'is_active' => false]);
+
+        $this->unggah("nama;email;role;lokasi\n"
+            . "Sinta;sinta@kampus.ac.id;magang;Kantor Tidak Ada\n"
+            . "Rudi;rudi@kampus.ac.id;magang;Kantor Lama\n")
+            ->assertSessionHasErrorsIn('import');
+
+        $pesan = session('errors')->getBag('import')->all();
+        $this->assertCount(2, $pesan);
+        $this->assertStringContainsString('lokasi "Kantor Tidak Ada" belum ada atau nonaktif', $pesan[0]);
+        $this->assertSame(0, User::where('role', 'magang')->count());
+    }
+
+    public function test_template_dan_panduan_memuat_kolom_lokasi(): void
+    {
+        $this->buatLokasi(['name' => 'Kementerian ESDM']);
+
+        $template = $this->actingAs($this->admin)->get(route('admin.users.import.template'))->getContent();
+        $this->assertStringContainsString(';divisi;lokasi;email_mentor;', $template);
+        $this->assertStringContainsString(';"Kementerian ESDM";', $template);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.users.import'))
+            ->assertOk()
+            ->assertSee('Kementerian ESDM')
+            ->assertSee('peserta langsung bisa absen');
+    }
 }

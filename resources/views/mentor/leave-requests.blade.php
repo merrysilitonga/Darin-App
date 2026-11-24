@@ -122,6 +122,99 @@
 
             </section>
 
+            {{-- PERSETUJUAN DINAS LUAR --}}
+            @if ($dinasList->isNotEmpty())
+                <section class="mb-8 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm md:p-7">
+                    <h2 class="text-lg font-extrabold">Persetujuan Dinas Luar</h2>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Peserta absen dari luar kantor karena dinas. Periksa selfie dan tujuan dinas. Jika ditolak, hari tersebut dihitung Alfa (atau tetap Izin/Sakit bila ada izin yang disetujui).
+                    </p>
+
+                    <div class="mt-5 divide-y divide-gray-100">
+                        @foreach ($dinasList as $absen)
+                            @php
+                                $kelasStatus = match ($absen->dinas_status) {
+                                    'Disetujui' => 'bg-green-100 text-green-700',
+                                    'Ditolak' => 'bg-red-100 text-red-700',
+                                    default => 'bg-amber-100 text-amber-700',
+                                };
+                                $labelStatus = $absen->dinas_status === 'Menunggu' ? 'Menunggu Persetujuan' : $absen->dinas_status;
+                                $tanggalDinas = \Carbon\Carbon::parse($absen->getRawOriginal('date'))->locale('id')->translatedFormat('l, d M Y');
+                            @endphp
+
+                            <div class="py-4">
+                                <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                    <div>
+                                        <p class="font-bold text-gray-800">{{ $absen->user?->name ?? 'Mahasiswa' }}</p>
+                                        <p class="mt-1 text-sm text-gray-600">
+                                            {{ $tanggalDinas }} ·
+                                            masuk <span class="font-semibold">{{ substr((string) $absen->clock_in, 0, 5) ?: '-' }}</span> ·
+                                            pulang <span class="font-semibold">{{ $absen->clock_out ? substr((string) $absen->clock_out, 0, 5) : 'belum' }}</span>
+                                        </p>
+                                        <p class="mt-1 text-sm text-gray-700">Tujuan: <span class="font-semibold">{{ $absen->tujuanDinas() ?? '-' }}</span></p>
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            GPS masuk: {{ $absen->latitude }}, {{ $absen->longitude }}
+                                            @if ($absen->distance_meters !== null) ({{ number_format($absen->distance_meters, 0, ',', '.') }} m dari kantor) @endif
+                                        </p>
+                                        <p class="mt-1 flex gap-3 text-xs">
+                                            @if ($absen->photo_path)
+                                                <a href="{{ route('mentor.dinas.photo', $absen->id) }}" target="_blank" rel="noopener noreferrer" class="font-semibold text-blue-600 hover:underline">Lihat selfie masuk</a>
+                                            @endif
+                                            @if ($absen->clock_out_photo_path)
+                                                <a href="{{ route('mentor.dinas.photo', ['id' => $absen->id, 'type' => 'pulang']) }}" target="_blank" rel="noopener noreferrer" class="font-semibold text-blue-600 hover:underline">Lihat selfie pulang</a>
+                                            @endif
+                                        </p>
+                                        @if ($absen->dinas_status !== 'Menunggu')
+                                            <p class="mt-1 text-xs text-gray-400">
+                                                Diproses {{ $absen->dinasReviewer?->name ?? '-' }},
+                                                {{ $absen->dinas_reviewed_at?->timezone('Asia/Jakarta')->format('d M Y, H:i') }} WIB
+                                                @if ($absen->dinas_review_notes) · Catatan: {{ $absen->dinas_review_notes }} @endif
+                                            </p>
+                                        @endif
+                                    </div>
+                                    <span class="w-fit shrink-0 rounded-full px-3 py-1 text-xs font-bold {{ $kelasStatus }}">{{ $labelStatus }}</span>
+                                </div>
+
+                                @if ($absen->dinas_status === 'Menunggu')
+                                    <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                                        <form
+                                            action="{{ route('mentor.dinas.approve', $absen->id) }}"
+                                            method="POST"
+                                            onsubmit="return confirm('Setujui Dinas Luar ini?')"
+                                        >
+                                            @csrf
+                                            <button type="submit" class="w-full rounded-xl bg-green-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-green-700">
+                                                Setujui Dinas Luar
+                                            </button>
+                                        </form>
+
+                                        <form
+                                            action="{{ route('mentor.dinas.reject', $absen->id) }}"
+                                            method="POST"
+                                            class="flex gap-2"
+                                        >
+                                            @csrf
+                                            <input
+                                                type="text"
+                                                name="dinas_review_notes"
+                                                required
+                                                maxlength="2000"
+                                                placeholder="Alasan penolakan"
+                                                aria-label="Alasan penolakan Dinas Luar"
+                                                class="min-w-0 flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                                            >
+                                            <button type="submit" class="shrink-0 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700">
+                                                Tolak
+                                            </button>
+                                        </form>
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
+
             {{-- KOREKSI ABSEN PULANG (peserta lupa absen pulang) --}}
             @if ($corrections->isNotEmpty())
                 <section class="mb-8 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm md:p-7">
@@ -277,6 +370,15 @@
                                         ? $item->end_date->format('d M Y')
                                         : '-' }}
                                 </p>
+
+                                @php($tanggalTetapAbsen = $item->status === 'Disetujui' ? $item->tanggalTetapAbsen() : collect())
+                                @if ($tanggalTetapAbsen->isNotEmpty())
+                                    <p class="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+                                        Tetap absen (Dinas Luar/hadir) pada
+                                        {{ $tanggalTetapAbsen->map(fn ($t) => \Carbon\Carbon::parse($t)->locale('id')->translatedFormat('d M Y'))->implode(', ') }},
+                                        sehingga tanggal tersebut tidak dihitung {{ strtolower($item->request_type) }}.
+                                    </p>
+                                @endif
                             </div>
 
                         </div>

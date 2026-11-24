@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Division;
+use App\Models\Location;
 use App\Models\User;
 use DateTime;
 use Illuminate\Http\Request;
@@ -14,10 +15,11 @@ use Illuminate\Support\Facades\Log;
  * Impor akun Peserta Magang & Mentor dari file CSV oleh Admin/HR.
  *
  * Kolom (header wajib, urutan bebas):
- * nama;email;role;nim;universitas;prodi;telepon;nip;jabatan;divisi;email_mentor;tanggal_mulai;tanggal_selesai;password
+ * nama;email;role;nim;universitas;prodi;telepon;nip;jabatan;divisi;lokasi;email_mentor;tanggal_mulai;tanggal_selesai;password
  *
  * - role: magang atau mentor (akun admin tidak bisa diimpor).
  * - divisi: nama divisi yang sudah ada (tidak membedakan huruf besar/kecil).
+ * - lokasi: khusus magang, nama lokasi absensi yang aktif → peserta langsung bisa absen.
  * - email_mentor: email mentor yang sudah ada atau ikut diimpor di file yang sama.
  * - password kosong → dibuatkan otomatis dan ditampilkan sekali setelah impor.
  * - Semua baris divalidasi dulu; jika ada satu yang salah, tidak ada yang disimpan.
@@ -40,6 +42,7 @@ class UserImportController extends Controller
         'nip' => 'nip',
         'jabatan' => 'jabatan', 'position' => 'jabatan',
         'divisi' => 'divisi', 'division' => 'divisi', 'unit' => 'divisi',
+        'lokasi' => 'lokasi', 'lokasi kerja' => 'lokasi', 'lokasi absen' => 'lokasi', 'lokasi absensi' => 'lokasi', 'location' => 'lokasi', 'kantor' => 'lokasi',
         'email mentor' => 'email_mentor', 'email_mentor' => 'email_mentor', 'mentor' => 'email_mentor',
         'tanggal mulai' => 'tanggal_mulai', 'tanggal_mulai' => 'tanggal_mulai', 'mulai' => 'tanggal_mulai',
         'tanggal selesai' => 'tanggal_selesai', 'tanggal_selesai' => 'tanggal_selesai', 'selesai' => 'tanggal_selesai',
@@ -51,15 +54,19 @@ class UserImportController extends Controller
         return view('admin.users-import', [
             'maxRows' => self::MAX_ROWS,
             'divisions' => Division::orderBy('name')->pluck('name'),
+            'locations' => Location::where('is_active', true)->orderBy('name')->pluck('name'),
         ]);
     }
 
     public function template()
     {
+        // Contoh lokasi memakai nama lokasi aktif yang benar-benar ada.
+        $contohLokasi = Location::where('is_active', true)->orderBy('name')->value('name') ?? 'Kementerian ESDM';
+
         $rows = [
-            ['nama', 'email', 'role', 'nim', 'universitas', 'prodi', 'telepon', 'nip', 'jabatan', 'divisi', 'email_mentor', 'tanggal_mulai', 'tanggal_selesai', 'password'],
-            ['Budi Santoso', 'budi.mentor@esdm.go.id', 'mentor', '', '', '', '081234567890', '198701012010011001', 'Analis Data', 'IT Prasarana', '', '', '', ''],
-            ['Sinta Rahmawati', 'sinta@mahasiswa.ac.id', 'magang', '2101234567', 'Universitas Contoh', 'Sistem Informasi', '081298765432', '', '', 'IT Prasarana', 'budi.mentor@esdm.go.id', '2026-11-01', '2026-12-31', ''],
+            ['nama', 'email', 'role', 'nim', 'universitas', 'prodi', 'telepon', 'nip', 'jabatan', 'divisi', 'lokasi', 'email_mentor', 'tanggal_mulai', 'tanggal_selesai', 'password'],
+            ['Budi Santoso', 'budi.mentor@esdm.go.id', 'mentor', '', '', '', '081234567890', '198701012010011001', 'Analis Data', 'IT Prasarana', '', '', '', '', ''],
+            ['Sinta Rahmawati', 'sinta@mahasiswa.ac.id', 'magang', '2101234567', 'Universitas Contoh', 'Sistem Informasi', '081298765432', '', '', 'IT Prasarana', $contohLokasi, 'budi.mentor@esdm.go.id', '2026-11-01', '2026-12-31', ''],
         ];
 
         $stream = fopen('php://temp', 'r+');
@@ -128,6 +135,7 @@ class UserImportController extends Controller
                     $user->nim = $row['nim'] ?: null;
                     $user->university = $row['universitas'] ?: null;
                     $user->study_program = $row['prodi'] ?: null;
+                    $user->location_id = $row['location_id'];
                     $user->start_date = $row['tanggal_mulai'];
                     $user->end_date = $row['tanggal_selesai'];
                     $user->mentor_id = $row['email_mentor'] !== ''
@@ -249,10 +257,14 @@ class UserImportController extends Controller
      */
     private function validateRows(array $rows): array
     {
-        $kolom = ['nama', 'email', 'role', 'nim', 'universitas', 'prodi', 'telepon', 'nip', 'jabatan', 'divisi', 'email_mentor', 'tanggal_mulai', 'tanggal_selesai', 'password'];
+        $kolom = ['nama', 'email', 'role', 'nim', 'universitas', 'prodi', 'telepon', 'nip', 'jabatan', 'divisi', 'lokasi', 'email_mentor', 'tanggal_mulai', 'tanggal_selesai', 'password'];
 
         $divisions = Division::all(['id', 'name'])
             ->mapWithKeys(fn (Division $division) => [mb_strtolower(trim($division->name)) => $division->id]);
+
+        // Hanya lokasi aktif yang boleh menjadi penempatan baru.
+        $locations = Location::where('is_active', true)->get(['id', 'name'])
+            ->mapWithKeys(fn (Location $location) => [mb_strtolower(trim($location->name)) => $location->id]);
 
         $existingEmails = User::pluck('email')->map(fn ($email) => mb_strtolower($email))->flip();
         $existingMentors = User::where('role', 'mentor')->pluck('email')->map(fn ($email) => mb_strtolower($email))->flip();
@@ -338,6 +350,16 @@ class UserImportController extends Controller
                 $row['tanggal_mulai'] = $mulai;
                 $row['tanggal_selesai'] = $selesai;
 
+                $row['location_id'] = null;
+
+                if ($row['lokasi'] !== '') {
+                    $row['location_id'] = $locations[mb_strtolower($row['lokasi'])] ?? null;
+
+                    if ($row['location_id'] === null) {
+                        $salah[] = "lokasi \"{$row['lokasi']}\" belum ada atau nonaktif (cek menu Lokasi Absensi)";
+                    }
+                }
+
                 if ($row['email_mentor'] !== ''
                     && !$existingMentors->has($row['email_mentor'])
                     && !isset($fileMentors[$row['email_mentor']])) {
@@ -347,6 +369,7 @@ class UserImportController extends Controller
                 $row['tanggal_mulai'] = null;
                 $row['tanggal_selesai'] = null;
                 $row['email_mentor'] = '';
+                $row['location_id'] = null;
             }
 
             if ($salah !== []) {

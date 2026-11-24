@@ -73,7 +73,12 @@
                             <span class="muted">Belum</span>
                         @endif
                     </td>
-                    <td>{{ $attendance->work_location ?? '-' }}</td>
+                    <td>
+                        {{ $attendance->work_location ?? '-' }}
+                        @if ($attendance->tujuanDinas())
+                            <br><span class="muted">{{ $attendance->tujuanDinas() }}</span>
+                        @endif
+                    </td>
                     <td class="{{ $attendance->status === 'Hadir' ? 'hadir' : ($attendance->status === 'Terlambat' ? 'terlambat' : '') }}">
                         {{ $attendance->status === 'Hadir' ? 'Tepat Waktu' : ($attendance->status ?? '-') }}
                     </td>

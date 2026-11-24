@@ -50,4 +50,28 @@ class LeaveRequest extends Model
             'reviewed_by'
         );
     }
+
+    /**
+     * Tanggal dalam rentang izin yang ternyata tetap absen (mis. Dinas Luar)
+     * dan sah, sehingga tidak dihitung sebagai hari izin/sakit.
+     *
+     * @return \Illuminate\Support\Collection<int, string> tanggal Y-m-d
+     */
+    public function tanggalTetapAbsen()
+    {
+        if (!$this->start_date || !$this->end_date) {
+            return collect();
+        }
+
+        return Attendance::query()
+            ->where('user_id', $this->user_id)
+            ->whereNotNull('clock_in')
+            ->sah()
+            ->whereDate('date', '>=', $this->start_date->toDateString())
+            ->whereDate('date', '<=', $this->end_date->toDateString())
+            ->orderBy('date')
+            ->get(['date'])
+            ->map(fn (Attendance $absen) => $absen->date->toDateString())
+            ->values();
+    }
 }

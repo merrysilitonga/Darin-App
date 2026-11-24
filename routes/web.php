@@ -29,6 +29,7 @@ use App\Http\Controllers\AttendanceCorrectionController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\LogbookController;
 use App\Http\Controllers\MentorLogbookController;
+use App\Http\Controllers\MentorDinasController;
 use App\Http\Controllers\MentorLeaveRequestController;
 use App\Http\Controllers\MentorDashboardController;
 use App\Http\Controllers\MentorAssessmentController;
@@ -495,6 +496,23 @@ Route::middleware([
         '/attendance-corrections/{id}/reject',
         [AttendanceCorrectionController::class, 'reject']
     )->whereNumber('id')->name('mentor.corrections.reject');
+
+    // Persetujuan Dinas Luar.
+
+    Route::post(
+        '/dinas/{id}/approve',
+        [MentorDinasController::class, 'approve']
+    )->whereNumber('id')->name('mentor.dinas.approve');
+
+    Route::post(
+        '/dinas/{id}/reject',
+        [MentorDinasController::class, 'reject']
+    )->whereNumber('id')->name('mentor.dinas.reject');
+
+    Route::get(
+        '/dinas/{id}/photo',
+        [MentorDinasController::class, 'photo']
+    )->whereNumber('id')->name('mentor.dinas.photo');
 
 
     // Halaman absensi mentor: mengambil data dari database.
