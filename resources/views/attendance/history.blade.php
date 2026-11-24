@@ -47,14 +47,14 @@
                     title="Rekap kehadiran seluruh periode magang (untuk laporan akhir)"
                     class="px-4 py-2.5 bg-white border border-amber-300 text-amber-800 text-xs font-bold rounded-xl shadow-sm hover:bg-amber-50 transition"
                 >
-                    📄 Laporan Akhir Magang
+                    Laporan Akhir Magang
                 </a>
 
                 <a
                     href="{{ route('riwayat.export-pdf', ['bulan' => isset($periode) ? $periode->format('Y-m') : now('Asia/Jakarta')->format('Y-m')]) }}"
                     class="px-4 py-2.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-xl shadow-sm hover:bg-gray-50 transition"
                 >
-                    📄 Unduh PDF
+                    Unduh PDF
                 </a>
             </div>
         </header>
@@ -386,6 +386,14 @@
                                         <span class="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-violet-50 text-violet-700">
                                             WFO
                                         </span>
+                                    @elseif($attendance->work_location === 'Dinas Luar')
+                                        <span class="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700">
+                                            Dinas Luar
+                                        </span>
+                                        @if($attendance->tujuanDinas())
+                                            <span class="mt-1 block max-w-[14rem] whitespace-normal text-[11px] text-gray-500">{{ $attendance->tujuanDinas() }}</span>
+                                        @endif
+                                        @include('partials.status-dinas', ['absen' => $attendance])
                                     @else
                                         <span class="text-gray-400">-</span>
                                     @endif
@@ -447,7 +455,7 @@
                                             rel="noopener noreferrer"
                                             class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                                         >
-                                            📍 Lihat lokasi
+                                            Lihat lokasi
                                         </a>
                                     @else
                                         <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">
@@ -460,7 +468,6 @@
                         @empty
                             <tr>
                                 <td colspan="7" class="py-12 px-6 text-center">
-                                    <div class="text-4xl mb-3">📋</div>
 
                                     <p class="font-semibold text-gray-700">
                                         Belum ada riwayat absensi atau izin
@@ -525,6 +532,15 @@
 
                         <p class="mt-3 whitespace-pre-line text-sm text-gray-600">{{ $item->reason }}</p>
 
+                        @php($tanggalTetapAbsen = $item->status === 'Disetujui' ? $item->tanggalTetapAbsen() : collect())
+                        @if ($tanggalTetapAbsen->isNotEmpty())
+                            <p class="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+                                Tetap absen (Dinas Luar/hadir) pada
+                                {{ $tanggalTetapAbsen->map(fn ($t) => \Carbon\Carbon::parse($t)->locale('id')->translatedFormat('d M Y'))->implode(', ') }},
+                                sehingga tanggal tersebut tidak dihitung {{ strtolower($item->request_type) }}.
+                            </p>
+                        @endif
+
                         @if ($statusIzin === 'Menunggu')
                             <p class="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
                                 Menunggu pemeriksaan Mentor.
@@ -547,16 +563,16 @@
                             </span>
 
                             <a href="{{ route('izin.download', $item->id) }}" class="font-semibold text-blue-600 hover:text-blue-800">
-                                📄 Unduh Surat Pendukung
+                                Unduh Surat Pendukung
                             </a>
                         </div>
                     </article>
                 @empty
                     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-10 text-center">
-                        <p class="text-3xl">📄</p>
-                        <p class="mt-2 font-semibold text-gray-700">Tidak ada pengajuan izin/sakit pada periode ini</p>
+                        <p class="font-semibold text-gray-700">Tidak ada pengajuan izin/sakit pada periode ini</p>
+                        <p class="mt-1 text-xs text-gray-500">Pengajuan izin/sakit dilakukan di halaman Mulai Absen.</p>
                         <a href="{{ route('izin.create') }}" class="mt-4 inline-flex rounded-xl bg-[#191712] px-5 py-2.5 text-xs font-bold text-white hover:bg-gray-800">
-                            + Ajukan Izin / Sakit
+                            Buka Form Izin di Mulai Absen
                         </a>
                     </div>
                 @endforelse

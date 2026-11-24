@@ -19,7 +19,7 @@
     {{-- HASIL IMPOR --}}
     @if (session('success'))
         <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700">
-            ✅ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
@@ -29,7 +29,7 @@
 
             @if ($adaPasswordBaru)
                 <p class="mt-1 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
-                    ⚠️ Password yang dibuat otomatis <strong>hanya ditampilkan sekali</strong> di halaman ini.
+                    Password yang dibuat otomatis <strong>hanya ditampilkan sekali</strong> di halaman ini.
                     Salin atau unduh sekarang, lalu bagikan ke masing-masing pengguna secara pribadi.
                     Minta mereka mengganti password setelah login pertama.
                 </p>
@@ -63,7 +63,7 @@
             @if ($adaPasswordBaru)
                 <button type="button" id="unduh-kredensial"
                         class="mt-4 rounded-xl bg-[#191712] px-5 py-2.5 text-sm font-bold text-white hover:bg-gray-800">
-                    ⬇ Unduh Daftar Akun (CSV)
+                    Unduh Daftar Akun (CSV)
                 </button>
 
                 <script>
@@ -111,7 +111,7 @@
 
             <a href="{{ route('admin.users.import.template') }}"
                class="inline-flex shrink-0 items-center justify-center rounded-xl border border-amber-200 px-4 py-2.5 text-sm font-bold text-amber-700 hover:bg-amber-50">
-                ⬇ Unduh Template
+                Unduh Template
             </a>
         </div>
 
@@ -147,6 +147,7 @@
                     <tr><td class="px-4 py-2 font-mono">email</td><td class="px-4 py-2">Ya</td><td class="px-4 py-2">Harus unik, belum terdaftar.</td></tr>
                     <tr><td class="px-4 py-2 font-mono">role</td><td class="px-4 py-2">Ya</td><td class="px-4 py-2"><b>magang</b> atau <b>mentor</b>. Akun admin tidak bisa diimpor.</td></tr>
                     <tr><td class="px-4 py-2 font-mono">divisi</td><td class="px-4 py-2">Tidak</td><td class="px-4 py-2">Nama divisi yang sudah ada{{ $divisions->isNotEmpty() ? ': ' . $divisions->join(', ') : '' }}.</td></tr>
+                    <tr><td class="px-4 py-2 font-mono">lokasi</td><td class="px-4 py-2">Tidak</td><td class="px-4 py-2">Khusus magang. Nama lokasi absensi yang aktif{{ $locations->isNotEmpty() ? ': ' . $locations->join(', ') : '' }}. Jika diisi, peserta langsung bisa absen.</td></tr>
                     <tr><td class="px-4 py-2 font-mono">email_mentor</td><td class="px-4 py-2">Tidak</td><td class="px-4 py-2">Khusus magang. Email mentor yang sudah ada atau ikut diimpor di file yang sama.</td></tr>
                     <tr><td class="px-4 py-2 font-mono">tanggal_mulai, tanggal_selesai</td><td class="px-4 py-2">Tidak</td><td class="px-4 py-2">Khusus magang. YYYY-MM-DD atau DD/MM/YYYY, diisi keduanya.</td></tr>
                     <tr><td class="px-4 py-2 font-mono">nim, universitas, prodi</td><td class="px-4 py-2">Tidak</td><td class="px-4 py-2">Khusus magang.</td></tr>
@@ -158,7 +159,7 @@
         </div>
 
         <p class="mt-4 text-xs text-gray-400">
-            Lokasi kerja peserta tetap diatur per pengguna di halaman Manajemen Pengguna setelah impor.
+            Jika kolom lokasi dikosongkan, lokasi kerja peserta dapat diatur nanti per pengguna di halaman Manajemen Pengguna.
         </p>
     </div>
 </div>

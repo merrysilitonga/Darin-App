@@ -455,6 +455,9 @@
 
                             <td class="px-4 py-4 text-center text-xs font-bold text-emerald-600">
                                 {{ $row['hadir'] }}
+                                @if (($row['dinas'] ?? 0) > 0)
+                                    <span class="block text-[10px] font-medium text-amber-600">{{ $row['dinas'] }} Dinas Luar</span>
+                                @endif
                             </td>
 
                             <td class="px-4 py-4 text-center text-xs font-bold text-violet-600">

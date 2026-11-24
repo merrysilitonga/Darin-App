@@ -260,7 +260,12 @@
                                     </td>
                                     <td class="px-5 py-3">{{ $jam($day['clock_in']) }}</td>
                                     <td class="px-5 py-3">{{ $jam($day['clock_out']) }}</td>
-                                    <td class="px-5 py-3">{{ $day['work_location'] ?? '-' }}</td>
+                                    <td class="px-5 py-3">
+                                        {{ $day['work_location'] ?? '-' }}
+                                        @if (!empty($day['tujuan_dinas']))
+                                            <span class="block max-w-[14rem] text-[11px] text-gray-500">{{ $day['tujuan_dinas'] }}</span>
+                                        @endif
+                                    </td>
                                     <td class="max-w-sm px-5 py-3 text-gray-600">
                                         @if ($day['note'])
                                             <p class="font-semibold">{{ $day['note'] }}</p>

@@ -183,7 +183,7 @@
                     </p>
 
                     <p class="mt-2 text-xs text-gray-400">
-                        Seluruh akun terdaftar
+                        Mentor & mahasiswa magang
                     </p>
                 </div>
 

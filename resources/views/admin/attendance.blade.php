@@ -290,9 +290,13 @@
                             <td class="whitespace-nowrap px-4 py-3">
                                 <p class="font-semibold text-gray-800">{{ $formatJam($attendance->clock_in) ?? '-' }}</p>
                                 @if ($attendance->work_location)
-                                    <span class="mt-1 inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-600">
+                                    <span class="mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold {{ $attendance->work_location === 'Dinas Luar' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600' }}">
                                         {{ $attendance->work_location }}
                                     </span>
+                                    @if ($attendance->tujuanDinas())
+                                        <span class="mt-1 block max-w-[12rem] whitespace-normal text-[11px] text-gray-500">{{ $attendance->tujuanDinas() }}</span>
+                                    @endif
+                                    @include('partials.status-dinas', ['absen' => $attendance])
                                 @endif
                             </td>
 

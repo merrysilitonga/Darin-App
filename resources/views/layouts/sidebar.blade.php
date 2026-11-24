@@ -191,8 +191,9 @@
                     class="{{ $menuItemClass }} {{ request()->routeIs('mentor.leave-requests*') ? $activeClass : $inactiveClass }}"
                 >
                     Pengajuan Izin / Sakit
-                    @if ($mentorPending['leave'] + ($mentorPending['koreksi'] ?? 0) > 0)
-                        <span class="{{ $badgeClass }}" title="Pengajuan menunggu persetujuan (izin & koreksi absen pulang)">{{ $mentorPending['leave'] + ($mentorPending['koreksi'] ?? 0) }}</span>
+                    @php($jumlahPengajuan = $mentorPending['leave'] + ($mentorPending['koreksi'] ?? 0) + ($mentorPending['dinas'] ?? 0))
+                    @if ($jumlahPengajuan > 0)
+                        <span class="{{ $badgeClass }}" title="Pengajuan menunggu persetujuan (izin, koreksi absen pulang & Dinas Luar)">{{ $jumlahPengajuan }}</span>
                     @endif
                 </a>
 

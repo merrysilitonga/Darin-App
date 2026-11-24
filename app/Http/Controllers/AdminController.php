@@ -41,7 +41,9 @@ class AdminController extends Controller
      */
     public function users()
     {
+        // Hanya Mentor & Mahasiswa; akun Admin/HR tidak dikelola dari halaman ini.
         $users = User::with(['division', 'mentor', 'location'])
+            ->whereIn('role', ['magang', 'mentor'])
             ->orderBy('name')
             ->get();
 
@@ -588,10 +590,8 @@ class AdminController extends Controller
         if ($reportPeriodEnd->greaterThanOrEqualTo($reportPeriodStart)) {
             $holidayDateSet = Holiday::query()
                 ->where('is_active', true)
-                ->whereBetween('date', [
-                    $reportPeriodStart->toDateString(),
-                    $reportPeriodEnd->toDateString(),
-                ])
+                ->whereDate('date', '>=', $reportPeriodStart->toDateString())
+                ->whereDate('date', '<=', $reportPeriodEnd->toDateString())
                 ->pluck('date')
                 ->map(fn ($date) => Carbon::parse($date, 'Asia/Jakarta')->toDateString())
                 ->flip();
@@ -604,11 +604,10 @@ class AdminController extends Controller
         if (!empty($studentIds) && $reportPeriodEnd->greaterThanOrEqualTo($reportPeriodStart)) {
             $workdayAttendances = Attendance::query()
                 ->whereIn('user_id', $studentIds)
-                ->whereBetween('date', [
-                    $reportPeriodStart->toDateString(),
-                    $reportPeriodEnd->toDateString(),
-                ])
+                ->whereDate('date', '>=', $reportPeriodStart->toDateString())
+                ->whereDate('date', '<=', $reportPeriodEnd->toDateString())
                 ->whereNotNull('clock_in')
+                ->sah()
                 ->get(['user_id', 'date']);
 
             foreach ($workdayAttendances as $record) {
@@ -767,10 +766,8 @@ class AdminController extends Controller
 
         if ($filters['validMonth']) {
             $period = Carbon::createFromFormat('!Y-m', $filters['month'], 'Asia/Jakarta');
-            $query->whereBetween('date', [
-                $period->copy()->startOfMonth()->toDateString(),
-                $period->copy()->endOfMonth()->toDateString(),
-            ]);
+            $query->whereDate('date', '>=', $period->copy()->startOfMonth()->toDateString())
+            ->whereDate('date', '<=', $period->copy()->endOfMonth()->toDateString());
         }
 
         if ($filters['validDivisionId']) {

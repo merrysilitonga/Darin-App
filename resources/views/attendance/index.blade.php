@@ -249,8 +249,27 @@
                             class="hidden"
                         >
 
-                        {{-- PILIHAN WFA / WFO HARI JUMAT --}}
-                        @if(!$attendance && $isFriday)
+                        {{-- METODE KERJA HARI INI: Jumat WFO/WFA/Dinas Luar, hari lain Kantor/Dinas Luar --}}
+                        @if(!$attendance)
+                            @php
+                                $metodeLama = old('work_location');
+                                // Hari Izin/Sakit disetujui: hanya boleh absen sebagai Dinas Luar.
+                                $dinasDipilih = $metodeLama === 'Dinas Luar' || (bool) $todayLeave;
+                            @endphp
+
+                            @if($todayLeave)
+                                <div class="mb-4 rounded-xl border border-violet-200 bg-violet-50 p-4 text-sm text-violet-800">
+                                    <p class="font-bold">Hari Ini Anda Tercatat {{ $todayLeave->request_type }}</p>
+                                    <p class="mt-1 text-xs leading-5">
+                                        Pengajuan {{ strtolower($todayLeave->request_type) }}
+                                        {{ \Carbon\Carbon::parse($todayLeave->getRawOriginal('start_date'))->locale('id')->translatedFormat('d M Y') }}
+                                        &ndash;
+                                        {{ \Carbon\Carbon::parse($todayLeave->getRawOriginal('end_date'))->locale('id')->translatedFormat('d M Y') }}
+                                        sudah disetujui. Anda tidak perlu absen. Jika ternyata tetap bertugas di luar kantor,
+                                        absen sebagai Dinas Luar dan tunggu persetujuan Mentor.
+                                    </p>
+                                </div>
+                            @endif
 
                             <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
 
@@ -258,43 +277,60 @@
                                     for="work_location"
                                     class="mb-2 block text-sm font-bold text-amber-900"
                                 >
-                                    Metode Kerja Hari Jumat
+                                    {{ $isFriday ? 'Metode Kerja Hari Jumat' : 'Metode Kerja Hari Ini' }}
                                 </label>
 
                                 <select
                                     id="work_location"
                                     name="work_location"
-                                    required
+                                    @if($isFriday || $todayLeave) required @endif
                                     class="w-full rounded-lg border border-amber-200 bg-white px-3 py-3 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
                                 >
-                                    <option value="">
-                                        Pilih metode kerja
-                                    </option>
-
-                                    <option
-                                        value="WFO"
-                                        {{ old('work_location') === 'WFO' ? 'selected' : '' }}
-                                    >
-                                        WFO - Bekerja di kantor (wajib dalam radius)
-                                    </option>
-
-                                    <option
-                                        value="WFA"
-                                        {{ old('work_location') === 'WFA' ? 'selected' : '' }}
-                                    >
-                                        WFA - Bekerja dari lokasi lain
-                                    </option>
+                                    @if($todayLeave)
+                                        {{-- Hari izin: hanya Dinas Luar --}}
+                                    @elseif($isFriday)
+                                        <option value="">Pilih metode kerja</option>
+                                        <option value="WFO" @selected($metodeLama === 'WFO')>WFO - Bekerja di kantor (wajib dalam radius)</option>
+                                        <option value="WFA" @selected($metodeLama === 'WFA')>WFA - Bekerja dari lokasi lain</option>
+                                    @else
+                                        <option value="">Di Kantor (wajib dalam radius)</option>
+                                    @endif
+                                    <option value="Dinas Luar" @selected($dinasDipilih)>Dinas Luar - Ditugaskan di luar kantor</option>
                                 </select>
 
+                                {{-- Tujuan dinas: wajib bila Dinas Luar dipilih --}}
+                                <div id="kolomTujuanDinas" class="{{ $dinasDipilih ? '' : 'hidden' }} mt-3">
+                                    <label for="tujuan_dinas" class="mb-1 block text-xs font-bold text-amber-900">
+                                        Tujuan / Keterangan Dinas
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="tujuan_dinas"
+                                        name="tujuan_dinas"
+                                        value="{{ old('tujuan_dinas') }}"
+                                        maxlength="255"
+                                        @if($dinasDipilih) required @endif
+                                        placeholder="Contoh: Rapat di Dinas ESDM Jawa Barat, Bandung"
+                                        class="w-full rounded-lg border border-amber-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                                    >
+                                </div>
+
                                 <p class="mt-2 text-xs leading-5 text-amber-800">
-                                    Pilihan WFO diverifikasi dengan radius kantor.
-                                    Pilihan WFA tetap menyimpan koordinat GPS sebagai bukti.
+                                    @if($isFriday)
+                                        WFO diverifikasi dengan radius kantor. WFA dan Dinas Luar tidak dibatasi radius,
+                                        tetapi koordinat GPS tetap disimpan sebagai bukti.
+                                    @else
+                                        Pilih Dinas Luar hanya jika Anda ditugaskan di luar kantor. Absen tidak dibatasi radius,
+                                        tetapi koordinat GPS dan tujuan dinas tercatat dan dapat dilihat Mentor.
+                                    @endif
                                 </p>
 
                                 @error('work_location')
-                                    <p class="mt-2 text-xs text-red-600">
-                                        {{ $message }}
-                                    </p>
+                                    <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
+                                @enderror
+
+                                @error('tujuan_dinas')
+                                    <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
                                 @enderror
 
                             </div>
@@ -466,6 +502,26 @@
                                 {{ $attendance->notes ?? 'Absensi berhasil dicatat.' }}
                             </p>
 
+                            @if($attendance->work_location === 'Dinas Luar')
+                                <div class="flex flex-col">
+                                    @include('partials.status-dinas', ['absen' => $attendance])
+                                </div>
+                                @if(!$attendance->clock_out)
+                                    <p class="mt-2 text-xs text-emerald-700">Absen pulang tetap wajib dilakukan di akhir hari, dari lokasi dinas.</p>
+                                @endif
+                            @endif
+
+                        </div>
+
+                    @elseif($todayLeave)
+
+                        <div class="mb-6 rounded-2xl border border-violet-200 bg-violet-50 p-4">
+                            <p class="mb-1 text-sm font-bold text-violet-800">
+                                Status: {{ $todayLeave->request_type }} (Disetujui)
+                            </p>
+                            <p class="text-xs leading-relaxed text-violet-700">
+                                Tidak perlu absen hari ini. Jika tetap bertugas, absen sebagai Dinas Luar (menunggu persetujuan Mentor).
+                            </p>
                         </div>
 
                     @else
@@ -522,7 +578,7 @@
                             <span class="font-semibold text-gray-800">
                                 {{ $attendance && $attendance->clock_out
                                     ? \Carbon\Carbon::parse($attendance->clock_out)->format('H:i:s')
-                                    : 'Belum absen pulang' }}
+                                    : ($todayLeave ? 'Tidak perlu (' . $todayLeave->request_type . ')' : 'Belum absen pulang') }}
                             </span>
                         </div>
 
@@ -581,7 +637,7 @@
 
                         </div>
 
-                    @else
+                    @elseif(!$todayLeave)
 
                         <p class="text-xs leading-5 text-gray-400">
                             Setelah absensi masuk tercatat, Anda dapat melakukan
@@ -646,8 +702,9 @@
             'name' => $geoLocation->name,
         ] : null);
 
-        // Absen pulang hari Jumat dengan WFA tidak dibatasi radius.
-        const clockOutWfa = @js((bool) ($attendance && $isFriday && $attendance->work_location === 'WFA'));
+        // Absen pulang tidak dibatasi radius untuk WFA (hari Jumat) dan Dinas Luar.
+        const clockOutWfa = @js((bool) ($attendance && (($isFriday && $attendance->work_location === 'WFA') || $attendance->work_location === 'Dinas Luar')));
+        const clockOutDinas = @js((bool) ($attendance && $attendance->work_location === 'Dinas Luar'));
 
         const jarakGPS = document.getElementById('jarakGPS');
         const statusRadius = document.getElementById('statusRadius');
@@ -700,8 +757,13 @@
             return Math.round(6371000 * 2 * Math.atan2(Math.sqrt(clamped), Math.sqrt(1 - clamped)));
         }
 
+        // True jika absen tidak dibatasi radius (WFA hari Jumat atau Dinas Luar).
         function isWfaSelected() {
-            return clockOutWfa || (workLocationSelect !== null && workLocationSelect.value === 'WFA');
+            return clockOutWfa || (workLocationSelect !== null && ['WFA', 'Dinas Luar'].includes(workLocationSelect.value));
+        }
+
+        function isDinasSelected() {
+            return clockOutDinas || (workLocationSelect !== null && workLocationSelect.value === 'Dinas Luar');
         }
 
         // True jika posisi boleh dipakai absen (dalam radius, WFA, atau lokasi tidak diketahui → serahkan ke server).
@@ -726,7 +788,7 @@
 
             // [teks badge, warna badge, warna angka jarak]
             const tampilan = isWfaSelected()
-                ? ['WFA — tanpa batas radius', 'bg-blue-100 text-blue-700', 'text-blue-700']
+                ? [(isDinasSelected() ? 'Dinas Luar' : 'WFA') + ' — tanpa batas radius', 'bg-blue-100 text-blue-700', 'text-blue-700']
                 : (lastDistance <= geofence.radius
                     ? ['Sesuai Radius', 'bg-emerald-100 text-emerald-700', 'text-gray-800']
                     : ['Di Luar Radius', 'bg-red-100 text-red-700', 'text-red-600']);
@@ -783,6 +845,16 @@
 
         if (workLocationSelect) {
             workLocationSelect.addEventListener('change', function () {
+                // Kolom tujuan dinas hanya tampil (dan wajib) saat Dinas Luar dipilih.
+                const kolomTujuan = document.getElementById('kolomTujuanDinas');
+                const inputTujuan = document.getElementById('tujuan_dinas');
+
+                if (kolomTujuan && inputTujuan) {
+                    const dinas = workLocationSelect.value === 'Dinas Luar';
+                    kolomTujuan.classList.toggle('hidden', !dinas);
+                    inputTujuan.required = dinas;
+                }
+
                 const lat = parseFloat(document.getElementById('inpLat').value);
                 const lng = parseFloat(document.getElementById('inpLng').value);
 

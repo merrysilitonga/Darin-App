@@ -54,6 +54,7 @@ class AdminChartService
         Attendance::query()
             ->whereIn('user_id', $internIds)
             ->whereNotNull('clock_in')
+            ->sah()
             ->whereDate('date', '>=', $rangeStart->toDateString())
             ->whereDate('date', '<=', $today->toDateString())
             ->get(['user_id', 'date', 'status'])

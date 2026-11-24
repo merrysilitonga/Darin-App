@@ -102,13 +102,14 @@ class MentorAttendanceController extends Controller
             /*
              * DATA ABSENSI DALAM PERIODE YANG DIPILIH.
              */
+            // whereDate agar absensi hari ini (kolom date berisi jam 00:00:00) tetap ikut.
             $attendanceRecords = Attendance::query()
                 ->whereIn('user_id', $studentIds)
-                ->whereBetween('date', [
-                    $monthStart->toDateString(),
-                    $calculationEnd->toDateString(),
-                ])
+                ->whereDate('date', '>=', $monthStart->toDateString())
+                ->whereDate('date', '<=', $calculationEnd->toDateString())
                 ->whereNotNull('clock_in')
+                // Dinas Luar yang ditolak Mentor tidak dihitung hadir.
+                ->sah()
                 ->orderBy('date')
                 ->get([
                     'id',
@@ -116,6 +117,7 @@ class MentorAttendanceController extends Controller
                     'date',
                     'clock_in',
                     'status',
+                    'work_location',
                 ]);
 
             /*
@@ -152,10 +154,8 @@ class MentorAttendanceController extends Controller
              */
             $activeHolidays = Holiday::query()
                 ->where('is_active', true)
-                ->whereBetween('date', [
-                    $monthStart->toDateString(),
-                    $calculationEnd->toDateString(),
-                ])
+                ->whereDate('date', '>=', $monthStart->toDateString())
+                ->whereDate('date', '<=', $calculationEnd->toDateString())
                 ->get(['date']);
         }
 
@@ -193,6 +193,7 @@ class MentorAttendanceController extends Controller
             $izin = 0;
             $sakit = 0;
             $alpa = 0;
+            $dinas = 0;
 
             $validInternshipPeriod =
                 $studentStart !== null &&
@@ -226,7 +227,7 @@ class MentorAttendanceController extends Controller
                         $date = $record->date?->toDateString();
 
                         if ($date && $record->clock_in) {
-                            $attendedDates[$date] = true;
+                            $attendedDates[$date] = $record->work_location === 'Dinas Luar';
                         }
                     }
 
@@ -265,6 +266,7 @@ class MentorAttendanceController extends Controller
                          */
                         if (isset($attendedDates[$date])) {
                             $present++;
+                            $dinas += $attendedDates[$date] ? 1 : 0;
                             $day->addDay();
                             continue;
                         }
@@ -323,6 +325,7 @@ class MentorAttendanceController extends Controller
                 'student' => $student,
                 'effective_days' => $effectiveDays,
                 'hadir' => $present,
+                'dinas' => $dinas,
                 'izin' => $izin,
                 'sakit' => $sakit,
                 'alpa' => $alpa,

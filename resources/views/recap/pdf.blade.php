@@ -138,6 +138,9 @@
                     <td class="nowrap">{{ $jam($day['clock_out']) }}</td>
                     <td class="nowrap">{{ $day['work_location'] ?? '-' }}</td>
                     <td>
+                        @if (!empty($day['tujuan_dinas']))
+                            <strong>Dinas Luar:</strong> {{ $day['tujuan_dinas'] }}<br>
+                        @endif
                         {{ $day['note'] }}
                         @if ($day['logbook'])
                             {{ $day['note'] ? ' · ' : '' }}{{ $day['logbook']->topic }} ({{ $day['logbook']->status }})

@@ -278,8 +278,8 @@
             </div>
         @endif
 
-        {{-- INFORMASI STATUS --}}
-        @if ($monthLocked)
+        {{-- INFORMASI STATUS (mengikuti status bulan: menunggu / disetujui / terkunci) --}}
+        @if ($monthStatus === 'Menunggu Approval')
             <div class="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
                 <p class="text-sm font-bold text-amber-800">
                     Logbook {{ $monthLabel }} sedang diperiksa.
@@ -287,6 +287,26 @@
 
                 <p class="mt-1 text-xs text-amber-700">
                     Entri bulan ini terkunci sampai pemeriksaan Mentor selesai.
+                </p>
+            </div>
+        @elseif ($monthStatus === 'Disetujui')
+            <div class="mb-5 rounded-xl border border-green-200 bg-green-50 p-4">
+                <p class="text-sm font-bold text-green-800">
+                    Logbook {{ $monthLabel }} sudah disetujui Mentor.
+                </p>
+
+                <p class="mt-1 text-xs text-green-700">
+                    Seluruh entri bulan ini sudah diperiksa dan tidak dapat diubah lagi.
+                </p>
+            </div>
+        @elseif ($monthLocked)
+            <div class="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <p class="text-sm font-bold text-amber-800">
+                    Logbook {{ $monthLabel }} terkunci.
+                </p>
+
+                <p class="mt-1 text-xs text-amber-700">
+                    Sebagian entri bulan ini sudah disetujui Mentor.
                 </p>
             </div>
         @endif
@@ -526,7 +546,7 @@
                     </span>
                 </p>
 
-                @if ($monthLocked)
+                @if ($monthStatus === 'Menunggu Approval')
                     <p class="mt-1 text-xs text-amber-700">
                         Entri sedang menunggu pemeriksaan Mentor.
                     </p>
@@ -534,6 +554,11 @@
                 @elseif ($monthStatus === 'Disetujui')
                     <p class="mt-1 text-xs text-green-700">
                         Seluruh entri bulan ini sudah disetujui.
+                    </p>
+
+                @elseif ($monthLocked)
+                    <p class="mt-1 text-xs text-amber-700">
+                        Sebagian entri sudah disetujui Mentor.
                     </p>
 
                 @else
@@ -569,10 +594,12 @@
                     disabled
                     class="cursor-not-allowed rounded-xl bg-gray-200 px-5 py-3 text-sm font-bold text-gray-500"
                 >
-                    @if ($monthLocked)
+                    @if ($monthStatus === 'Menunggu Approval')
                         Menunggu Pemeriksaan
                     @elseif ($monthStatus === 'Disetujui')
-                        ✓ Sudah Disetujui
+                        Sudah Disetujui
+                    @elseif ($monthLocked)
+                        Terkunci
                     @else
                         Kirim untuk Approval
                     @endif

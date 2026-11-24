@@ -136,4 +136,18 @@ class KelolaAkunAdminTest extends TestCase
             ->assertSessionHas('success');
         $this->assertFalse($this->magang->fresh()->is_active);
     }
+
+    public function test_daftar_pengguna_hanya_mentor_dan_mahasiswa(): void
+    {
+        $mentor = User::factory()->create(['role' => 'mentor', 'email' => 'mentor@esdm.go.id']);
+        $hr = User::factory()->create(['role' => 'hr', 'email' => 'hr@esdm.go.id']);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.users'))
+            ->assertOk()
+            ->assertSee('lama@kampus.ac.id')
+            ->assertSee('mentor@esdm.go.id')
+            ->assertDontSee('hr@esdm.go.id')
+            ->assertDontSee($this->admin->email);
+    }
 }

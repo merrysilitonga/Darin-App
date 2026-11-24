@@ -39,6 +39,9 @@ class AttendanceController extends Controller
         $canClockInLocation = $location !== null && (bool) $location->is_active;
         $isFriday = $now->dayOfWeekIso === 5;
 
+        // Hari yang sudah disetujui sebagai Izin/Sakit tidak perlu absen (form disembunyikan).
+        $todayLeave = $attendance ? null : $this->approvedLeaveOn((int) $user->id, $now->toDateString());
+
         // Informasi kalender hari libur untuk peserta.
         $todayHoliday = Holiday::activeOn($now->toDateString());
         $upcomingHolidays = Holiday::upcoming($now->copy()->startOfDay(), 30, 3);
@@ -48,6 +51,7 @@ class AttendanceController extends Controller
             'attendance',
             'location',
             'canClockInLocation',
+            'todayLeave',
             'isFriday',
             'now',
             'todayHoliday',
@@ -103,16 +107,17 @@ class AttendanceController extends Controller
         }
 
         /*
-         * Cegah konflik data: hari yang sudah disetujui sebagai Izin/Sakit
-         * tidak boleh sekaligus tercatat Hadir.
+         * Hari Izin/Sakit yang sudah disetujui: absen biasa ditolak.
+         * Pengecualian: tetap bertugas di luar kantor → absen sebagai Dinas Luar
+         * (menunggu persetujuan Mentor).
          */
         $approvedLeave = $this->approvedLeaveOn((int) $user->id, $today);
 
-        if ($approvedLeave !== null) {
+        if ($approvedLeave !== null && $request->input('work_location') !== 'Dinas Luar') {
             return back()->with(
                 'error',
-                "Hari ini tercatat sebagai {$approvedLeave->request_type} yang sudah disetujui. Absensi masuk tidak diperlukan."
-            );
+                "Hari ini tercatat sebagai {$approvedLeave->request_type} yang sudah disetujui. Jika tetap bertugas, pilih Dinas Luar."
+            )->withInput();
         }
 
         $location = $user->location;
@@ -154,7 +159,9 @@ class AttendanceController extends Controller
             'photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
-            'work_location' => [$isFriday ? 'required' : 'nullable', 'in:WFA,WFO'],
+            // Jumat: WFO/WFA/Dinas Luar (wajib). Hari lain: kosong (di kantor) atau Dinas Luar.
+            'work_location' => [$isFriday ? 'required' : 'nullable', $isFriday ? 'in:WFA,WFO,Dinas Luar' : 'in:Dinas Luar'],
+            'tujuan_dinas' => ['nullable', 'required_if:work_location,Dinas Luar', 'string', 'max:255'],
         ], [
             'photo.required' => 'Foto selfie wajib diambil sebelum absen.',
             'photo.image' => 'File selfie harus berupa gambar yang valid.',
@@ -166,8 +173,10 @@ class AttendanceController extends Controller
             'longitude.required' => 'Longitude GPS belum terdeteksi.',
             'longitude.numeric' => 'Data longitude tidak valid.',
             'longitude.between' => 'Nilai longitude tidak valid.',
-            'work_location.required' => 'Pilih WFA atau WFO untuk absensi hari Jumat.',
-            'work_location.in' => 'Metode kerja harus WFA atau WFO.',
+            'work_location.required' => 'Pilih metode kerja (WFO, WFA, atau Dinas Luar) untuk absensi hari Jumat.',
+            'work_location.in' => $isFriday ? 'Metode kerja harus WFO, WFA, atau Dinas Luar.' : 'Metode kerja tidak valid.',
+            'tujuan_dinas.required_if' => 'Tujuan / keterangan dinas wajib diisi untuk Dinas Luar.',
+            'tujuan_dinas.max' => 'Tujuan dinas maksimal 255 karakter.',
         ]);
 
         if (Attendance::where('user_id', $user->id)->whereDate('date', $today)->exists()) {
@@ -184,7 +193,10 @@ class AttendanceController extends Controller
             (float) $location->longitude
         );
 
-        $isWfa = $isFriday && ($validated['work_location'] ?? null) === 'WFA';
+        $metodeKerja = $validated['work_location'] ?? null;
+        $isDinas = $metodeKerja === 'Dinas Luar';
+        // WFA (hari Jumat) dan Dinas Luar tidak dibatasi radius; GPS tetap disimpan sebagai bukti.
+        $isWfa = ($isFriday && $metodeKerja === 'WFA') || $isDinas;
 
         if (!$isWfa && $distanceMeters > (int) $location->radius_meters) {
             return back()->with(
@@ -208,9 +220,13 @@ class AttendanceController extends Controller
                 'date' => $today,
                 'clock_in' => $now->format('H:i:s'),
                 'clock_out' => null,
-                'work_location' => $isFriday ? $validated['work_location'] : null,
+                'work_location' => $metodeKerja,
+                // Dinas Luar wajib disetujui Mentor.
+                'dinas_status' => $isDinas ? 'Menunggu' : null,
                 'status' => $status,
-                'notes' => 'Absen masuk via DARIN - Kementerian ESDM',
+                'notes' => $isDinas
+                    ? 'Dinas Luar: ' . trim($validated['tujuan_dinas'])
+                    : 'Absen masuk via DARIN - Kementerian ESDM',
                 'photo_path' => $photoPath,
                 'latitude' => $latitude,
                 'longitude' => $longitude,
@@ -235,8 +251,12 @@ class AttendanceController extends Controller
             . $now->format('H:i') . ' WIB. Status: ' . $status
             . '. Jarak dari lokasi ' . $location->name . ': ' . $distanceMeters . ' meter.';
 
-        if ($isFriday) {
-            $pesan .= ' Metode kerja: ' . $validated['work_location'] . '.';
+        if ($metodeKerja) {
+            $pesan .= ' Metode kerja: ' . $metodeKerja . '.';
+        }
+
+        if ($isDinas) {
+            $pesan .= ' Dinas Luar menunggu persetujuan Mentor. Tetap lakukan absen pulang di akhir hari.';
         }
 
         return redirect()->route('absen')->with('success', $pesan);
@@ -336,7 +356,8 @@ class AttendanceController extends Controller
         );
 
         $isFriday = $now->dayOfWeekIso === 5;
-        $isWfa = $isFriday && $attendance->work_location === 'WFA';
+        // Absen pulang tanpa batas radius untuk WFA (hari Jumat) dan Dinas Luar.
+        $isWfa = ($isFriday && $attendance->work_location === 'WFA') || $attendance->work_location === 'Dinas Luar';
 
         if (!$isWfa && $distanceMeters > (int) $location->radius_meters) {
             return back()->with(
@@ -492,14 +513,23 @@ class AttendanceController extends Controller
         $riwayat = $this->gabungRiwayat($attendances, $leaveRequests, $awal, $akhir, $direction, $user);
         $hariIzin = collect($riwayat)->where('jenis', 'izin')->where('leave.status', 'Disetujui');
 
+        $absenSah = $attendances->reject(fn (Attendance $absen) => $absen->dinasDitolak());
+        $tanggalIzinSah = $hariIzin->pluck('tanggal')->flip();
+        // Dinas Luar ditolak tanpa izin disetujui pada tanggal itu dihitung Alfa.
+        $dinasDitolakAlfa = $attendances
+            ->filter(fn (Attendance $absen) => $absen->dinasDitolak())
+            ->reject(fn (Attendance $absen) => $tanggalIzinSah->has(Carbon::parse($absen->date)->toDateString()))
+            ->count();
+
         $ringkasan = [
-            'hadir' => $attendances->where('status', 'Hadir')->count(),
-            'terlambat' => $attendances->where('status', 'Terlambat')->count(),
+            'hadir' => $absenSah->where('status', 'Hadir')->count(),
+            'terlambat' => $absenSah->where('status', 'Terlambat')->count(),
             'izin' => $hariIzin->where('leave.request_type', 'Izin')->count(),
             'sakit' => $hariIzin->where('leave.request_type', 'Sakit')->count(),
             'menunggu' => $leaveRequests->where('status', 'Menunggu')->count(),
             // Alfa: hari kerja tanpa absen & tanpa izin, ditambah hari izin yang ditolak.
             'alfa' => collect($riwayat)->where('jenis', 'alfa')->count()
+                + $dinasDitolakAlfa
                 + collect($riwayat)
                     ->where('jenis', 'izin')
                     ->where('leave.status', 'Ditolak')
@@ -518,11 +548,17 @@ class AttendanceController extends Controller
     {
         $baris = [];
         $tanggalAbsen = [];
+        $tanggalAbsenSah = [];
         $tanggalIzin = [];
 
         foreach ($attendances as $attendance) {
             $tanggal = Carbon::parse($attendance->date)->toDateString();
             $tanggalAbsen[$tanggal] = true;
+
+            // Dinas Luar ditolak Mentor tidak menggantikan izin pada tanggal itu.
+            if (!$attendance->dinasDitolak()) {
+                $tanggalAbsenSah[$tanggal] = true;
+            }
 
             $baris[] = [
                 'jenis' => 'absen',
@@ -543,7 +579,7 @@ class AttendanceController extends Controller
             for ($hari = $mulai->copy(); $hari->lte($selesai); $hari->addDay()) {
                 $tanggal = $hari->toDateString();
 
-                if ($hari->isWeekend() || isset($tanggalAbsen[$tanggal])) {
+                if ($hari->isWeekend() || isset($tanggalAbsenSah[$tanggal])) {
                     continue;
                 }
 

@@ -14,7 +14,7 @@ use Carbon\Carbon;
  *
  * Aturan per hari (sama dengan rekap admin):
  * - Sabtu/Minggu dan hari libur aktif tidak dihitung sebagai hari kerja.
- * - Ada absen masuk → Hadir / Terlambat.
+ * - Ada absen masuk → Hadir / Terlambat (Dinas Luar yang ditolak Mentor tidak dihitung).
  * - Tidak absen tetapi ada izin/sakit Disetujui → Izin / Sakit (Sakit diprioritaskan).
  * - Selain itu → Alfa. Hari ini yang belum absen → "Belum Absen" (tidak dihitung).
  */
@@ -132,6 +132,7 @@ class InternRecapService
                 'clock_in' => $attendance?->clock_in,
                 'clock_out' => $attendance?->clock_out,
                 'work_location' => $attendance?->work_location,
+                'tujuan_dinas' => $attendance?->tujuanDinas(),
                 'note' => null,
                 'logbook' => $logbooks->get($key),
             ];
@@ -153,6 +154,13 @@ class InternRecapService
                 $days[] = $row;
 
                 continue;
+            }
+
+            if ($attendance && $attendance->dinasDitolak()) {
+                // Dinas Luar ditolak Mentor: tidak dihitung hadir.
+                $row['note'] = 'Dinas Luar ditolak Mentor'
+                    . ($attendance->dinas_review_notes ? ': ' . $attendance->dinas_review_notes : '');
+                $attendance = null;
             }
 
             if ($attendance) {
