@@ -21,15 +21,20 @@ class KeamananAkunTest extends TestCase
             'email' => 'peserta@kampus.ac.id',
             'password' => 'rahasia123',
             'password_confirmation' => 'rahasia123',
+            'domicile' => 'Jakarta',
         ], $override);
     }
 
     public function test_pendaftaran_tetap_berjalan_normal(): void
     {
         $this->post(route('register'), $this->dataDaftar())
-            ->assertRedirect(route('dashboard.magang'));
+            ->assertRedirect(route('login'));
 
-        $this->assertDatabaseHas('users', ['email' => 'peserta@kampus.ac.id', 'role' => 'magang']);
+        $this->assertDatabaseHas('users', [
+            'email' => 'peserta@kampus.ac.id',
+            'role' => 'magang',
+            'approval_status' => 'Menunggu',
+        ]);
     }
 
     /*

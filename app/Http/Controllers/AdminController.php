@@ -27,12 +27,14 @@ class AdminController extends Controller
         $totalDivisions = Division::count();
         $totalInterns = User::where('role', 'magang')->count();
         $totalMentors = User::where('role', 'mentor')->count();
+        $pendaftarBaru = User::where('role', 'magang')->where('approval_status', 'Menunggu')->count();
 
         return view('admin.dashboard', compact(
             'totalUsers',
             'totalDivisions',
             'totalInterns',
-            'totalMentors'
+            'totalMentors',
+            'pendaftarBaru'
         ));
     }
 
@@ -44,7 +46,14 @@ class AdminController extends Controller
         // Hanya Mentor & Mahasiswa; akun Admin/HR tidak dikelola dari halaman ini.
         $users = User::with(['division', 'mentor', 'location'])
             ->whereIn('role', ['magang', 'mentor'])
+            ->where('approval_status', '!=', 'Menunggu')
             ->orderBy('name')
+            ->get();
+
+        // Mahasiswa yang daftar sendiri dan menunggu persetujuan.
+        $pendaftar = User::where('role', 'magang')
+            ->where('approval_status', 'Menunggu')
+            ->orderBy('created_at')
             ->get();
 
         $divisions = Division::orderBy('name')->get();
@@ -58,6 +67,7 @@ class AdminController extends Controller
 
         return view('admin.users', compact(
             'users',
+            'pendaftar',
             'divisions',
             'mentors',
             'locations'

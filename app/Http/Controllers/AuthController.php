@@ -65,6 +65,21 @@ class AuthController extends Controller
 
         RateLimiter::clear($throttleKey);
 
+        // Pendaftar baru belum boleh masuk sebelum disetujui Admin/HR.
+        if (Auth::user()?->isPendingApproval()) {
+            Auth::logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()
+                ->route('login')
+                ->withErrors([
+                    'email' => 'Akun Anda masih menunggu persetujuan Admin DARIN. Silakan coba login kembali setelah disetujui.',
+                ])
+                ->onlyInput('email');
+        }
+
         // Akun yang dinonaktifkan Admin/HR tidak boleh masuk.
         if (!Auth::user()?->isActive()) {
             Auth::logout();
@@ -145,9 +160,10 @@ class AuthController extends Controller
     }
 
     /**
-     * Registrasi mahasiswa magang, mentor, dan admin.
+     * Registrasi publik: hanya mahasiswa magang.
      *
-     * Tidak menggunakan kode undangan.
+     * Akun Mentor dibuat Admin/HR (menu Daftarkan Mentor),
+     * Admin pertama dibuat lewat `php artisan darin:buat-admin`.
      */
     public function processRegister(Request $request)
     {
@@ -155,7 +171,7 @@ class AuthController extends Controller
             'role' => [
                 'required',
                 'string',
-                'in:magang,mentor,admin',
+                'in:magang',
             ],
             'name' => [
                 'required',
@@ -194,6 +210,11 @@ class AuthController extends Controller
                 'string',
                 'max:255',
             ],
+            'domicile' => [
+                'required',
+                'string',
+                'max:100',
+            ],
             'nip' => [
                 'nullable',
                 'string',
@@ -212,11 +233,13 @@ class AuthController extends Controller
             ],
         ], [
             'role.required' => 'Pilih jenis akun yang ingin didaftarkan.',
-            'role.in' => 'Jenis akun yang dipilih tidak valid.',
+            'role.in' => 'Pendaftaran publik hanya untuk mahasiswa magang. Akun Mentor dan Admin dibuat oleh Admin DARIN.',
             'name.required' => 'Nama lengkap wajib diisi.',
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
             'email.unique' => 'Email tersebut sudah terdaftar.',
+            'domicile.required' => 'Domisili (kota asal) wajib diisi.',
+            'domicile.max' => 'Domisili maksimal 100 karakter.',
             'password.min' => 'Password minimal 8 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
             'photo.image' => 'Foto profil harus berupa gambar yang valid.',
@@ -278,6 +301,8 @@ class AuthController extends Controller
                 ? ($validated['study_program'] ?? null)
                 : null;
 
+            $user->domicile = trim($validated['domicile']);
+
             $user->photo = $role === 'magang'
                 ? $photoPath
                 : null;
@@ -309,6 +334,9 @@ class AuthController extends Controller
             $user->start_date = null;
             $user->end_date = null;
 
+            // Wajib disetujui Admin/HR sebelum bisa login.
+            $user->approval_status = 'Menunggu';
+
             $user->save();
 
         } catch (Throwable $e) {
@@ -323,21 +351,12 @@ class AuthController extends Controller
         }
 
         /*
-         * Login otomatis setelah registrasi berhasil.
+         * Tidak login otomatis: akun menunggu persetujuan Admin/HR,
+         * yang sekaligus menetapkan lokasi, mentor, dan periode magang.
          */
-        Auth::login($user);
-
-        $request->session()->regenerate();
-
-        if ($role === 'admin') {
-            return redirect()->route('admin.dashboard');
-        }
-
-        if ($role === 'mentor') {
-            return redirect()->route('mentor.dashboard');
-        }
-
-        return redirect()->route('dashboard.magang');
+        return redirect()
+            ->route('login')
+            ->with('status', 'Pendaftaran berhasil. Akun Anda menunggu persetujuan Admin DARIN sebelum dapat digunakan.');
     }
 
     /**

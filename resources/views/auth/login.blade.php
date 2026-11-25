@@ -27,6 +27,12 @@
                 <p class="text-xs text-gray-500 mt-1">Silakan login untuk melanjutkan</p>
             </div>
 
+            @if(session('status'))
+                <div role="status" class="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 text-xs rounded-xl text-center font-medium">
+                    {{ session('status') }}
+                </div>
+            @endif
+
             <!-- Pesan Error / Validasi -->
             @if($errors->any())
                 <div class="mb-4 p-3 bg-red-100 border border-red-200 text-red-600 text-xs rounded-xl text-center font-medium">

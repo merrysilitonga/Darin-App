@@ -20,6 +20,7 @@ use App\Http\Controllers\UserImportController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminUserPasswordController;
+use App\Http\Controllers\AdminRegistrationController;
 use App\Http\Controllers\AdminUserAccountController;
 use App\Http\Controllers\SystemSettingsController;
 use App\Http\Controllers\DashboardController;
@@ -624,6 +625,17 @@ Route::middleware([
         '/users/{user}/status',
         [AdminUserAccountController::class, 'toggleActive']
     )->whereNumber('user')->name('admin.users.status');
+
+    // Persetujuan pendaftar baru (mahasiswa daftar sendiri).
+    Route::post(
+        '/users/{user}/setujui',
+        [AdminRegistrationController::class, 'approve']
+    )->whereNumber('user')->name('admin.users.approve');
+
+    Route::delete(
+        '/users/{user}/tolak',
+        [AdminRegistrationController::class, 'reject']
+    )->whereNumber('user')->name('admin.users.reject');
 
 
     // CRUD Divisi.

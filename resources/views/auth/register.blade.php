@@ -151,7 +151,7 @@
                 </p>
 
                 <p id="register-subtitle" class="mt-3 text-sm leading-6 text-gray-500">
-                    Pilih jenis akun untuk melanjutkan pendaftaran di DARIN.
+                    Buat akun mahasiswa untuk menggunakan sistem DARIN.
                 </p>
             </header>
 
@@ -182,99 +182,6 @@
                     {{ session('status') }}
                 </div>
             @endif
-
-            {{-- PILIH JENIS AKUN --}}
-            <section class="mb-7">
-                <div class="mb-4">
-                    <h2 class="text-base font-extrabold text-gray-900">
-                        Daftar sebagai
-                    </h2>
-
-                    <p class="mt-1 text-xs leading-5 text-gray-500">
-                        Pilih salah satu jenis akun di bawah ini.
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-
-                    {{-- MAHASISWA MAGANG --}}
-                    <button
-                        type="button"
-                        class="role-option"
-                        data-role="magang"
-                        aria-pressed="{{ old('role', 'magang') === 'magang' ? 'true' : 'false' }}"
-                    >
-                        <span class="role-check" aria-hidden="true">✓</span>
-
-                        <span class="role-icon" aria-hidden="true">🎓</span>
-
-                        <span>
-                            <span class="block text-sm font-extrabold text-gray-900">
-                                Mahasiswa Magang
-                            </span>
-
-                            <span class="mt-1.5 block text-xs leading-5 text-gray-500">
-                                Untuk peserta magang yang menggunakan DARIN.
-                            </span>
-                        </span>
-                    </button>
-
-                    {{-- MENTOR --}}
-                    <button
-                        type="button"
-                        class="role-option"
-                        data-role="mentor"
-                        aria-pressed="{{ old('role') === 'mentor' ? 'true' : 'false' }}"
-                    >
-                        <span class="role-check" aria-hidden="true">✓</span>
-
-                        <span class="role-icon" aria-hidden="true">👥</span>
-
-                        <span>
-                            <span class="block text-sm font-extrabold text-gray-900">
-                                Mentor
-                            </span>
-
-                            <span class="mt-1.5 block text-xs leading-5 text-gray-500">
-                                Untuk pembimbing atau supervisor mahasiswa.
-                            </span>
-                        </span>
-                    </button>
-
-                    {{-- ADMIN / HR --}}
-                    <button
-                        type="button"
-                        class="role-option"
-                        data-role="admin"
-                        aria-pressed="{{ old('role') === 'admin' ? 'true' : 'false' }}"
-                    >
-                        <span class="role-check" aria-hidden="true">✓</span>
-
-                        <span class="role-icon" aria-hidden="true">🛡️</span>
-
-                        <span>
-                            <span class="block text-sm font-extrabold text-gray-900">
-                                Admin / HR
-                            </span>
-
-                            <span class="mt-1.5 block text-xs leading-5 text-gray-500">
-                                Untuk pengelola akun dan administrasi magang.
-                            </span>
-                        </span>
-                    </button>
-
-                </div>
-
-                <div class="mt-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
-                    <p
-                        id="role-help"
-                        class="text-xs leading-5 text-amber-900"
-                        aria-live="polite"
-                    >
-                        Pendaftaran mahasiswa magang tersedia untuk publik.
-                    </p>
-                </div>
-            </section>
 
             {{-- FORM PENDAFTARAN --}}
             <form
@@ -374,27 +281,53 @@
 
                     </div>
 
-                    <div>
-                        <label for="university" class="field-label">
-                            Asal Universitas
-                        </label>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="university" class="field-label">
+                                Asal Universitas
+                            </label>
 
-                        <input
-                            type="text"
-                            id="university"
-                            name="university"
-                            value="{{ old('university') }}"
-                            maxlength="255"
-                            autocomplete="organization"
-                            placeholder="Contoh: Universitas Bina Sarana Informatika"
-                            class="form-input magang-field"
-                        >
+                            <input
+                                type="text"
+                                id="university"
+                                name="university"
+                                value="{{ old('university') }}"
+                                maxlength="255"
+                                autocomplete="organization"
+                                placeholder="Singkatan / nama kampus"
+                                class="form-input magang-field"
+                            >
 
-                        @error('university')
-                            <p class="mt-1.5 text-xs text-red-600">
-                                {{ $message }}
-                            </p>
-                        @enderror
+                            @error('university')
+                                <p class="mt-1.5 text-xs text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="domicile" class="field-label">
+                                Domisili
+                            </label>
+
+                            <input
+                                type="text"
+                                id="domicile"
+                                name="domicile"
+                                value="{{ old('domicile') }}"
+                                required
+                                maxlength="100"
+                                autocomplete="address-level2"
+                                placeholder="Kota asal, contoh: Bekasi"
+                                class="form-input magang-field"
+                            >
+
+                            @error('domicile')
+                                <p class="mt-1.5 text-xs text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
+                        </div>
                     </div>
 
                     <div>
@@ -446,130 +379,7 @@
                 </section>
 
                 {{-- DATA MENTOR --}}
-                <section id="fields-mentor" class="hidden space-y-5" hidden>
 
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
-                        <div>
-                            <label for="nip-mentor" class="field-label">
-                                NIP
-                            </label>
-
-                            <input
-                                type="text"
-                                id="nip-mentor"
-                                name="nip"
-                                value="{{ old('nip') }}"
-                                maxlength="50"
-                                placeholder="Masukkan NIP"
-                                disabled
-                                class="form-input mentor-field"
-                            >
-
-                            @error('nip')
-                                <p class="mt-1.5 text-xs text-red-600">
-                                    {{ $message }}
-                                </p>
-                            @enderror
-                        </div>
-
-                        <div>
-                            <label for="phone-mentor" class="field-label">
-                                No. HP / WhatsApp
-                            </label>
-
-                            <input
-                                type="tel"
-                                id="phone-mentor"
-                                name="phone"
-                                value="{{ old('phone') }}"
-                                maxlength="30"
-                                placeholder="Contoh: 08123456789"
-                                disabled
-                                class="form-input mentor-field"
-                            >
-                        </div>
-
-                    </div>
-
-                    <div>
-                        <label for="position-mentor" class="field-label">
-                            Jabatan
-                        </label>
-
-                        <input
-                            type="text"
-                            id="position-mentor"
-                            name="position"
-                            value="{{ old('position') }}"
-                            maxlength="255"
-                            placeholder="Contoh: Pembimbing / Supervisor"
-                            disabled
-                            class="form-input mentor-field"
-                        >
-                    </div>
-
-                </section>
-
-                {{-- DATA ADMIN / HR --}}
-                <section id="fields-admin" class="hidden space-y-5" hidden>
-
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
-                        <div>
-                            <label for="nip-admin" class="field-label">
-                                NIP / Nomor Induk Pegawai
-                            </label>
-
-                            <input
-                                type="text"
-                                id="nip-admin"
-                                name="nip"
-                                value="{{ old('nip') }}"
-                                maxlength="50"
-                                placeholder="Masukkan NIP Admin"
-                                disabled
-                                class="form-input admin-field"
-                            >
-                        </div>
-
-                        <div>
-                            <label for="phone-admin" class="field-label">
-                                No. HP / WhatsApp
-                            </label>
-
-                            <input
-                                type="tel"
-                                id="phone-admin"
-                                name="phone"
-                                value="{{ old('phone') }}"
-                                maxlength="30"
-                                placeholder="Contoh: 08123456789"
-                                disabled
-                                class="form-input admin-field"
-                            >
-                        </div>
-
-                    </div>
-
-                    <div>
-                        <label for="position-admin" class="field-label">
-                            Jabatan
-                        </label>
-
-                        <input
-                            type="text"
-                            id="position-admin"
-                            name="position"
-                            value="{{ old('position') }}"
-                            maxlength="255"
-                            placeholder="Contoh: Administrator / HR"
-                            disabled
-                            class="form-input admin-field"
-                        >
-                    </div>
-
-                </section>
 
                 {{-- EMAIL --}}
                 <div>
@@ -649,7 +459,7 @@
                 </button>
 
                 <p class="text-center text-[11px] leading-5 text-gray-400">
-                    Pastikan data yang kamu masukkan benar dan sesuai dengan jenis akun yang dipilih.
+                    Setelah mendaftar, akun akan diperiksa dan disetujui Admin DARIN sebelum dapat digunakan.
                 </p>
 
             </form>
@@ -675,107 +485,6 @@
         © {{ date('Y') }} DARIN — Sistem Presensi Geospasial Terintegrasi ESDM
     </footer>
 
-    <script>
-        function switchRole(role) {
-            const allowedRoles = ['magang', 'mentor', 'admin'];
-
-            if (!allowedRoles.includes(role)) {
-                role = 'magang';
-            }
-
-            const roleInput = document.getElementById('role-input');
-            const submitText = document.getElementById('submit-role-text');
-            const subtitle = document.getElementById('register-subtitle');
-            const labelName = document.getElementById('label-name');
-            const roleHelp = document.getElementById('role-help');
-
-            // Perbarui tampilan kartu pilihan akun.
-            document.querySelectorAll('.role-option').forEach(function (button) {
-                const isActive = button.dataset.role === role;
-
-                button.setAttribute(
-                    'aria-pressed',
-                    isActive ? 'true' : 'false'
-                );
-            });
-
-            // Tampilkan bagian form untuk role yang dipilih.
-            allowedRoles.forEach(function (currentRole) {
-                const section = document.getElementById(
-                    'fields-' + currentRole
-                );
-
-                const isActive = currentRole === role;
-
-                section.hidden = !isActive;
-                section.classList.toggle('hidden', !isActive);
-            });
-
-            // Nonaktifkan semua field khusus role terlebih dahulu.
-            document.querySelectorAll(
-                '.magang-field, .mentor-field, .admin-field'
-            ).forEach(function (input) {
-                input.disabled = true;
-            });
-
-            // Aktifkan hanya field sesuai role yang dipilih.
-            document.querySelectorAll(
-                '.' + role + '-field'
-            ).forEach(function (input) {
-                input.disabled = false;
-            });
-
-            roleInput.value = role;
-
-            // Perbarui teks dan keterangan sesuai role.
-            if (role === 'magang') {
-                submitText.textContent = 'Mahasiswa Magang';
-
-                subtitle.textContent =
-                    'Buat akun mahasiswa untuk menggunakan sistem DARIN.';
-
-                labelName.textContent = 'Nama Lengkap';
-
-                roleHelp.textContent =
-                    'Pendaftaran mahasiswa magang tersedia untuk publik.';
-
-            } else if (role === 'mentor') {
-                submitText.textContent = 'Mentor';
-
-                subtitle.textContent =
-                    'Daftarkan akun Mentor untuk mendampingi peserta magang.';
-
-                labelName.textContent = 'Nama Lengkap dan Gelar';
-
-                roleHelp.textContent =
-                    'Pastikan akun Mentor digunakan oleh pembimbing atau supervisor yang ditunjuk.';
-
-            } else {
-                submitText.textContent = 'Admin / HR';
-
-                subtitle.textContent =
-                    'Pendaftaran akun pengelola sistem DARIN.';
-
-                labelName.textContent = 'Nama Lengkap';
-
-                roleHelp.textContent =
-                    'Akun Admin/HR memiliki akses pengelolaan sistem. Pilih jenis akun ini hanya jika kamu berwenang.';
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            // Pertahankan pilihan role jika validasi sebelumnya gagal.
-            const initialRole = @json(old('role', 'magang'));
-
-            switchRole(initialRole);
-
-            document.querySelectorAll('.role-option').forEach(function (button) {
-                button.addEventListener('click', function () {
-                    switchRole(button.dataset.role);
-                });
-            });
-        });
-    </script>
 
 </body>
 </html>
