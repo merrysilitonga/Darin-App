@@ -57,7 +57,9 @@ class LogbookController extends Controller
             . $periode->format('Y');
 
         $logbooks = Logbook::where('user_id', $user->id)
-            ->whereBetween('date', [$monthStart, $monthEnd])
+            // whereDate: kolom date di SQLite tersimpan dengan jam (00:00:00).
+            ->whereDate('date', '>=', $monthStart)
+            ->whereDate('date', '<=', $monthEnd)
             ->orderBy('date')
             ->orderBy('id')
             ->get();
@@ -279,7 +281,8 @@ class LogbookController extends Controller
         $akhir = $periode->copy()->endOfMonth()->toDateString();
 
         $logbooks = Logbook::where('user_id', $user->id)
-            ->whereBetween('date', [$awal, $akhir])
+            ->whereDate('date', '>=', $awal)
+            ->whereDate('date', '<=', $akhir)
             ->get();
 
         if ($logbooks->isEmpty()) {
@@ -443,10 +446,8 @@ class LogbookController extends Controller
 
         // Jika ada status Menunggu atau Disetujui, bulan dikunci untuk edit/delete
         return Logbook::where('user_id', $userId)
-            ->whereBetween('date', [
-                $periode->copy()->startOfMonth()->toDateString(),
-                $periode->copy()->endOfMonth()->toDateString(),
-            ])
+            ->whereDate('date', '>=', $periode->copy()->startOfMonth()->toDateString())
+            ->whereDate('date', '<=', $periode->copy()->endOfMonth()->toDateString())
             ->whereIn('status', ['Menunggu', 'Disetujui'])
             ->exists();
     }

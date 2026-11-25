@@ -21,7 +21,20 @@ class RoleMiddleware
             abort(403, 'Anda tidak mempunyai akses ke halaman ini.');
         }
 
-        // Akun yang dinonaktifkan saat sedang login langsung dikeluarkan.
+        // Akun yang belum disetujui / dinonaktifkan langsung dikeluarkan.
+        if ($user->isPendingApproval()) {
+            Auth::logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()
+                ->route('login')
+                ->withErrors([
+                    'email' => 'Akun Anda masih menunggu persetujuan Admin DARIN. Silakan coba login kembali setelah disetujui.',
+                ]);
+        }
+
         if (!$user->isActive()) {
             Auth::logout();
 

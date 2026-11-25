@@ -89,6 +89,12 @@ class User extends Authenticatable
         return $this->is_active !== false;
     }
 
+    /** Mahasiswa yang mendaftar sendiri dan belum disetujui Admin/HR. */
+    public function isPendingApproval(): bool
+    {
+        return $this->approval_status === 'Menunggu';
+    }
+
     public function isInternshipEnded(): bool
     {
         return $this->role === 'magang'

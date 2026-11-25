@@ -53,6 +53,17 @@
                     </div>
                 </section>
 
+                {{-- PENDAFTAR BARU MENUNGGU PERSETUJUAN --}}
+                @if (($pendaftarBaru ?? 0) > 0)
+                    <a href="{{ route('admin.users') }}#pendaftar-baru" class="flex items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-900 transition hover:bg-amber-100">
+                        <span class="text-sm">
+                            <span class="font-bold">{{ $pendaftarBaru }} pendaftar baru</span>
+                            menunggu persetujuan. Tetapkan lokasi, mentor, dan periode magang sebelum mereka bisa login.
+                        </span>
+                        <span class="shrink-0 text-xs font-bold">Periksa</span>
+                    </a>
+                @endif
+
                 {{-- KARTU STATISTIK (Sesuai Asli Anda) --}}
                 <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
                     

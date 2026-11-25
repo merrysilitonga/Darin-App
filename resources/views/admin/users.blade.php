@@ -118,8 +118,12 @@
 
         <div class="space-y-6 p-5 md:p-8">
 
-            {{-- IMPOR PENGGUNA --}}
-            <div class="flex justify-end">
+            {{-- TAMBAH MENTOR & IMPOR PENGGUNA --}}
+            <div class="flex flex-wrap justify-end gap-2">
+                <a href="{{ route('mentor.register') }}"
+                   class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-[#191712] shadow-sm transition hover:bg-gray-50">
+                    + Daftarkan Mentor
+                </a>
                 <a href="{{ route('admin.users.import') }}"
                    class="inline-flex items-center gap-2 rounded-xl bg-[#ffc107] px-5 py-2.5 text-sm font-bold text-[#191712] shadow-sm transition hover:bg-amber-400">
                     ⬆ Impor Pengguna (CSV)
@@ -229,6 +233,114 @@
                     </p>
                 </div>
 
+            </section>
+
+            {{-- PENDAFTAR BARU (mahasiswa daftar sendiri, menunggu persetujuan) --}}
+            <section id="pendaftar-baru" class="darin-card scroll-mt-6 rounded-2xl bg-white p-5 sm:p-6">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h2 class="font-extrabold text-gray-900">Pendaftar Baru</h2>
+                        <p class="mt-1 text-xs leading-5 text-gray-500">
+                            Mahasiswa yang mendaftar sendiri belum bisa login sebelum disetujui.
+                            Tetapkan lokasi absensi, periode magang, dan (opsional) mentor serta divisi.
+                        </p>
+                    </div>
+                    <span class="rounded-full px-3 py-1 text-xs font-bold {{ $pendaftar->isNotEmpty() ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-500' }}">
+                        {{ $pendaftar->count() }} menunggu
+                    </span>
+                </div>
+
+                @if ($pendaftar->isEmpty())
+                    <p class="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-500">Tidak ada pendaftar yang menunggu persetujuan.</p>
+                @else
+                    @php
+                        $lokasiAktif = $locations->where('is_active', true);
+                    @endphp
+                    <div class="mt-5 space-y-4">
+                        @foreach ($pendaftar as $calon)
+                            <div class="rounded-xl border border-gray-200 p-4">
+                                <div class="flex flex-wrap items-start justify-between gap-2">
+                                    <div>
+                                        <p class="font-bold text-gray-900">{{ $calon->name }}</p>
+                                        <p class="mt-0.5 text-xs text-gray-500">
+                                            {{ $calon->email }}
+                                            @if ($calon->nim) · NIM {{ $calon->nim }} @endif
+                                        </p>
+                                        <p class="mt-0.5 text-xs text-gray-500">
+                                            {{ $calon->university ?: 'Universitas belum diisi' }}
+                                            @if ($calon->study_program) · {{ $calon->study_program }} @endif
+                                            @if ($calon->domicile) · Domisili {{ $calon->domicile }} @endif
+                                        </p>
+                                    </div>
+                                    <p class="text-[11px] text-gray-400">
+                                        Daftar {{ $calon->created_at?->timezone('Asia/Jakarta')->format('d M Y, H:i') }} WIB
+                                    </p>
+                                </div>
+
+                                <form action="{{ route('admin.users.approve', $calon->id) }}" method="POST" class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                                    @csrf
+                                    <div>
+                                        <label class="darin-label" for="lokasi-{{ $calon->id }}">Lokasi Absensi *</label>
+                                        <select id="lokasi-{{ $calon->id }}" name="location_id" required class="darin-input">
+                                            <option value="">Pilih lokasi</option>
+                                            @foreach ($lokasiAktif as $lokasi)
+                                                <option value="{{ $lokasi->id }}">{{ $lokasi->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="darin-label" for="mulai-{{ $calon->id }}">Mulai Magang *</label>
+                                        <input id="mulai-{{ $calon->id }}" type="date" name="start_date" required class="darin-input">
+                                    </div>
+                                    <div>
+                                        <label class="darin-label" for="selesai-{{ $calon->id }}">Selesai Magang *</label>
+                                        <input id="selesai-{{ $calon->id }}" type="date" name="end_date" required class="darin-input">
+                                    </div>
+                                    <div>
+                                        <label class="darin-label" for="mentor-{{ $calon->id }}">Mentor</label>
+                                        <select id="mentor-{{ $calon->id }}" name="mentor_id" class="darin-input">
+                                            <option value="">Belum ditentukan</option>
+                                            @foreach ($mentors as $mentorPilihan)
+                                                <option value="{{ $mentorPilihan->id }}">{{ $mentorPilihan->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="darin-label" for="divisi-{{ $calon->id }}">Divisi</label>
+                                        <select id="divisi-{{ $calon->id }}" name="division_id" class="darin-input">
+                                            <option value="">Belum ditentukan</option>
+                                            @foreach ($divisions as $divisi)
+                                                <option value="{{ $divisi->id }}">{{ $divisi->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2 md:col-span-2 xl:col-span-5">
+                                        <button type="submit" class="rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-700">
+                                            Setujui Pendaftaran
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            form="tolak-{{ $calon->id }}"
+                                            class="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-700 transition hover:bg-red-100"
+                                        >
+                                            Tolak &amp; Hapus
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <form
+                                    id="tolak-{{ $calon->id }}"
+                                    action="{{ route('admin.users.reject', $calon->id) }}"
+                                    method="POST"
+                                    onsubmit="return confirm('Tolak pendaftaran ini? Akun akan dihapus.')"
+                                >
+                                    @csrf
+                                    @method('DELETE')
+                                </form>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </section>
 
             {{-- INFORMASI PERIODE MAGANG --}}
